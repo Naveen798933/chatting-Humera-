@@ -1,0 +1,8 @@
+node_modules
+.env
+uploads
+client/dist
+server/node_modules
+client/node_modules
+server/uploads
+.DS_Store
