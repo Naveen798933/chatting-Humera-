@@ -10,6 +10,8 @@ const messageSchema = new mongoose.Schema(
     authTag: { type: String, default: '' },
     messageType: { type: String, enum: ['text', 'image', 'voice', 'emoji', 'system'], default: 'text' },
     attachmentUrl: { type: String, default: '' },
+    replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Message', default: null },
+    replyPreview: { type: String, default: '' },
     reaction: { type: String, default: '' },
     seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     isDeleted: { type: Boolean, default: false },

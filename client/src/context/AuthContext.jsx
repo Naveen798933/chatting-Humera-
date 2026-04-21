@@ -4,6 +4,10 @@ import { connectSocket, disconnectSocket } from '../lib/socket.js';
 
 const AuthContext = createContext(null);
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [room, setRoom] = useState(null);
@@ -35,7 +39,10 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: Boolean(user && token),
     async signup(payload) {
-      return api.post('/auth/signup', payload);
+      return api.post('/auth/signup', {
+        ...payload,
+        email: normalizeEmail(payload?.email)
+      });
     },
     async verifyOtp(payload) {
       const { data } = await api.post('/auth/verify-otp', payload);
@@ -48,7 +55,10 @@ export function AuthProvider({ children }) {
       return data;
     },
     async login(payload) {
-      const { data } = await api.post('/auth/login', payload);
+      const { data } = await api.post('/auth/login', {
+        ...payload,
+        email: normalizeEmail(payload?.email)
+      });
       localStorage.setItem('lovechat_token', data.token);
       setToken(data.token);
       setUser(data.user);
@@ -64,17 +74,20 @@ export function AuthProvider({ children }) {
       return api.post('/auth/reset-password', payload);
     },
     async logout() {
-      await api.post('/auth/logout');
+      try {
+        await api.post('/auth/logout');
+      } catch {
+        // Clear local auth state even if server logout request fails.
+      }
       disconnectSocket();
       localStorage.removeItem('lovechat_token');
       setToken('');
       setUser(null);
       setRoom(null);
     },
-    async updateProfile(formData) {
-      const { data } = await api.put('/rooms/profile/me', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+    async updateProfile(payload) {
+      const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData;
+      const { data } = await api.put('/rooms/profile/me', payload, isFormData ? {} : { headers: { 'Content-Type': 'application/json' } });
       setUser(data.user);
       return data;
     },

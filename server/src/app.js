@@ -13,13 +13,17 @@ const __dirname = path.dirname(__filename);
 
 export function createApp() {
   const app = express();
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
-  app.use(cors({ origin: clientUrl, credentials: true }));
+  app.use(cors({ origin: true, credentials: true }));
+  app.options('*', cors({ origin: true, credentials: true }));
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   app.use('/uploads', express.static(path.join(__dirname, '..', process.env.UPLOAD_DIR || 'uploads')));
+
+  app.get('/', (_req, res) => {
+    res.send('Backend is running successfully');
+  });
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, service: 'lovechat-server' });

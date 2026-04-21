@@ -1,3 +1,5 @@
+import { resolveAssetUrl } from '../lib/assets.js';
+
 export function Sidebar({ user, room, onOpenProfile, onOpenRoom, mobileMenuOpen, setMobileMenuOpen }) {
   return (
     <aside className={`sidebar ${mobileMenuOpen ? 'open' : ''}`}>
@@ -9,7 +11,7 @@ export function Sidebar({ user, room, onOpenProfile, onOpenRoom, mobileMenuOpen,
         <button className="glass-button mobile-only" onClick={() => setMobileMenuOpen(false)}>Close</button>
       </div>
       <div className="sidebar-profile">
-        <img src={user?.avatarUrl || `https://api.dicebear.com/9.x/bottts/svg?seed=${user?.email || 'lovechat'}`} alt="profile" />
+        <img src={resolveAssetUrl(user?.avatarUrl) || `https://api.dicebear.com/9.x/bottts/svg?seed=${user?.email || 'lovechat'}`} alt="profile" />
         <div>
           <strong>{user?.nickname || user?.name}</strong>
           <p>{user?.statusMessage}</p>

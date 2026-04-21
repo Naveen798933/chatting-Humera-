@@ -5,6 +5,7 @@ import { SignupPage } from './pages/SignupPage.jsx';
 import { VerifyOtpPage } from './pages/VerifyOtpPage.jsx';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx';
 import { ChatPage } from './pages/ChatPage.jsx';
+import { ProfilePage } from './pages/ProfilePage.jsx';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/verify-otp" element={<VerifyOtpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/chat" element={<ChatPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
     </Routes>
   );
 }

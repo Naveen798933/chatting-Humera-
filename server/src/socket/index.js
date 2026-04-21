@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Room from '../models/Room.js';
 import Message from '../models/Message.js';
-import { encryptMessage } from '../utils/crypto.js';
+import { decryptMessage, encryptMessage } from '../utils/crypto.js';
 
 const onlineUsers = new Map();
 
@@ -100,12 +100,24 @@ export function setupSocket(server) {
       socket.to(activeRoomId).emit('miss-you', { userId, at: new Date() });
     });
 
-    socket.on('message:send', async ({ roomId: activeRoomId, text, messageType = 'text', attachmentUrl = '' }) => {
+    socket.on('message:send', async ({ roomId: activeRoomId, text, messageType = 'text', attachmentUrl = '', replyTo = null }) => {
       const room = await Room.findById(activeRoomId);
       if (!room) return;
       if (room.members.length !== 2) return;
       const payload = text || attachmentUrl || '';
       const encrypted = encryptMessage(payload, room.encryptionSecret);
+
+      let replyMessage = null;
+      let replyPreview = '';
+      if (replyTo) {
+        replyMessage = await Message.findById(replyTo);
+        if (replyMessage && replyMessage.roomId.toString() === activeRoomId) {
+          replyPreview = replyMessage.isDeleted
+            ? 'Message deleted'
+            : (replyMessage.messageType === 'image' ? 'Image' : decryptMessage(replyMessage, room.encryptionSecret)).slice(0, 100);
+        }
+      }
+
       const message = await Message.create({
         roomId: activeRoomId,
         sender: socket.user._id,
@@ -115,6 +127,8 @@ export function setupSocket(server) {
         authTag: encrypted.authTag,
         messageType,
         attachmentUrl,
+        replyTo: replyMessage?._id || null,
+        replyPreview,
         seenBy: [socket.user._id]
       });
       room.loveCounter += 1;
@@ -123,8 +137,37 @@ export function setupSocket(server) {
       io.to(activeRoomId).emit('message:new', {
         message: {
           ...message.toObject(),
-          plainText: payload
+          plainText: payload,
+          replyPreview
         }
+      });
+    });
+
+    socket.on('message:pin', async ({ roomId: activeRoomId, messageId, isPinned }) => {
+      const room = await Room.findById(activeRoomId);
+      if (!room) return;
+      if (!room.members.find((member) => member.toString() === userId)) return;
+
+      const message = await Message.findById(messageId);
+      if (!message || message.roomId.toString() !== activeRoomId) return;
+
+      const pinSet = new Set((room.pinnedMessageIds || []).map((item) => item.toString()));
+      const shouldPin = typeof isPinned === 'boolean' ? isPinned : !pinSet.has(messageId);
+      if (shouldPin) {
+        pinSet.add(messageId);
+      } else {
+        pinSet.delete(messageId);
+      }
+
+      room.pinnedMessageIds = Array.from(pinSet);
+      room.lastActiveAt = new Date();
+      await room.save();
+
+      io.to(activeRoomId).emit('room:pins', {
+        pinnedMessageIds: room.pinnedMessageIds.map((item) => item.toString()),
+        messageId,
+        isPinned: shouldPin,
+        userId
       });
     });
 

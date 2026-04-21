@@ -15,6 +15,7 @@ const roomSchema = new mongoose.Schema(
       url: { type: String, default: '' },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
     },
+    pinnedMessageIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Message' }],
     dailyMemoryMessage: { type: String, default: 'Today feels like us.' },
     lastActiveAt: { type: Date, default: Date.now }
   },
