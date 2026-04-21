@@ -38,6 +38,16 @@ Copy the example env files and set your values:
 - `server/.env.example` -> `server/.env`
 - `client/.env.example` -> `client/.env`
 
+For local/manual backend usage, set the client API URL to:
+
+- `VITE_API_URL=http://localhost:5000/api`
+- `VITE_SOCKET_URL=http://localhost:5000`
+
+If these values are not set, the client will auto-resolve defaults:
+
+- On localhost: uses `http://localhost:5000`
+- On deployed domains: uses same-origin (`<your-domain>/api` and `<your-domain>` for sockets)
+
 Important server values:
 
 - `MONGODB_URI=mongodb://127.0.0.1:27017/chat`
@@ -57,7 +67,7 @@ Run one of these:
 - `npm run dev:server`
 - `cd server && npm run dev`
 
-The server dev script now frees port `5000` automatically before starting, which prevents the common `EADDRINUSE` restart error on Windows.
+The backend entrypoint is `server/server.js`. The app listens on `process.env.PORT` and responds on `/` with `Backend is running successfully`.
 
 ### 5. Start the frontend
 
