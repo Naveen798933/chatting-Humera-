@@ -11,16 +11,24 @@ export function ForgotPasswordPage() {
 
   async function sendOtp(event) {
     event.preventDefault();
-    const { data } = await forgotPassword({ email: form.email });
-    setMessage(data.debugOtp ? `Dev OTP: ${data.debugOtp}` : data.message);
-    setStep(2);
+    try {
+      const { data } = await forgotPassword({ email: form.email });
+      setMessage(data.debugOtp ? `Dev OTP: ${data.debugOtp}` : data.message);
+      setStep(2);
+    } catch (err) {
+      setMessage(err.response?.data?.message || err.message || 'Unable to send OTP');
+    }
   }
 
   async function submitReset(event) {
     event.preventDefault();
-    const { data } = await resetPassword(form);
-    setMessage(data.message);
-    navigate('/login', { replace: true, state: { successMessage: 'Password reset successful. Please log in with your new password.' } });
+    try {
+      const { data } = await resetPassword(form);
+      setMessage(data.message);
+      navigate('/login', { replace: true, state: { successMessage: 'Password reset successful. Please log in with your new password.' } });
+    } catch (err) {
+      setMessage(err.response?.data?.message || err.message || 'Password reset failed');
+    }
   }
 
   return (

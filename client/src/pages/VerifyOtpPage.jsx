@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
+const apiBaseUrl = import.meta.env.VITE_API_URL;
+
 export function VerifyOtpPage() {
   const { verifyOtp } = useAuth();
   const { state } = useLocation();
@@ -15,8 +17,13 @@ export function VerifyOtpPage() {
     if (!form.email) return;
     setResendLoading(true);
     setError('');
+    if (!apiBaseUrl) {
+      setError('API URL is not configured. Please set VITE_API_URL in client/.env');
+      setResendLoading(false);
+      return;
+    }
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/resend-otp`, {
+      const response = await fetch(`${apiBaseUrl}/auth/resend-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email })
@@ -31,6 +38,7 @@ export function VerifyOtpPage() {
         setError('OTP is available on screen because email delivery is not configured or failed.');
       }
     } catch (err) {
+      console.error('OTP resend failed:', err);
       setError(err.message || 'Unable to resend OTP');
     } finally {
       setResendLoading(false);

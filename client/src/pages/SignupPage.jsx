@@ -26,7 +26,7 @@ export function SignupPage() {
         }
       });
     } catch (err) {
-      setError(err.response?.data?.message || 'Signup failed');
+      setError(err.response?.data?.message || err.message || 'Signup failed');
     }
   }
 

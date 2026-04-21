@@ -38,7 +38,7 @@ export function LoginPage() {
         setError('Too many failed attempts from this network. Wait a few minutes, then try again with the correct password.');
         return;
       }
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || err.message || 'Login failed');
     }
   }
 
