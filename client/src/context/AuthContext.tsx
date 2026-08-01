@@ -28,38 +28,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return {
-      uid: AUTHORIZED_USERS[0].uid,
-      email: AUTHORIZED_USERS[0].email,
-      realName: AUTHORIZED_USERS[0].realName,
-      nickname: AUTHORIZED_USERS[0].nickname,
-      petName: AUTHORIZED_USERS[0].petName,
-      role: AUTHORIZED_USERS[0].role,
-      photoURL: AUTHORIZED_USERS[0].photoURL,
-      city: AUTHORIZED_USERS[0].city,
-      mood: { emoji: '💖', text: 'Thinking of you always', updatedAt: new Date().toISOString() },
-      online: true,
-      lastSeen: new Date().toISOString()
-    };
+    return null;
   });
 
   const [partnerUser, setPartnerUser] = useState<UserProfile | null>(() => {
+    if (!currentUser) return null;
+    const partner = AUTHORIZED_USERS.find(u => u.uid !== currentUser.uid);
+    if (!partner) return null;
     return {
-      uid: AUTHORIZED_USERS[1].uid,
-      email: AUTHORIZED_USERS[1].email,
-      realName: AUTHORIZED_USERS[1].realName,
-      nickname: AUTHORIZED_USERS[1].nickname,
-      petName: AUTHORIZED_USERS[1].petName,
-      role: AUTHORIZED_USERS[1].role,
-      photoURL: AUTHORIZED_USERS[1].photoURL,
-      city: AUTHORIZED_USERS[1].city,
+      uid: partner.uid,
+      email: partner.email,
+      realName: partner.realName,
+      nickname: partner.nickname,
+      petName: partner.petName,
+      role: partner.role,
+      photoURL: partner.photoURL,
+      city: partner.city,
       mood: { emoji: '🥹', text: 'Can\'t wait to see you soon', updatedAt: new Date().toISOString() },
       online: true,
       lastSeen: new Date().toISOString()
     };
   });
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return Boolean(localStorage.getItem('our_universe_active_user'));
+  });
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isVaultUnlocked, setIsVaultUnlocked] = useState<boolean>(false);
   const [isDecoyActive, setIsDecoyActive] = useState<boolean>(false);
