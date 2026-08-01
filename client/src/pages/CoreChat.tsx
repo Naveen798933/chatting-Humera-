@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from '../components/motion';
 
 export const CoreChat: React.FC = () => {
   const { currentUser, partnerUser } = useAuth();
-  const { messages, sendMessage, deleteMessage, toggleStarMessage, addReaction } = useUniverse();
+  const { messages, sendMessage, deleteMessage, toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus } = useUniverse();
 
   const [inputContent, setInputContent] = useState('');
   const [isSecretMode, setIsSecretMode] = useState(false);
@@ -27,10 +27,26 @@ export const CoreChat: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  }, [messages.length, isPartnerTyping]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setInputContent(text);
+
+    if (text.trim().length > 0) {
+      setTypingStatus(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        setTypingStatus(false);
+      }, 2500);
+    } else {
+      setTypingStatus(false);
+    }
+  };
 
   useEffect(() => {
     let timer: any;
@@ -45,6 +61,9 @@ export const CoreChat: React.FC = () => {
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputContent.trim()) return;
+
+    setTypingStatus(false);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     sendMessage(
       inputContent.trim(),
@@ -323,6 +342,22 @@ export const CoreChat: React.FC = () => {
             </React.Fragment>
           );
         })}
+        {isPartnerTyping && (
+          <div className="flex items-center gap-2 text-xs text-pink-300 italic mb-2 animate-pulse px-2">
+            <img
+              src={partnerUser?.photoURL}
+              alt={partnerUser?.realName}
+              className="w-5 h-5 rounded-full object-cover border border-pink-400/40"
+            />
+            <span>{partnerUser?.petName || partnerUser?.realName} is typing</span>
+            <span className="inline-flex gap-1 items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -435,7 +470,7 @@ export const CoreChat: React.FC = () => {
         <input
           type="text"
           value={inputContent}
-          onChange={(e) => setInputContent(e.target.value)}
+          onChange={handleInputChange}
           placeholder={isSecretMode ? "Send secret disappearing message..." : "Type your message..."}
           className="flex-1 px-4 py-3 rounded-2xl glass-input text-xs"
         />

@@ -89,6 +89,9 @@ interface UniverseContextType {
   toggleStarMessage: (id: string) => void;
   addReaction: (id: string, emoji: string) => void;
 
+  isPartnerTyping: boolean;
+  setTypingStatus: (isTyping: boolean) => void;
+
   memories: Memory[];
   addMemory: (mem: Omit<Memory, 'id' | 'createdAt'>) => void;
   toggleFavoriteMemory: (id: string) => void;
@@ -197,6 +200,32 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       unsub();
     };
   }, []); // ← empty deps — attach once, never recreate
+
+  // ── Typing indicator real-time listener ────────────────────────────────────
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+
+  useEffect(() => {
+    const chatDocRef = doc(db, CHATS_COL, SHARED_CHAT_ID);
+    const unsub = onSnapshot(chatDocRef, (snap) => {
+      if (snap.exists() && currentUser) {
+        const data = snap.data();
+        const typingMap = data.typing || {};
+        const partnerUid = currentUser.uid === NAVEEN_UID ? HUMERA_UID : NAVEEN_UID;
+        setIsPartnerTyping(Boolean(typingMap[partnerUid]));
+      }
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  const setTypingStatus = (isTyping: boolean) => {
+    if (!currentUser) return;
+    const chatDocRef = doc(db, CHATS_COL, SHARED_CHAT_ID);
+    setDoc(chatDocRef, {
+      typing: {
+        [currentUser.uid]: isTyping
+      }
+    }, { merge: true }).catch(() => {});
+  };
 
   // ── Ensure the shared chat document exists ─────────────────────────────────
   useEffect(() => {
@@ -368,6 +397,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <UniverseContext.Provider value={{
       ambientEffect, setAmbientEffect, anniversaryDate, setAnniversaryDate,
       messages, sendMessage, deleteMessage, toggleStarMessage, addReaction,
+      isPartnerTyping, setTypingStatus,
       memories, addMemory, toggleFavoriteMemory,
       vaultNotes, addVaultNote, deleteVaultNote,
       calendarEvents, addCalendarEvent,
