@@ -196,7 +196,15 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           };
         }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-        setMessages(loaded);
+        setMessages(prev => {
+          if (prev.length > 0 && loaded.length > prev.length) {
+            const newest = loaded[loaded.length - 1];
+            if (currentUser && newest.senderId !== currentUser.uid) {
+              sounds.playMessageReceivedSound();
+            }
+          }
+          return loaded;
+        });
       },
       (err) => {
         console.error('[OurUniverse] Firestore listener error:', err.code, err.message);
