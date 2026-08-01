@@ -157,36 +157,45 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ── Firestore real-time listener ───────────────────────────────────────────
   useEffect(() => {
-    // Path: chats/{SHARED_CHAT_ID}/messages  ordered by createdAt asc
+    // Direct collection reference (no server-side orderBy index required)
     const msgsRef = collection(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB);
-    const q = query(msgsRef, orderBy('createdAt', 'asc'));
 
-    console.log('[OurUniverse] Attaching Firestore listener →', `${CHATS_COL}/${SHARED_CHAT_ID}/${MSGS_SUB}`);
+    console.log('[OurUniverse] Attaching direct Firestore listener →', `${CHATS_COL}/${SHARED_CHAT_ID}/${MSGS_SUB}`);
 
     const unsub = onSnapshot(
-      q,
+      msgsRef,
       (snapshot) => {
-        console.log('[OurUniverse] Snapshot received — docs:', snapshot.docs.length);
+        console.log('[OurUniverse] Firestore snapshot received — doc count:', snapshot.docs.length);
         const loaded: Message[] = snapshot.docs.map(d => {
           const data = d.data();
+          let createdAtStr = new Date().toISOString();
+          if (data.createdAt) {
+            if (typeof data.createdAt === 'string') {
+              createdAtStr = data.createdAt;
+            } else if (data.createdAt instanceof Timestamp) {
+              createdAtStr = data.createdAt.toDate().toISOString();
+            } else if (typeof data.createdAt.toDate === 'function') {
+              createdAtStr = data.createdAt.toDate().toISOString();
+            }
+          }
+
           return {
             id: d.id,
             senderId: data.senderId,
             type: data.type ?? 'text',
             content: data.content ?? '',
-            mediaUrl: data.mediaUrl,
-            replyTo: data.replyTo,
+            mediaUrl: data.mediaUrl ?? undefined,
+            replyTo: data.replyTo ?? undefined,
             reactions: data.reactions ?? {},
-            delivered: data.delivered ?? true,
-            seenAt: data.seenAt,
-            isSecret: data.isSecret,
-            isStarred: data.isStarred,
-            expiresAt: data.expiresAt,
-            createdAt: data.createdAt instanceof Timestamp
-              ? data.createdAt.toDate().toISOString()
-              : (data.createdAt ?? new Date().toISOString())
-          } as Message;
-        });
+            delivered: true,
+            seenAt: data.seenAt ?? undefined,
+            isSecret: data.isSecret ?? false,
+            isStarred: data.isStarred ?? false,
+            expiresAt: data.expiresAt ?? undefined,
+            createdAt: createdAtStr
+          };
+        }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
         setMessages(loaded);
       },
       (err) => {
@@ -294,7 +303,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       isSecret:  isSecret ?? false,
       isStarred: false,
       expiresAt: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : null,
-      createdAt: serverTimestamp()   // ← Firestore server timestamp for consistent ordering
+      createdAt: new Date().toISOString()
     };
 
     console.log('[OurUniverse] Writing message to Firestore →', `${CHATS_COL}/${SHARED_CHAT_ID}/${MSGS_SUB}`, {
