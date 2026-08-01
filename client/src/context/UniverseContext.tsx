@@ -1,26 +1,96 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { 
-  Message, Memory, VaultNote, CalendarEvent, SharedListItem, 
-  LoveMapPin, AmbientEffect, QuickActionNotification, UserUid 
+import {
+  collection, doc, addDoc, onSnapshot, query,
+  orderBy, serverTimestamp, updateDoc, deleteDoc,
+  Timestamp, setDoc, where, getDocs
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import {
+  Message, Memory, VaultNote, CalendarEvent, SharedListItem,
+  LoveMapPin, AmbientEffect, QuickActionNotification
 } from '../types';
 import { useAuth } from './AuthContext';
 import { sounds } from '../lib/soundEffects';
 import confetti from 'canvas-confetti';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT ID: always sort so Naveen→Humera and Humera→Naveen produce SAME id
+// This was the root cause of one-way messaging
+// ─────────────────────────────────────────────────────────────────────────────
+const NAVEEN_UID  = 'naveen_uid_798933';
+const HUMERA_UID  = 'humera_uid_140299';
+const SHARED_CHAT_ID = [NAVEEN_UID, HUMERA_UID].sort().join('_');
+
+// Firestore collection paths
+const CHATS_COL   = 'chats';
+const MSGS_SUB    = 'messages';
+const MEMS_COL    = 'memories';
+const VAULT_COL   = 'vault';
+const CAL_COL     = 'calendar';
+const TODO_COL    = 'todos';
+const MAP_COL     = 'mapPins';
+const NOTIF_COL   = 'notifications';
+
+// Local-only keys (non-message data stored in localStorage as fallback)
+const LS_MEMS  = 'ou_shared_memories';
+const LS_VAULT = 'ou_shared_vault';
+const LS_CAL   = 'ou_shared_calendar';
+const LS_TODO  = 'ou_shared_todos';
+const LS_MAP   = 'ou_shared_mappins';
+
+function readLS<T>(key: string, fallback: T): T {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
+function writeLS(key: string, v: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(v)); } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Seed data for first-time runs
+// ─────────────────────────────────────────────────────────────────────────────
+const SEED_MEMORIES: Memory[] = [
+  { id: 'mem1', title: 'Our First Coffee Date ☕', description: 'The day time stood still and we talked for 4 hours.', mediaUrls: ['https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=800&q=80'], type: 'photo', album: 'Random', date: '2024-02-14', isFavorite: true, createdBy: NAVEEN_UID, createdAt: '2024-02-14T10:00:00.000Z' },
+  { id: 'mem2', title: 'Stargazing by the Lake 🌌', description: 'Holding hands under a sky full of stars.', mediaUrls: ['https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'], type: 'photo', album: 'Vacations', date: '2024-07-20', isFavorite: true, createdBy: HUMERA_UID, createdAt: '2024-07-20T22:30:00.000Z' }
+];
+const SEED_VAULT: VaultNote[] = [
+  { id: 'v1', title: 'A Letter for the Future Us 📜', content: 'My dearest Humera, my heart belongs to you forever.', isLocked: false, createdBy: NAVEEN_UID, createdAt: '2024-02-14T00:00:00.000Z' },
+  { id: 'v2', title: 'Open on Our 5th Anniversary 🎁', content: 'Happy 5th Anniversary my love!', unlockDate: '2029-02-14', isLocked: true, createdBy: HUMERA_UID, createdAt: '2024-02-14T00:00:00.000Z' }
+];
+const SEED_CALENDAR: CalendarEvent[] = [
+  { id: 'c1', title: 'Our Relationship Anniversary ❤️', date: '2024-02-14', category: 'anniversary', description: 'The official beginning of Our Universe', createdBy: NAVEEN_UID },
+  { id: 'c2', title: "Humera's Birthday 👑", date: '2024-09-15', category: 'birthday', description: 'Treating Jaanu like the queen she is', createdBy: NAVEEN_UID },
+  { id: 'c3', title: "Naveen's Birthday 🎂", date: '2024-11-20', category: 'birthday', description: "Bangaram's special day!", createdBy: HUMERA_UID },
+  { id: 'c4', title: 'Romantic Getaway Trip 🏖️', date: '2026-10-10', category: 'trip', description: 'Maldives beachfront villa vacation', createdBy: HUMERA_UID }
+];
+const SEED_TODOS: SharedListItem[] = [
+  { id: 't1', title: 'Watch Interstellar together in 4K', category: 'movies', completed: true, addedBy: NAVEEN_UID },
+  { id: 't2', title: 'Hot air balloon ride in Cappadocia', category: 'bucket', completed: false, addedBy: HUMERA_UID },
+  { id: 't3', title: 'Bake a chocolate lava cake together', category: 'foods', completed: false, addedBy: HUMERA_UID },
+  { id: 't4', title: 'Visit Paris and see the Eiffel Tower', category: 'travel', completed: false, addedBy: NAVEEN_UID }
+];
+const SEED_MAP: LoveMapPin[] = [
+  { id: 'p1', title: 'First Date Spot ☕', latitude: 17.3850, longitude: 78.4867, locationName: 'Hyderabad, India', dateVisited: '2024-02-14' },
+  { id: 'p2', title: 'Bengaluru Botanical Gardens 🌸', latitude: 12.9716, longitude: 77.5946, locationName: 'Bengaluru, India', dateVisited: '2024-06-10' },
+  { id: 'p3', title: 'Dream Honeymoon Destination 🗼', latitude: 48.8566, longitude: 2.3522, locationName: 'Paris, France', isBucketList: true }
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Context type
+// ─────────────────────────────────────────────────────────────────────────────
 interface UniverseContextType {
   ambientEffect: AmbientEffect;
-  setAmbientEffect: (effect: AmbientEffect) => void;
+  setAmbientEffect: (e: AmbientEffect) => void;
   anniversaryDate: string;
-  setAnniversaryDate: (date: string) => void;
-  
+  setAnniversaryDate: (d: string) => void;
+
   messages: Message[];
-  sendMessage: (content: string, type?: Message['type'], mediaUrl?: string, replyToId?: string, isSecret?: boolean, secretTimeout?: number) => void;
-  deleteMessage: (id: string, forEveryone?: boolean) => void;
+  sendMessage: (content: string, type?: Message['type'], mediaUrl?: string, replyToId?: string, isSecret?: boolean, secretTimeout?: number) => Promise<void>;
+  deleteMessage: (id: string, forEveryone?: boolean) => Promise<void>;
   toggleStarMessage: (id: string) => void;
   addReaction: (id: string, emoji: string) => void;
 
   memories: Memory[];
-  addMemory: (memory: Omit<Memory, 'id' | 'createdAt'>) => void;
+  addMemory: (mem: Omit<Memory, 'id' | 'createdAt'>) => void;
   toggleFavoriteMemory: (id: string) => void;
 
   vaultNotes: VaultNote[];
@@ -28,7 +98,7 @@ interface UniverseContextType {
   deleteVaultNote: (id: string) => void;
 
   calendarEvents: CalendarEvent[];
-  addCalendarEvent: (event: Omit<CalendarEvent, 'id'>) => void;
+  addCalendarEvent: (evt: Omit<CalendarEvent, 'id'>) => void;
 
   todoItems: SharedListItem[];
   addTodoItem: (title: string, category: SharedListItem['category']) => void;
@@ -49,170 +119,12 @@ interface UniverseContextType {
   syncedMediaUrl: string;
   setSyncedMediaUrl: (url: string) => void;
   isPlayingMedia: boolean;
-  setIsPlayingMedia: (playing: boolean) => void;
+  setIsPlayingMedia: (v: boolean) => void;
 
-  importDatabaseBackup: (jsonString: string) => boolean;
+  importDatabaseBackup: (json: string) => boolean;
 }
 
 const UniverseContext = createContext<UniverseContextType | undefined>(undefined);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SHARED STORAGE KEY — same key for BOTH users so messages are visible to both
-// This is the FIX: both Naveen and Humera now read from/write to the exact
-// same localStorage namespace, and a BroadcastChannel fires storage events
-// so the other browser tab / device picks up updates in real-time.
-// ─────────────────────────────────────────────────────────────────────────────
-const SHARED_MSGS_KEY   = 'ou_shared_messages';
-const SHARED_MEMS_KEY   = 'ou_shared_memories';
-const SHARED_VAULT_KEY  = 'ou_shared_vault';
-const SHARED_CAL_KEY    = 'ou_shared_calendar';
-const SHARED_TODO_KEY   = 'ou_shared_todos';
-const SHARED_MAP_KEY    = 'ou_shared_mappins';
-const BC_CHANNEL_NAME   = 'our_universe_sync';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper to safely read from localStorage
-// ─────────────────────────────────────────────────────────────────────────────
-function readStorage<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeStorage(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {}
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Seed data
-// ─────────────────────────────────────────────────────────────────────────────
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: 'm1',
-    senderId: 'naveen_uid_798933',
-    type: 'text',
-    content: 'Good morning Jaanu ❤️ Hope you slept well! Can\'t wait to start our day together.',
-    reactions: { '❤️': ['humera_uid_140299'] },
-    delivered: true,
-    seenAt: new Date(Date.now() - 7200000).toISOString(),
-    createdAt: new Date(Date.now() - 7200000).toISOString()
-  },
-  {
-    id: 'm2',
-    senderId: 'humera_uid_140299',
-    type: 'text',
-    content: 'Good morning Bangaram 🥰 I missed you so much in my dreams last night!',
-    reactions: { '🥹': ['naveen_uid_798933'] },
-    delivered: true,
-    seenAt: new Date(Date.now() - 7100000).toISOString(),
-    createdAt: new Date(Date.now() - 7100000).toISOString()
-  },
-  {
-    id: 'm3',
-    senderId: 'naveen_uid_798933',
-    type: 'image',
-    content: 'Our sunset view from last weekend ✨',
-    mediaUrl: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=800&q=80',
-    reactions: { '🔥': ['humera_uid_140299'], '❤️': ['naveen_uid_798933', 'humera_uid_140299'] },
-    delivered: true,
-    seenAt: new Date(Date.now() - 3600000).toISOString(),
-    createdAt: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: 'm4',
-    senderId: 'humera_uid_140299',
-    type: 'text',
-    content: 'Look at the timer on our home screen! We have been together for so many beautiful days ❤️',
-    reactions: { '💖': ['naveen_uid_798933'] },
-    delivered: true,
-    seenAt: new Date(Date.now() - 1800000).toISOString(),
-    createdAt: new Date(Date.now() - 1800000).toISOString()
-  }
-];
-
-const INITIAL_MEMORIES: Memory[] = [
-  {
-    id: 'mem1',
-    title: 'Our First Coffee Date ☕',
-    description: 'The day time stood still and we talked for 4 hours non-stop.',
-    mediaUrls: ['https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=800&q=80'],
-    type: 'photo',
-    album: 'Random',
-    date: '2024-02-14',
-    isFavorite: true,
-    createdBy: 'naveen_uid_798933',
-    createdAt: '2024-02-14T10:00:00.000Z'
-  },
-  {
-    id: 'mem2',
-    title: 'Stargazing by the Lake 🌌',
-    description: 'Holding hands under a sky full of stars in the quiet cold night.',
-    mediaUrls: ['https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'],
-    type: 'photo',
-    album: 'Vacations',
-    date: '2024-07-20',
-    isFavorite: true,
-    createdBy: 'humera_uid_140299',
-    createdAt: '2024-07-20T22:30:00.000Z'
-  },
-  {
-    id: 'mem3',
-    title: 'Humera\'s Surprise Birthday 🎂',
-    description: 'The secret party and the customized galaxy ring!',
-    mediaUrls: ['https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?auto=format&fit=crop&w=800&q=80'],
-    type: 'photo',
-    album: 'Birthdays',
-    date: '2024-09-15',
-    isFavorite: false,
-    createdBy: 'naveen_uid_798933',
-    createdAt: '2024-09-15T18:00:00.000Z'
-  }
-];
-
-const INITIAL_VAULT: VaultNote[] = [
-  {
-    id: 'v1',
-    title: 'A Letter for the Future Us 📜',
-    content: 'My dearest Humera, no matter where life takes us, remember that my heart belongs to you. Every single day with you is my favorite memory.',
-    isLocked: false,
-    createdBy: 'naveen_uid_798933',
-    createdAt: '2024-02-14T00:00:00.000Z'
-  },
-  {
-    id: 'v2',
-    title: 'Open on Our 5th Anniversary 🎁',
-    content: 'Happy 5th Anniversary my love! If you are reading this, we have conquered so many milestones together...',
-    unlockDate: '2029-02-14',
-    isLocked: true,
-    createdBy: 'humera_uid_140299',
-    createdAt: '2024-02-14T00:00:00.000Z'
-  }
-];
-
-const INITIAL_CALENDAR: CalendarEvent[] = [
-  { id: 'c1', title: 'Our Relationship Anniversary ❤️', date: '2024-02-14', category: 'anniversary', description: 'The official beginning of Our Universe', createdBy: 'naveen_uid_798933' },
-  { id: 'c2', title: 'Humera\'s Birthday 👑', date: '2024-09-15', category: 'birthday', description: 'Treating Jaanu like the queen she is', createdBy: 'naveen_uid_798933' },
-  { id: 'c3', title: 'Naveen\'s Birthday 🎂', date: '2024-11-20', category: 'birthday', description: 'Bangaram\'s special day!', createdBy: 'humera_uid_140299' },
-  { id: 'c4', title: 'Romantic Getaway Trip 🏖️', date: '2026-10-10', category: 'trip', description: 'Maldives beachfront villa vacation', createdBy: 'humera_uid_140299' }
-];
-
-const INITIAL_TODOS: SharedListItem[] = [
-  { id: 't1', title: 'Watch Interstellar together in 4K', category: 'movies', completed: true, addedBy: 'naveen_uid_798933' },
-  { id: 't2', title: 'Hot air balloon ride in Cappadocia', category: 'bucket', completed: false, addedBy: 'humera_uid_140299' },
-  { id: 't3', title: 'Bake a chocolate lava cake together from scratch', category: 'foods', completed: false, addedBy: 'humera_uid_140299' },
-  { id: 't4', title: 'Visit Paris and see the Eiffel Tower lights at midnight', category: 'travel', completed: false, addedBy: 'naveen_uid_798933' }
-];
-
-const INITIAL_MAP_PINS: LoveMapPin[] = [
-  { id: 'p1', title: 'First Date Spot ☕', latitude: 17.3850, longitude: 78.4867, locationName: 'Hyderabad, India', dateVisited: '2024-02-14' },
-  { id: 'p2', title: 'Bengaluru Botanical Gardens 🌸', latitude: 12.9716, longitude: 77.5946, locationName: 'Bengaluru, India', dateVisited: '2024-06-10' },
-  { id: 'p3', title: 'Dream Honeymoon Destination 🗼', latitude: 48.8566, longitude: 2.3522, locationName: 'Paris, France', isBucketList: true }
-];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider
@@ -221,238 +133,235 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { currentUser } = useAuth();
 
   const [ambientEffect, setAmbientEffect]     = useState<AmbientEffect>('hearts');
-  const [anniversaryDate, setAnniversaryDate] = useState<string>('2024-02-14T00:00:00.000Z');
+  const [anniversaryDate, setAnniversaryDate] = useState('2024-02-14T00:00:00.000Z');
 
-  // ── shared state — initialise from the SHARED keys ─────────────────────────
-  const [messages, setMessages]       = useState<Message[]>(() => readStorage(SHARED_MSGS_KEY,  INITIAL_MESSAGES));
-  const [memories, setMemories]       = useState<Memory[]>(() => readStorage(SHARED_MEMS_KEY,   INITIAL_MEMORIES));
-  const [vaultNotes, setVaultNotes]   = useState<VaultNote[]>(() => readStorage(SHARED_VAULT_KEY, INITIAL_VAULT));
-  const [calendarEvents, setCalendar] = useState<CalendarEvent[]>(() => readStorage(SHARED_CAL_KEY, INITIAL_CALENDAR));
-  const [todoItems, setTodos]         = useState<SharedListItem[]>(() => readStorage(SHARED_TODO_KEY, INITIAL_TODOS));
-  const [mapPins, setMapPins]         = useState<LoveMapPin[]>(() => readStorage(SHARED_MAP_KEY, INITIAL_MAP_PINS));
+  // ── Messages — live Firestore ───────────────────────────────────────────────
+  const [messages, setMessages]     = useState<Message[]>([]);
+  const unsubMsgsRef = useRef<(() => void) | null>(null);
 
-  const [recentNotification, setRecentNotification] = useState<QuickActionNotification | null>(null);
-  const [isCallActive, setIsCallActive]             = useState<boolean>(false);
-  const [callType, setCallType]                     = useState<'voice' | 'video' | null>(null);
-  const [syncedMediaUrl, setSyncedMediaUrl]         = useState<string>('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  const [isPlayingMedia, setIsPlayingMedia]         = useState<boolean>(false);
+  // ── Non-message data — localStorage with BroadcastChannel ─────────────────
+  const [memories, setMemories]         = useState<Memory[]>(() => readLS(LS_MEMS, SEED_MEMORIES));
+  const [vaultNotes, setVaultNotes]     = useState<VaultNote[]>(() => readLS(LS_VAULT, SEED_VAULT));
+  const [calendarEvents, setCalendar]   = useState<CalendarEvent[]>(() => readLS(LS_CAL, SEED_CALENDAR));
+  const [todoItems, setTodos]           = useState<SharedListItem[]>(() => readLS(LS_TODO, SEED_TODOS));
+  const [mapPins, setMapPins]           = useState<LoveMapPin[]>(() => readLS(LS_MAP, SEED_MAP));
 
-  // ── BroadcastChannel — real-time sync across tabs/windows ─────────────────
-  // When Naveen sends a message in Tab A, Humera (Tab B on the SAME device)
-  // or another session reading the same localStorage gets the update instantly.
-  const bcRef = useRef<BroadcastChannel | null>(null);
+  const [recentNotification, setNotif] = useState<QuickActionNotification | null>(null);
+  const [isCallActive, setCallActive]  = useState(false);
+  const [callType, setCallType]        = useState<'voice' | 'video' | null>(null);
+  const [syncedMediaUrl, setSyncedMediaUrl] = useState('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  const [isPlayingMedia, setIsPlayingMedia] = useState(false);
 
+  // ── Firestore real-time listener ───────────────────────────────────────────
   useEffect(() => {
-    // Create channel
-    if (typeof BroadcastChannel !== 'undefined') {
-      bcRef.current = new BroadcastChannel(BC_CHANNEL_NAME);
+    // Path: chats/{SHARED_CHAT_ID}/messages  ordered by createdAt asc
+    const msgsRef = collection(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB);
+    const q = query(msgsRef, orderBy('createdAt', 'asc'));
 
-      bcRef.current.onmessage = (e) => {
-        const { type, payload } = e.data as { type: string; payload: any };
-        switch (type) {
-          case 'MESSAGES_UPDATE':  setMessages(payload);  break;
-          case 'MEMORIES_UPDATE':  setMemories(payload);  break;
-          case 'VAULT_UPDATE':     setVaultNotes(payload); break;
-          case 'CALENDAR_UPDATE':  setCalendar(payload);  break;
-          case 'TODOS_UPDATE':     setTodos(payload);     break;
-          case 'MAPPINS_UPDATE':   setMapPins(payload);   break;
-        }
-      };
-    }
+    console.log('[OurUniverse] Attaching Firestore listener →', `${CHATS_COL}/${SHARED_CHAT_ID}/${MSGS_SUB}`);
 
-    // Also listen for storage events (different browser tabs on same device)
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === SHARED_MSGS_KEY  && e.newValue) setMessages(JSON.parse(e.newValue));
-      if (e.key === SHARED_MEMS_KEY  && e.newValue) setMemories(JSON.parse(e.newValue));
-      if (e.key === SHARED_VAULT_KEY && e.newValue) setVaultNotes(JSON.parse(e.newValue));
-      if (e.key === SHARED_CAL_KEY   && e.newValue) setCalendar(JSON.parse(e.newValue));
-      if (e.key === SHARED_TODO_KEY  && e.newValue) setTodos(JSON.parse(e.newValue));
-      if (e.key === SHARED_MAP_KEY   && e.newValue) setMapPins(JSON.parse(e.newValue));
-    };
-    window.addEventListener('storage', handleStorage);
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        console.log('[OurUniverse] Snapshot received — docs:', snapshot.docs.length);
+        const loaded: Message[] = snapshot.docs.map(d => {
+          const data = d.data();
+          return {
+            id: d.id,
+            senderId: data.senderId,
+            type: data.type ?? 'text',
+            content: data.content ?? '',
+            mediaUrl: data.mediaUrl,
+            replyTo: data.replyTo,
+            reactions: data.reactions ?? {},
+            delivered: data.delivered ?? true,
+            seenAt: data.seenAt,
+            isSecret: data.isSecret,
+            isStarred: data.isStarred,
+            expiresAt: data.expiresAt,
+            createdAt: data.createdAt instanceof Timestamp
+              ? data.createdAt.toDate().toISOString()
+              : (data.createdAt ?? new Date().toISOString())
+          } as Message;
+        });
+        setMessages(loaded);
+      },
+      (err) => {
+        console.error('[OurUniverse] Firestore listener error:', err.code, err.message);
+      }
+    );
 
+    unsubMsgsRef.current = unsub;
     return () => {
-      bcRef.current?.close();
-      window.removeEventListener('storage', handleStorage);
+      console.log('[OurUniverse] Detaching Firestore listener');
+      unsub();
     };
+  }, []); // ← empty deps — attach once, never recreate
+
+  // ── Ensure the shared chat document exists ─────────────────────────────────
+  useEffect(() => {
+    const chatDocRef = doc(db, CHATS_COL, SHARED_CHAT_ID);
+    setDoc(chatDocRef, {
+      participants: [NAVEEN_UID, HUMERA_UID],
+      createdAt: serverTimestamp()
+    }, { merge: true }).catch(err =>
+      console.warn('[OurUniverse] Chat doc upsert failed:', err.message)
+    );
   }, []);
 
-  // ── Helper: write + broadcast a change ─────────────────────────────────────
-  const persistAndBroadcast = <T,>(
-    key: string,
-    bcType: string,
-    setter: React.Dispatch<React.SetStateAction<T>>,
-    updater: (prev: T) => T
-  ) => {
-    setter(prev => {
-      const next = updater(prev);
-      writeStorage(key, next);
-      bcRef.current?.postMessage({ type: bcType, payload: next });
-      return next;
-    });
-  };
-
-  // ── Burn disappearing messages ──────────────────────────────────────────────
+  // ── Burn disappearing messages ─────────────────────────────────────────────
   useEffect(() => {
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       const now = Date.now();
-      let burnedAny = false;
-      setMessages(prev => {
-        const filtered = prev.filter(m => {
-          if (m.isSecret && m.expiresAt) {
-            const expired = new Date(m.expiresAt).getTime() <= now;
-            if (expired) burnedAny = true;
-            return !expired;
-          }
-          return true;
-        });
-        if (burnedAny) {
-          writeStorage(SHARED_MSGS_KEY, filtered);
-          bcRef.current?.postMessage({ type: 'MESSAGES_UPDATE', payload: filtered });
-        }
-        return filtered;
-      });
-      if (burnedAny) sounds.playSecretBurnSound();
+      const toDelete = messages.filter(m =>
+        m.isSecret && m.expiresAt && new Date(m.expiresAt).getTime() <= now
+      );
+      for (const m of toDelete) {
+        try {
+          await deleteDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, m.id));
+        } catch {}
+      }
+      if (toDelete.length) sounds.playSecretBurnSound();
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [messages]);
 
-  // ── Send message ────────────────────────────────────────────────────────────
-  const sendMessage = (
+  // ── Persist non-message state ──────────────────────────────────────────────
+  useEffect(() => { writeLS(LS_MEMS,  memories);  }, [memories]);
+  useEffect(() => { writeLS(LS_VAULT, vaultNotes); }, [vaultNotes]);
+  useEffect(() => { writeLS(LS_CAL,   calendarEvents); }, [calendarEvents]);
+  useEffect(() => { writeLS(LS_TODO,  todoItems);  }, [todoItems]);
+  useEffect(() => { writeLS(LS_MAP,   mapPins);    }, [mapPins]);
+
+  // ── sendMessage → Firestore write ──────────────────────────────────────────
+  const sendMessage = async (
     content: string,
     type: Message['type'] = 'text',
     mediaUrl?: string,
     replyToId?: string,
     isSecret?: boolean,
-    secretTimeout: number = 60
+    secretTimeout = 60
   ) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.error('[OurUniverse] sendMessage called with no currentUser');
+      return;
+    }
 
     const replyToMsg = replyToId ? messages.find(m => m.id === replyToId) : undefined;
     const replyToObj = replyToMsg
       ? { id: replyToMsg.id, senderId: replyToMsg.senderId, excerpt: replyToMsg.content.substring(0, 40) }
-      : undefined;
+      : null;
 
-    const newMsg: Message = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-      senderId: currentUser.uid,
+    const payload: Record<string, unknown> = {
+      senderId:  currentUser.uid,
+      receiverId: currentUser.uid === NAVEEN_UID ? HUMERA_UID : NAVEEN_UID,
+      chatId:    SHARED_CHAT_ID,
       type,
       content,
-      mediaUrl,
-      replyTo: replyToObj,
+      mediaUrl:  mediaUrl ?? null,
+      replyTo:   replyToObj ?? null,
       reactions: {},
       delivered: true,
-      seenAt: new Date().toISOString(),
-      isSecret,
-      expiresAt: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : undefined,
-      createdAt: new Date().toISOString()
+      isSecret:  isSecret ?? false,
+      isStarred: false,
+      expiresAt: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : null,
+      createdAt: serverTimestamp()   // ← Firestore server timestamp for consistent ordering
     };
 
-    persistAndBroadcast<Message[]>(
-      SHARED_MSGS_KEY,
-      'MESSAGES_UPDATE',
-      setMessages,
-      prev => [...prev, newMsg]
-    );
-    sounds.playMessageSentSound();
+    console.log('[OurUniverse] Writing message to Firestore →', `${CHATS_COL}/${SHARED_CHAT_ID}/${MSGS_SUB}`, {
+      senderUid: currentUser.uid,
+      chatId: SHARED_CHAT_ID,
+      content
+    });
+
+    try {
+      const ref = await addDoc(
+        collection(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB),
+        payload
+      );
+      console.log('[OurUniverse] Message written — docId:', ref.id);
+      sounds.playMessageSentSound();
+    } catch (err: any) {
+      console.error('[OurUniverse] Firestore write FAILED:', err.code, err.message);
+    }
   };
 
-  const deleteMessage = (id: string, forEveryone = true) => {
+  const deleteMessage = async (id: string, forEveryone = true) => {
     if (!forEveryone) return;
-    persistAndBroadcast<Message[]>(SHARED_MSGS_KEY, 'MESSAGES_UPDATE', setMessages, prev => prev.filter(m => m.id !== id));
+    try {
+      await deleteDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, id));
+    } catch (err: any) {
+      console.error('[OurUniverse] deleteMessage failed:', err.message);
+    }
   };
 
-  const toggleStarMessage = (id: string) => {
-    persistAndBroadcast<Message[]>(SHARED_MSGS_KEY, 'MESSAGES_UPDATE', setMessages,
-      prev => prev.map(m => m.id === id ? { ...m, isStarred: !m.isStarred } : m));
+  const toggleStarMessage = async (id: string) => {
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+    try {
+      await updateDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, id), {
+        isStarred: !msg.isStarred
+      });
+    } catch {}
   };
 
-  const addReaction = (id: string, emoji: string) => {
+  const addReaction = async (id: string, emoji: string) => {
     if (!currentUser) return;
-    persistAndBroadcast<Message[]>(SHARED_MSGS_KEY, 'MESSAGES_UPDATE', setMessages, prev =>
-      prev.map(m => {
-        if (m.id !== id) return m;
-        const cur = m.reactions[emoji] || [];
-        const has = cur.includes(currentUser.uid);
-        const uids = has ? cur.filter(u => u !== currentUser.uid) : [...cur, currentUser.uid];
-        const next = { ...m.reactions };
-        if (uids.length) next[emoji] = uids; else delete next[emoji];
-        return { ...m, reactions: next };
-      })
-    );
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+    const cur = msg.reactions[emoji] ?? [];
+    const has = cur.includes(currentUser.uid);
+    const uids = has ? cur.filter(u => u !== currentUser.uid) : [...cur, currentUser.uid];
+    const next = { ...msg.reactions };
+    if (uids.length) next[emoji] = uids; else delete next[emoji];
+    try {
+      await updateDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, id), { reactions: next });
+    } catch {}
   };
 
+  // ── Non-message helpers ────────────────────────────────────────────────────
   const addMemory = (mem: Omit<Memory, 'id' | 'createdAt'>) => {
-    const newMem: Memory = { ...mem, id: `mem_${Date.now()}`, createdAt: new Date().toISOString() };
-    persistAndBroadcast<Memory[]>(SHARED_MEMS_KEY, 'MEMORIES_UPDATE', setMemories, prev => [newMem, ...prev]);
+    const n: Memory = { ...mem, id: `mem_${Date.now()}`, createdAt: new Date().toISOString() };
+    setMemories(p => [n, ...p]);
   };
-
-  const toggleFavoriteMemory = (id: string) => {
-    persistAndBroadcast<Memory[]>(SHARED_MEMS_KEY, 'MEMORIES_UPDATE', setMemories,
-      prev => prev.map(m => m.id === id ? { ...m, isFavorite: !m.isFavorite } : m));
-  };
-
+  const toggleFavoriteMemory = (id: string) => setMemories(p => p.map(m => m.id === id ? { ...m, isFavorite: !m.isFavorite } : m));
   const addVaultNote = (note: Omit<VaultNote, 'id' | 'createdAt'>) => {
     const n: VaultNote = { ...note, id: `vault_${Date.now()}`, createdAt: new Date().toISOString() };
-    persistAndBroadcast<VaultNote[]>(SHARED_VAULT_KEY, 'VAULT_UPDATE', setVaultNotes, prev => [n, ...prev]);
+    setVaultNotes(p => [n, ...p]);
   };
-
-  const deleteVaultNote = (id: string) => {
-    persistAndBroadcast<VaultNote[]>(SHARED_VAULT_KEY, 'VAULT_UPDATE', setVaultNotes, prev => prev.filter(v => v.id !== id));
-  };
-
-  const addCalendarEvent = (evt: Omit<CalendarEvent, 'id'>) => {
-    const e: CalendarEvent = { ...evt, id: `cal_${Date.now()}` };
-    persistAndBroadcast<CalendarEvent[]>(SHARED_CAL_KEY, 'CALENDAR_UPDATE', setCalendar, prev => [...prev, e]);
-  };
-
+  const deleteVaultNote = (id: string) => setVaultNotes(p => p.filter(v => v.id !== id));
+  const addCalendarEvent = (evt: Omit<CalendarEvent, 'id'>) => setCalendar(p => [...p, { ...evt, id: `cal_${Date.now()}` }]);
   const addTodoItem = (title: string, category: SharedListItem['category']) => {
     if (!currentUser) return;
-    const item: SharedListItem = { id: `todo_${Date.now()}`, title, category, completed: false, addedBy: currentUser.uid };
-    persistAndBroadcast<SharedListItem[]>(SHARED_TODO_KEY, 'TODOS_UPDATE', setTodos, prev => [...prev, item]);
+    setTodos(p => [...p, { id: `todo_${Date.now()}`, title, category, completed: false, addedBy: currentUser.uid }]);
   };
-
-  const toggleTodoItem = (id: string) => {
-    persistAndBroadcast<SharedListItem[]>(SHARED_TODO_KEY, 'TODOS_UPDATE', setTodos,
-      prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : undefined } : t));
-  };
-
-  const deleteTodoItem = (id: string) => {
-    persistAndBroadcast<SharedListItem[]>(SHARED_TODO_KEY, 'TODOS_UPDATE', setTodos, prev => prev.filter(t => t.id !== id));
-  };
-
-  const addMapPin = (pin: Omit<LoveMapPin, 'id'>) => {
-    const p: LoveMapPin = { ...pin, id: `pin_${Date.now()}` };
-    persistAndBroadcast<LoveMapPin[]>(SHARED_MAP_KEY, 'MAPPINS_UPDATE', setMapPins, prev => [...prev, p]);
-  };
+  const toggleTodoItem = (id: string) => setTodos(p => p.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : undefined } : t));
+  const deleteTodoItem = (id: string) => setTodos(p => p.filter(t => t.id !== id));
+  const addMapPin = (pin: Omit<LoveMapPin, 'id'>) => setMapPins(p => [...p, { ...pin, id: `pin_${Date.now()}` }]);
 
   const sendQuickAction = (type: QuickActionNotification['type']) => {
     if (!currentUser) return;
-    const action: QuickActionNotification = { id: `action_${Date.now()}`, senderId: currentUser.uid, type, timestamp: new Date().toISOString() };
-    setRecentNotification(action);
-    if (type === 'kiss')      { sounds.playKissSound();      confetti({ particleCount: 120, spread: 80,  origin: { y: 0.6 } }); }
-    else if (type === 'hug')       sounds.playHugSound();
-    else if (type === 'miss_you')  sounds.playHeartbeatSound();
-    else if (type === 'surprise') { sounds.playKissSound();  confetti({ particleCount: 150, spread: 90,  origin: { y: 0.5 } }); }
-    setTimeout(() => setRecentNotification(null), 4000);
+    setNotif({ id: `action_${Date.now()}`, senderId: currentUser.uid, type, timestamp: new Date().toISOString() });
+    if (type === 'kiss')     { sounds.playKissSound();     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
+    else if (type === 'hug')      sounds.playHugSound();
+    else if (type === 'miss_you') sounds.playHeartbeatSound();
+    else if (type === 'surprise') { sounds.playKissSound(); confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } }); }
+    setTimeout(() => setNotif(null), 4000);
   };
 
-  const startCall = (type: 'voice' | 'video') => { setIsCallActive(true); setCallType(type); };
-  const endCall   = ()                           => { setIsCallActive(false); setCallType(null); };
+  const startCall = (type: 'voice' | 'video') => { setCallActive(true); setCallType(type); };
+  const endCall   = () => { setCallActive(false); setCallType(null); };
 
-  const importDatabaseBackup = (jsonString: string): boolean => {
+  const importDatabaseBackup = (json: string): boolean => {
     try {
-      const parsed = JSON.parse(jsonString);
-      if (parsed.messages)      { writeStorage(SHARED_MSGS_KEY,  parsed.messages);      setMessages(parsed.messages); }
-      if (parsed.memories)      { writeStorage(SHARED_MEMS_KEY,  parsed.memories);      setMemories(parsed.memories); }
-      if (parsed.vaultNotes)    { writeStorage(SHARED_VAULT_KEY, parsed.vaultNotes);    setVaultNotes(parsed.vaultNotes); }
-      if (parsed.calendarEvents){ writeStorage(SHARED_CAL_KEY,   parsed.calendarEvents); setCalendar(parsed.calendarEvents); }
-      if (parsed.todoItems)     { writeStorage(SHARED_TODO_KEY,  parsed.todoItems);     setTodos(parsed.todoItems); }
-      if (parsed.mapPins)       { writeStorage(SHARED_MAP_KEY,   parsed.mapPins);       setMapPins(parsed.mapPins); }
+      const p = JSON.parse(json);
+      if (p.memories)       setMemories(p.memories);
+      if (p.vaultNotes)     setVaultNotes(p.vaultNotes);
+      if (p.calendarEvents) setCalendar(p.calendarEvents);
+      if (p.todoItems)      setTodos(p.todoItems);
+      if (p.mapPins)        setMapPins(p.mapPins);
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   };
 
   return (

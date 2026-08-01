@@ -1,57 +1,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Hardcoded Authorized UIDs for Naveen & Humera (Section 3 & Section 14)
-    function isUniverseUser() {
-      return request.auth != null && (
-        request.auth.uid == "naveen_uid_798933" || 
-        request.auth.uid == "humera_uid_140299"
-      );
+
+    // Only Naveen & Humera are ever allowed
+    function isNaveen() {
+      return request.auth != null && request.auth.uid == 'naveen_uid_798933';
+    }
+    function isHumera() {
+      return request.auth != null && request.auth.uid == 'humera_uid_140299';
+    }
+    function isAuthorized() {
+      return isNaveen() || isHumera();
     }
 
-    // Owner check for administrative actions
-    function isOwner() {
-      return request.auth != null && request.auth.uid == "naveen_uid_798933";
+    // ── Chat messages (real-time read + write) ─────────────────────────────
+    match /chats/{chatId}/messages/{msgId} {
+      allow read:   if isAuthorized();
+      allow create: if isAuthorized()
+                    && request.resource.data.senderId == request.auth.uid
+                    && request.resource.data.chatId == chatId;
+      allow update: if isAuthorized();
+      allow delete: if isAuthorized();
     }
 
-    // Global Collections Access Boundary
-    match /users/{userId} {
-      allow read, write: if isUniverseUser();
+    // ── Chat metadata document ─────────────────────────────────────────────
+    match /chats/{chatId} {
+      allow read, write: if isAuthorized();
     }
 
-    match /config/{configId} {
-      allow read: if isUniverseUser();
-      allow write: if isOwner();
-    }
-
-    match /conversations/{convId}/messages/{messageId} {
-      allow read, write: if isUniverseUser();
-    }
-
-    match /memories/{memoryId} {
-      allow read, write: if isUniverseUser();
-    }
-
-    match /vault/{noteId} {
-      allow read, write: if isUniverseUser();
-    }
-
-    match /calendar/{eventId} {
-      allow read, write: if isUniverseUser();
-    }
-
-    match /todos/{todoId} {
-      allow read, write: if isUniverseUser();
-    }
-
-    match /mappins/{pinId} {
-      allow read, write: if isUniverseUser();
-    }
-
-    // Reject all third-party access by default
+    // ── Everything else in the database ───────────────────────────────────
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if isAuthorized();
     }
   }
 }
