@@ -86,16 +86,20 @@ export const CoreChat: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       const isVideo = file.type.startsWith('video');
-      const fakeUrl = URL.createObjectURL(file);
-      sendMessage(
-        `Shared ${isVideo ? 'a video' : 'an image'}`,
-        isVideo ? 'video' : 'image',
-        fakeUrl,
-        replyingTo?.id,
-        isSecretMode,
-        secretTimeout
-      );
-      setReplyingTo(null);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const mediaUrl = reader.result as string;
+        sendMessage(
+          `Shared ${isVideo ? 'a video' : 'an image'}`,
+          isVideo ? 'video' : 'image',
+          mediaUrl,
+          replyingTo?.id,
+          isSecretMode,
+          secretTimeout
+        );
+        setReplyingTo(null);
+      };
+      reader.readAsDataURL(file);
     }
   };
 

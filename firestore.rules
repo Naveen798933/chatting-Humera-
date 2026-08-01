@@ -1,36 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Only Naveen & Humera are ever allowed
-    function isNaveen() {
-      return request.auth != null && request.auth.uid == 'naveen_uid_798933';
-    }
-    function isHumera() {
-      return request.auth != null && request.auth.uid == 'humera_uid_140299';
-    }
-    function isAuthorized() {
-      return isNaveen() || isHumera();
-    }
-
-    // ── Chat messages (real-time read + write) ─────────────────────────────
-    match /chats/{chatId}/messages/{msgId} {
-      allow read:   if isAuthorized();
-      allow create: if isAuthorized()
-                    && request.resource.data.senderId == request.auth.uid
-                    && request.resource.data.chatId == chatId;
-      allow update: if isAuthorized();
-      allow delete: if isAuthorized();
-    }
-
-    // ── Chat metadata document ─────────────────────────────────────────────
-    match /chats/{chatId} {
-      allow read, write: if isAuthorized();
-    }
-
-    // ── Everything else in the database ───────────────────────────────────
+    // Allow full read and write access for Our Universe private chat app
     match /{document=**} {
-      allow read, write: if isAuthorized();
+      allow read, write: if true;
     }
   }
 }
