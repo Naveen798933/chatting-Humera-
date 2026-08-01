@@ -1,97 +1,37 @@
-# LoveChat / PrivateTalk
+# Our Universe ❤️ Naveen & Humera Private Space
 
-Private couple chat platform with React, Vite, Express, MongoDB, and Socket.io.
+A premium, private, two-person relationship application exclusively for **Naveen** and **Humera**.
 
-## Structure
+---
 
-- `client` - React + Vite UI
-- `server` - Express + MongoDB API and Socket.io realtime layer
+## 🌟 Highlights & Key Features
 
-## Features
+- **2-Account Access Boundary**: Hardcoded authorization checking `naveen@ouruniverse.app` and `humera@ouruniverse.app`. Rejects third-party emails with *"This universe is private ❤️"*.
+- **256-Bit AES-GCM Payload Encryption**: Web Crypto API payload encryption-at-rest.
+- **Glassmorphism Design System**: Dark mode only with ambient particle backgrounds (Floating Hearts, Twinkling Stars, Deep Galaxy, Soft Rain, and Soft Snow).
+- **Home Dashboard**: Together for X Days counter, live couple weather (Hyderabad & Bengaluru), mood status, and 1-tap quick actions (*"I Miss You"*, Hug, Kiss, Surprise mode).
+- **Core Chat**: Real-time 1:1 chat with disappearing message burn timers (30s, 1m, 10m, 1h, 24h), voice notes, reactions, stickers, and screenshot detection alert (*"Someone tried to steal a memory 📸"*).
+- **Memories Gallery**: Shared photo/video timeline and PIN-gated Hidden Album.
+- **Love Calendar & Vault**: Milestone countdowns, locked diary vault for secret letters, shared bucket lists, and interactive Love Map.
+- **Together Time**: 1:1 WebRTC Voice & Video Calls, watch-together sync player, and couple mini-games (Truth or Dare, Would You Rather, Never Have I Ever, Couple Trivia Quiz, Tic-Tac-Toe, Drawing Canvas).
+- **Love AI Assistant**: AI date planner, love poem generator, and chat summary.
+- **Stealth Decoy Calculator**: Passcode `"0000"` switches interface to a working calculator disguise screen.
+- **PWA & Offline**: Installable on iOS/Android home screen with Service Worker asset caching.
 
-- Open registration with OTP verification
-- JWT auth with bcrypt password hashing
-- Private two-user room enforcement
-- Realtime messaging, typing, presence, seen state, reactions, message editing, in-chat search, shared music, mood status, and live cursor events
-- Responsive glassmorphism UI with dark/light mode
-- Profile picture upload and daily memory panel
+---
 
-## Execution Guide
+## 🚀 How to Run Locally
 
-### 1. Install dependencies
+```bash
+# Clone the repository
+git clone https://github.com/Naveen798933/chatting-Humera-.git
+cd chatting-Humera-
 
-From the project root, run:
+# Install dependencies
+npm install
 
-- `npm install`
+# Start development web server
+npm run dev
+```
 
-This installs both workspace apps: `client` and `server`.
-
-If you prefer per-app installs, use:
-
-- `cd server && npm install`
-- `cd ../client && npm install`
-
-### 2. Configure environment files
-
-Copy the example env files and set your values:
-
-- `server/.env.example` -> `server/.env`
-- `client/.env.example` -> `client/.env`
-
-For local/manual backend usage, set the client API URL to:
-
-- `VITE_API_URL=http://localhost:5000/api`
-- `VITE_SOCKET_URL=http://localhost:5000`
-
-If these values are not set, the client will auto-resolve defaults:
-
-- On localhost: uses `http://localhost:5000`
-- On deployed domains: uses same-origin (`<your-domain>/api` and `<your-domain>` for sockets)
-
-Important server values:
-
-- `MONGODB_URI=mongodb://127.0.0.1:27017/chat`
-- `JWT_SECRET=...`
-- Set `SMTP_HOST`, `SMTP_USER`, and `SMTP_PASS` to send OTPs by email.
-- If SMTP is left blank, the OTP is returned in the signup/reset response and printed to the server console.
-- For Gmail, use a 2-step-verified account and an app password, not your normal login password.
-
-### 3. Start MongoDB
-
-Make sure MongoDB is running locally before starting the server.
-
-### 4. Start the backend
-
-Run one of these:
-
-- `npm run dev:server`
-- `cd server && npm run dev`
-
-The backend entrypoint is `server/server.js`. The app listens on `process.env.PORT` and responds on `/` with `Backend is running successfully`.
-
-### 5. Start the frontend
-
-Run one of these:
-
-- `npm run dev:client`
-- `cd client && npm run dev`
-
-### 6. Open the app
-
-Visit the Vite URL shown in the terminal, usually:
-
-- `http://localhost:5173`
-
-### 7. Sign in flow
-
-1. Create a new account.
-2. Verify the OTP.
-3. Log in.
-4. Open the private chat room.
-
-## Notes
-
-- Open registration to all users by removing invite-code checks, invite-email filtering, and the signup cap.
-- Local MongoDB is wired to `mongodb://127.0.0.1:27017/chat` in `server/.env`.
-- The message payload uses encrypted storage on the server side with a room secret, while the socket layer only forwards authorized room traffic.
-- For production, enable HTTPS and set secure cookies behind a reverse proxy.
+Open `http://localhost:3000` in your browser.
