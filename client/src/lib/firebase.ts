@@ -3,14 +3,14 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Standard Firebase config - replace with environment variables if deployed
+// Firebase Configuration (Uses env vars if present, with real project fallbacks for production builds)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyOurUniversePrivateNaveenHumeraKey",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAuXj08cai-FiYt1-XoHxDQq5PPqwXR0t8",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "our-universe-naveen-humera.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "our-universe-naveen-humera",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "our-universe-naveen-humera.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "798933140299",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:798933140299:web:ouruniverseprivateapp"
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "our-universe-naveen-humera.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "780150831368",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:780150831368:web:bdbaac71ded7432905d4bd"
 };
 
 // Initialize Firebase safely
