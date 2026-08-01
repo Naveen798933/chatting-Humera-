@@ -320,13 +320,32 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       content
     });
 
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const newMsgObj: Message = {
+      id: tempId,
+      senderId: currentUser.uid,
+      type,
+      content,
+      mediaUrl: mediaUrl ?? undefined,
+      replyTo: replyToObj ?? undefined,
+      reactions: {},
+      delivered: true,
+      isSecret: isSecret ?? false,
+      isStarred: false,
+      expiresAt: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : undefined,
+      createdAt: new Date().toISOString()
+    };
+
+    // ⚡ Optimistic local UI update — instant 0ms rendering for sender
+    setMessages(prev => [...prev, newMsgObj]);
+    sounds.playMessageSentSound();
+
     try {
       const ref = await addDoc(
         collection(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB),
         payload
       );
-      console.log('[OurUniverse] Message written — docId:', ref.id);
-      sounds.playMessageSentSound();
+      console.log('[OurUniverse] Message written to Firestore — docId:', ref.id);
     } catch (err: any) {
       console.error('[OurUniverse] Firestore write FAILED:', err.code, err.message);
     }
