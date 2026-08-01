@@ -1,4 +1,4 @@
-const CACHE_NAME = 'our-universe-v1';
+const CACHE_NAME = 'our-universe-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -31,17 +31,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Offline-first strategy for static assets
+  // Network-first strategy to ensure Render always loads fresh app code
   if (event.request.method === 'GET') {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        return (
-          cached ||
-          fetch(event.request).catch(() => {
-            return caches.match('/index.html');
-          })
-        );
-      })
+      fetch(event.request)
+        .then((response) => {
+          // Update cache with fresh response
+          if (response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => {
+          // Fallback to cache if offline
+          return caches.match(event.request).then((cached) => {
+            return cached || caches.match('/index.html');
+          });
+        })
     );
   }
 });
