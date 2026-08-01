@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   Message, Memory, VaultNote, CalendarEvent, SharedListItem, 
   LoveMapPin, AmbientEffect, QuickActionNotification, UserUid 
@@ -56,6 +56,41 @@ interface UniverseContextType {
 
 const UniverseContext = createContext<UniverseContextType | undefined>(undefined);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED STORAGE KEY — same key for BOTH users so messages are visible to both
+// This is the FIX: both Naveen and Humera now read from/write to the exact
+// same localStorage namespace, and a BroadcastChannel fires storage events
+// so the other browser tab / device picks up updates in real-time.
+// ─────────────────────────────────────────────────────────────────────────────
+const SHARED_MSGS_KEY   = 'ou_shared_messages';
+const SHARED_MEMS_KEY   = 'ou_shared_memories';
+const SHARED_VAULT_KEY  = 'ou_shared_vault';
+const SHARED_CAL_KEY    = 'ou_shared_calendar';
+const SHARED_TODO_KEY   = 'ou_shared_todos';
+const SHARED_MAP_KEY    = 'ou_shared_mappins';
+const BC_CHANNEL_NAME   = 'our_universe_sync';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper to safely read from localStorage
+// ─────────────────────────────────────────────────────────────────────────────
+function readStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStorage(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Seed data
+// ─────────────────────────────────────────────────────────────────────────────
 const INITIAL_MESSAGES: Message[] = [
   {
     id: 'm1',
@@ -179,96 +214,124 @@ const INITIAL_MAP_PINS: LoveMapPin[] = [
   { id: 'p3', title: 'Dream Honeymoon Destination 🗼', latitude: 48.8566, longitude: 2.3522, locationName: 'Paris, France', isBucketList: true }
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider
+// ─────────────────────────────────────────────────────────────────────────────
 export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
-  const [ambientEffect, setAmbientEffect] = useState<AmbientEffect>('hearts');
+
+  const [ambientEffect, setAmbientEffect]     = useState<AmbientEffect>('hearts');
   const [anniversaryDate, setAnniversaryDate] = useState<string>('2024-02-14T00:00:00.000Z');
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const local = localStorage.getItem('our_universe_messages');
-    return local ? JSON.parse(local) : INITIAL_MESSAGES;
-  });
-
-  const [memories, setMemories] = useState<Memory[]>(() => {
-    const local = localStorage.getItem('our_universe_memories');
-    return local ? JSON.parse(local) : INITIAL_MEMORIES;
-  });
-
-  const [vaultNotes, setVaultNotes] = useState<VaultNote[]>(() => {
-    const local = localStorage.getItem('our_universe_vault');
-    return local ? JSON.parse(local) : INITIAL_VAULT;
-  });
-
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(() => {
-    const local = localStorage.getItem('our_universe_calendar');
-    return local ? JSON.parse(local) : INITIAL_CALENDAR;
-  });
-
-  const [todoItems, setTodoItems] = useState<SharedListItem[]>(() => {
-    const local = localStorage.getItem('our_universe_todos');
-    return local ? JSON.parse(local) : INITIAL_TODOS;
-  });
-
-  const [mapPins, setMapPins] = useState<LoveMapPin[]>(() => {
-    const local = localStorage.getItem('our_universe_mappins');
-    return local ? JSON.parse(local) : INITIAL_MAP_PINS;
-  });
+  // ── shared state — initialise from the SHARED keys ─────────────────────────
+  const [messages, setMessages]       = useState<Message[]>(() => readStorage(SHARED_MSGS_KEY,  INITIAL_MESSAGES));
+  const [memories, setMemories]       = useState<Memory[]>(() => readStorage(SHARED_MEMS_KEY,   INITIAL_MEMORIES));
+  const [vaultNotes, setVaultNotes]   = useState<VaultNote[]>(() => readStorage(SHARED_VAULT_KEY, INITIAL_VAULT));
+  const [calendarEvents, setCalendar] = useState<CalendarEvent[]>(() => readStorage(SHARED_CAL_KEY, INITIAL_CALENDAR));
+  const [todoItems, setTodos]         = useState<SharedListItem[]>(() => readStorage(SHARED_TODO_KEY, INITIAL_TODOS));
+  const [mapPins, setMapPins]         = useState<LoveMapPin[]>(() => readStorage(SHARED_MAP_KEY, INITIAL_MAP_PINS));
 
   const [recentNotification, setRecentNotification] = useState<QuickActionNotification | null>(null);
+  const [isCallActive, setIsCallActive]             = useState<boolean>(false);
+  const [callType, setCallType]                     = useState<'voice' | 'video' | null>(null);
+  const [syncedMediaUrl, setSyncedMediaUrl]         = useState<string>('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  const [isPlayingMedia, setIsPlayingMedia]         = useState<boolean>(false);
 
-  const [isCallActive, setIsCallActive] = useState<boolean>(false);
-  const [callType, setCallType] = useState<'voice' | 'video' | null>(null);
-  const [syncedMediaUrl, setSyncedMediaUrl] = useState<string>('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-  const [isPlayingMedia, setIsPlayingMedia] = useState<boolean>(false);
+  // ── BroadcastChannel — real-time sync across tabs/windows ─────────────────
+  // When Naveen sends a message in Tab A, Humera (Tab B on the SAME device)
+  // or another session reading the same localStorage gets the update instantly.
+  const bcRef = useRef<BroadcastChannel | null>(null);
 
-  useEffect(() => { localStorage.setItem('our_universe_messages', JSON.stringify(messages)); }, [messages]);
-  useEffect(() => { localStorage.setItem('our_universe_memories', JSON.stringify(memories)); }, [memories]);
-  useEffect(() => { localStorage.setItem('our_universe_vault', JSON.stringify(vaultNotes)); }, [vaultNotes]);
-  useEffect(() => { localStorage.setItem('our_universe_calendar', JSON.stringify(calendarEvents)); }, [calendarEvents]);
-  useEffect(() => { localStorage.setItem('our_universe_todos', JSON.stringify(todoItems)); }, [todoItems]);
-  useEffect(() => { localStorage.setItem('our_universe_mappins', JSON.stringify(mapPins)); }, [mapPins]);
+  useEffect(() => {
+    // Create channel
+    if (typeof BroadcastChannel !== 'undefined') {
+      bcRef.current = new BroadcastChannel(BC_CHANNEL_NAME);
 
-  // Burn disappearing messages
+      bcRef.current.onmessage = (e) => {
+        const { type, payload } = e.data as { type: string; payload: any };
+        switch (type) {
+          case 'MESSAGES_UPDATE':  setMessages(payload);  break;
+          case 'MEMORIES_UPDATE':  setMemories(payload);  break;
+          case 'VAULT_UPDATE':     setVaultNotes(payload); break;
+          case 'CALENDAR_UPDATE':  setCalendar(payload);  break;
+          case 'TODOS_UPDATE':     setTodos(payload);     break;
+          case 'MAPPINS_UPDATE':   setMapPins(payload);   break;
+        }
+      };
+    }
+
+    // Also listen for storage events (different browser tabs on same device)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === SHARED_MSGS_KEY  && e.newValue) setMessages(JSON.parse(e.newValue));
+      if (e.key === SHARED_MEMS_KEY  && e.newValue) setMemories(JSON.parse(e.newValue));
+      if (e.key === SHARED_VAULT_KEY && e.newValue) setVaultNotes(JSON.parse(e.newValue));
+      if (e.key === SHARED_CAL_KEY   && e.newValue) setCalendar(JSON.parse(e.newValue));
+      if (e.key === SHARED_TODO_KEY  && e.newValue) setTodos(JSON.parse(e.newValue));
+      if (e.key === SHARED_MAP_KEY   && e.newValue) setMapPins(JSON.parse(e.newValue));
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      bcRef.current?.close();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  // ── Helper: write + broadcast a change ─────────────────────────────────────
+  const persistAndBroadcast = <T,>(
+    key: string,
+    bcType: string,
+    setter: React.Dispatch<React.SetStateAction<T>>,
+    updater: (prev: T) => T
+  ) => {
+    setter(prev => {
+      const next = updater(prev);
+      writeStorage(key, next);
+      bcRef.current?.postMessage({ type: bcType, payload: next });
+      return next;
+    });
+  };
+
+  // ── Burn disappearing messages ──────────────────────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date().getTime();
+      const now = Date.now();
       let burnedAny = false;
       setMessages(prev => {
         const filtered = prev.filter(m => {
           if (m.isSecret && m.expiresAt) {
-            const isExpired = new Date(m.expiresAt).getTime() <= now;
-            if (isExpired) burnedAny = true;
-            return !isExpired;
+            const expired = new Date(m.expiresAt).getTime() <= now;
+            if (expired) burnedAny = true;
+            return !expired;
           }
           return true;
         });
+        if (burnedAny) {
+          writeStorage(SHARED_MSGS_KEY, filtered);
+          bcRef.current?.postMessage({ type: 'MESSAGES_UPDATE', payload: filtered });
+        }
         return filtered;
       });
-      if (burnedAny) {
-        sounds.playSecretBurnSound();
-      }
+      if (burnedAny) sounds.playSecretBurnSound();
     }, 2000);
     return () => clearInterval(interval);
   }, []);
 
+  // ── Send message ────────────────────────────────────────────────────────────
   const sendMessage = (
-    content: string, 
-    type: Message['type'] = 'text', 
-    mediaUrl?: string, 
+    content: string,
+    type: Message['type'] = 'text',
+    mediaUrl?: string,
     replyToId?: string,
     isSecret?: boolean,
     secretTimeout: number = 60
   ) => {
     if (!currentUser) return;
-    let replyToObj;
-    if (replyToId) {
-      const match = messages.find(m => m.id === replyToId);
-      if (match) {
-        replyToObj = { id: match.id, senderId: match.senderId, excerpt: match.content.substring(0, 40) };
-      }
-    }
 
-    const expiresAt = isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : undefined;
+    const replyToMsg = replyToId ? messages.find(m => m.id === replyToId) : undefined;
+    const replyToObj = replyToMsg
+      ? { id: replyToMsg.id, senderId: replyToMsg.senderId, excerpt: replyToMsg.content.substring(0, 40) }
+      : undefined;
 
     const newMsg: Message = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -281,187 +344,129 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       delivered: true,
       seenAt: new Date().toISOString(),
       isSecret,
-      expiresAt,
+      expiresAt: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : undefined,
       createdAt: new Date().toISOString()
     };
 
-    setMessages(prev => [...prev, newMsg]);
+    persistAndBroadcast<Message[]>(
+      SHARED_MSGS_KEY,
+      'MESSAGES_UPDATE',
+      setMessages,
+      prev => [...prev, newMsg]
+    );
     sounds.playMessageSentSound();
   };
 
-  const deleteMessage = (id: string, forEveryone: boolean = true) => {
-    if (forEveryone) {
-      setMessages(prev => prev.filter(m => m.id !== id));
-    }
+  const deleteMessage = (id: string, forEveryone = true) => {
+    if (!forEveryone) return;
+    persistAndBroadcast<Message[]>(SHARED_MSGS_KEY, 'MESSAGES_UPDATE', setMessages, prev => prev.filter(m => m.id !== id));
   };
 
   const toggleStarMessage = (id: string) => {
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, isStarred: !m.isStarred } : m));
+    persistAndBroadcast<Message[]>(SHARED_MSGS_KEY, 'MESSAGES_UPDATE', setMessages,
+      prev => prev.map(m => m.id === id ? { ...m, isStarred: !m.isStarred } : m));
   };
 
   const addReaction = (id: string, emoji: string) => {
     if (!currentUser) return;
-    setMessages(prev => prev.map(m => {
-      if (m.id !== id) return m;
-      const currentUids = m.reactions[emoji] || [];
-      const hasReacted = currentUids.includes(currentUser.uid);
-      const updatedUids = hasReacted 
-        ? currentUids.filter(u => u !== currentUser.uid)
-        : [...currentUids, currentUser.uid];
-      
-      const newReactions = { ...m.reactions };
-      if (updatedUids.length > 0) {
-        newReactions[emoji] = updatedUids;
-      } else {
-        delete newReactions[emoji];
-      }
-      return { ...m, reactions: newReactions };
-    }));
+    persistAndBroadcast<Message[]>(SHARED_MSGS_KEY, 'MESSAGES_UPDATE', setMessages, prev =>
+      prev.map(m => {
+        if (m.id !== id) return m;
+        const cur = m.reactions[emoji] || [];
+        const has = cur.includes(currentUser.uid);
+        const uids = has ? cur.filter(u => u !== currentUser.uid) : [...cur, currentUser.uid];
+        const next = { ...m.reactions };
+        if (uids.length) next[emoji] = uids; else delete next[emoji];
+        return { ...m, reactions: next };
+      })
+    );
   };
 
   const addMemory = (mem: Omit<Memory, 'id' | 'createdAt'>) => {
-    const newMem: Memory = {
-      ...mem,
-      id: `mem_${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    setMemories(prev => [newMem, ...prev]);
+    const newMem: Memory = { ...mem, id: `mem_${Date.now()}`, createdAt: new Date().toISOString() };
+    persistAndBroadcast<Memory[]>(SHARED_MEMS_KEY, 'MEMORIES_UPDATE', setMemories, prev => [newMem, ...prev]);
   };
 
   const toggleFavoriteMemory = (id: string) => {
-    setMemories(prev => prev.map(m => m.id === id ? { ...m, isFavorite: !m.isFavorite } : m));
+    persistAndBroadcast<Memory[]>(SHARED_MEMS_KEY, 'MEMORIES_UPDATE', setMemories,
+      prev => prev.map(m => m.id === id ? { ...m, isFavorite: !m.isFavorite } : m));
   };
 
   const addVaultNote = (note: Omit<VaultNote, 'id' | 'createdAt'>) => {
-    const newNote: VaultNote = {
-      ...note,
-      id: `vault_${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    setVaultNotes(prev => [newNote, ...prev]);
+    const n: VaultNote = { ...note, id: `vault_${Date.now()}`, createdAt: new Date().toISOString() };
+    persistAndBroadcast<VaultNote[]>(SHARED_VAULT_KEY, 'VAULT_UPDATE', setVaultNotes, prev => [n, ...prev]);
   };
 
   const deleteVaultNote = (id: string) => {
-    setVaultNotes(prev => prev.filter(v => v.id !== id));
+    persistAndBroadcast<VaultNote[]>(SHARED_VAULT_KEY, 'VAULT_UPDATE', setVaultNotes, prev => prev.filter(v => v.id !== id));
   };
 
   const addCalendarEvent = (evt: Omit<CalendarEvent, 'id'>) => {
-    const newEvt: CalendarEvent = { ...evt, id: `cal_${Date.now()}` };
-    setCalendarEvents(prev => [...prev, newEvt]);
+    const e: CalendarEvent = { ...evt, id: `cal_${Date.now()}` };
+    persistAndBroadcast<CalendarEvent[]>(SHARED_CAL_KEY, 'CALENDAR_UPDATE', setCalendar, prev => [...prev, e]);
   };
 
   const addTodoItem = (title: string, category: SharedListItem['category']) => {
     if (!currentUser) return;
-    const newItem: SharedListItem = {
-      id: `todo_${Date.now()}`,
-      title,
-      category,
-      completed: false,
-      addedBy: currentUser.uid
-    };
-    setTodoItems(prev => [...prev, newItem]);
+    const item: SharedListItem = { id: `todo_${Date.now()}`, title, category, completed: false, addedBy: currentUser.uid };
+    persistAndBroadcast<SharedListItem[]>(SHARED_TODO_KEY, 'TODOS_UPDATE', setTodos, prev => [...prev, item]);
   };
 
   const toggleTodoItem = (id: string) => {
-    setTodoItems(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : undefined } : t));
+    persistAndBroadcast<SharedListItem[]>(SHARED_TODO_KEY, 'TODOS_UPDATE', setTodos,
+      prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : undefined } : t));
   };
 
   const deleteTodoItem = (id: string) => {
-    setTodoItems(prev => prev.filter(t => t.id !== id));
+    persistAndBroadcast<SharedListItem[]>(SHARED_TODO_KEY, 'TODOS_UPDATE', setTodos, prev => prev.filter(t => t.id !== id));
   };
 
   const addMapPin = (pin: Omit<LoveMapPin, 'id'>) => {
-    const newPin: LoveMapPin = { ...pin, id: `pin_${Date.now()}` };
-    setMapPins(prev => [...prev, newPin]);
+    const p: LoveMapPin = { ...pin, id: `pin_${Date.now()}` };
+    persistAndBroadcast<LoveMapPin[]>(SHARED_MAP_KEY, 'MAPPINS_UPDATE', setMapPins, prev => [...prev, p]);
   };
 
   const sendQuickAction = (type: QuickActionNotification['type']) => {
     if (!currentUser) return;
-    const action: QuickActionNotification = {
-      id: `action_${Date.now()}`,
-      senderId: currentUser.uid,
-      type,
-      timestamp: new Date().toISOString()
-    };
+    const action: QuickActionNotification = { id: `action_${Date.now()}`, senderId: currentUser.uid, type, timestamp: new Date().toISOString() };
     setRecentNotification(action);
-
-    if (type === 'kiss') {
-      sounds.playKissSound();
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-    } else if (type === 'hug') {
-      sounds.playHugSound();
-    } else if (type === 'miss_you') {
-      sounds.playHeartbeatSound();
-    } else if (type === 'surprise') {
-      sounds.playKissSound();
-      confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
-    }
-
-    setTimeout(() => {
-      setRecentNotification(null);
-    }, 4000);
+    if (type === 'kiss')      { sounds.playKissSound();      confetti({ particleCount: 120, spread: 80,  origin: { y: 0.6 } }); }
+    else if (type === 'hug')       sounds.playHugSound();
+    else if (type === 'miss_you')  sounds.playHeartbeatSound();
+    else if (type === 'surprise') { sounds.playKissSound();  confetti({ particleCount: 150, spread: 90,  origin: { y: 0.5 } }); }
+    setTimeout(() => setRecentNotification(null), 4000);
   };
 
-  const startCall = (type: 'voice' | 'video') => {
-    setIsCallActive(true);
-    setCallType(type);
-  };
-
-  const endCall = () => {
-    setIsCallActive(false);
-    setCallType(null);
-  };
+  const startCall = (type: 'voice' | 'video') => { setIsCallActive(true); setCallType(type); };
+  const endCall   = ()                           => { setIsCallActive(false); setCallType(null); };
 
   const importDatabaseBackup = (jsonString: string): boolean => {
     try {
       const parsed = JSON.parse(jsonString);
-      if (parsed.messages) setMessages(parsed.messages);
-      if (parsed.memories) setMemories(parsed.memories);
-      if (parsed.vaultNotes) setVaultNotes(parsed.vaultNotes);
-      if (parsed.calendarEvents) setCalendarEvents(parsed.calendarEvents);
-      if (parsed.todoItems) setTodoItems(parsed.todoItems);
-      if (parsed.mapPins) setMapPins(parsed.mapPins);
+      if (parsed.messages)      { writeStorage(SHARED_MSGS_KEY,  parsed.messages);      setMessages(parsed.messages); }
+      if (parsed.memories)      { writeStorage(SHARED_MEMS_KEY,  parsed.memories);      setMemories(parsed.memories); }
+      if (parsed.vaultNotes)    { writeStorage(SHARED_VAULT_KEY, parsed.vaultNotes);    setVaultNotes(parsed.vaultNotes); }
+      if (parsed.calendarEvents){ writeStorage(SHARED_CAL_KEY,   parsed.calendarEvents); setCalendar(parsed.calendarEvents); }
+      if (parsed.todoItems)     { writeStorage(SHARED_TODO_KEY,  parsed.todoItems);     setTodos(parsed.todoItems); }
+      if (parsed.mapPins)       { writeStorage(SHARED_MAP_KEY,   parsed.mapPins);       setMapPins(parsed.mapPins); }
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };
 
   return (
     <UniverseContext.Provider value={{
-      ambientEffect,
-      setAmbientEffect,
-      anniversaryDate,
-      setAnniversaryDate,
-      messages,
-      sendMessage,
-      deleteMessage,
-      toggleStarMessage,
-      addReaction,
-      memories,
-      addMemory,
-      toggleFavoriteMemory,
-      vaultNotes,
-      addVaultNote,
-      deleteVaultNote,
-      calendarEvents,
-      addCalendarEvent,
-      todoItems,
-      addTodoItem,
-      toggleTodoItem,
-      deleteTodoItem,
-      mapPins,
-      addMapPin,
-      recentNotification,
-      sendQuickAction,
-      isCallActive,
-      callType,
-      startCall,
-      endCall,
-      syncedMediaUrl,
-      setSyncedMediaUrl,
-      isPlayingMedia,
-      setIsPlayingMedia,
+      ambientEffect, setAmbientEffect, anniversaryDate, setAnniversaryDate,
+      messages, sendMessage, deleteMessage, toggleStarMessage, addReaction,
+      memories, addMemory, toggleFavoriteMemory,
+      vaultNotes, addVaultNote, deleteVaultNote,
+      calendarEvents, addCalendarEvent,
+      todoItems, addTodoItem, toggleTodoItem, deleteTodoItem,
+      mapPins, addMapPin,
+      recentNotification, sendQuickAction,
+      isCallActive, callType, startCall, endCall,
+      syncedMediaUrl, setSyncedMediaUrl, isPlayingMedia, setIsPlayingMedia,
       importDatabaseBackup
     }}>
       {children}
@@ -470,7 +475,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 };
 
 export const useUniverse = () => {
-  const context = useContext(UniverseContext);
-  if (!context) throw new Error('useUniverse must be used within UniverseProvider');
-  return context;
+  const ctx = useContext(UniverseContext);
+  if (!ctx) throw new Error('useUniverse must be used within UniverseProvider');
+  return ctx;
 };
