@@ -165,10 +165,10 @@ export const TogetherTime: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20 max-w-6xl mx-auto">
-      <div className="glass-panel p-3 rounded-3xl border border-white/10 flex items-center gap-2 overflow-x-auto">
+      <div className="glass-panel p-2.5 sm:p-3 rounded-3xl border border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('calls')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
             activeTab === 'calls'
               ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg scale-105'
               : 'glass-card text-slate-300 hover:text-white'
@@ -180,7 +180,7 @@ export const TogetherTime: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('watch')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
             activeTab === 'watch'
               ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg scale-105'
               : 'glass-card text-slate-300 hover:text-white'
@@ -192,7 +192,7 @@ export const TogetherTime: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('games')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
             activeTab === 'games'
               ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg scale-105'
               : 'glass-card text-slate-300 hover:text-white'

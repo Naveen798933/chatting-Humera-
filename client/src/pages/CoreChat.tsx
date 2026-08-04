@@ -158,40 +158,40 @@ export const CoreChat: React.FC = () => {
   });
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-140px)] sm:h-[82vh] flex flex-col glass-panel rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative">
-      <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-space-900/60 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+    <div className="max-w-4xl mx-auto h-[calc(100dvh-130px)] sm:h-[82vh] flex flex-col glass-panel rounded-2xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative">
+      <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/10 flex items-center justify-between bg-space-900/80 backdrop-blur-md">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="relative flex-shrink-0">
             <img
               src={partnerUser?.photoURL}
               alt={partnerUser?.realName}
-              className="w-10 h-10 rounded-full object-cover border-2 border-accent-pink shadow-md"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-accent-pink shadow-md"
             />
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-space-950 rounded-full" />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 border-2 border-space-950 rounded-full" />
           </div>
-          <div>
-            <h3 className="font-bold text-sm text-white flex items-center gap-1.5">
-              <span>{partnerUser?.petName}</span>
-              <span className="text-[10px] text-pink-300 font-normal">({partnerUser?.realName})</span>
+          <div className="min-w-0">
+            <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1 truncate">
+              <span className="truncate">{partnerUser?.petName}</span>
+              <span className="text-[10px] text-pink-300 font-normal hidden xs:inline">({partnerUser?.realName})</span>
             </h3>
-            <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>Online in Universe</span>
+            <p className="text-[9px] sm:text-[10px] text-emerald-400 font-medium flex items-center gap-1 truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping flex-shrink-0" />
+              <span className="truncate">Online in Universe</span>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           <button
             onClick={() => setIsSecretMode(!isSecretMode)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1 transition-all ${
               isSecretMode
                 ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-lg shadow-rose-500/20 animate-pulse'
                 : 'glass-card text-slate-300 hover:text-white'
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
-            <span>{isSecretMode ? 'Secret Mode ON' : 'Secret Chat'}</span>
+            <span>{isSecretMode ? 'Secret Mode' : 'Secret'}</span>
           </button>
 
           <button
@@ -414,7 +414,7 @@ export const CoreChat: React.FC = () => {
         </div>
       )}
 
-      <form onSubmit={handleSend} className="p-4 bg-space-900/80 border-t border-white/10 flex items-center gap-2">
+      <form onSubmit={handleSend} className="p-2.5 sm:p-4 bg-space-900/90 border-t border-white/10 flex items-center gap-1.5 sm:gap-2">
         <input
           type="file"
           ref={fileInputRef}
@@ -425,55 +425,55 @@ export const CoreChat: React.FC = () => {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="p-2.5 rounded-xl glass-card text-slate-300 hover:text-pink-300 transition-colors"
+          className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-pink-300 transition-colors flex-shrink-0"
           title="Attach Image/Video"
         >
-          <Image className="w-5 h-5" />
+          <Image className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         <button
           type="button"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="p-2.5 rounded-xl glass-card text-slate-300 hover:text-amber-300 transition-colors"
+          className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-amber-300 transition-colors flex-shrink-0"
           title="Emoji & Stickers"
         >
-          <Smile className="w-5 h-5" />
+          <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         <button
           type="button"
           onClick={handleSendLocation}
-          className="p-2.5 rounded-xl glass-card text-slate-300 hover:text-emerald-300 transition-colors hidden sm:block"
+          className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-emerald-300 transition-colors hidden sm:block flex-shrink-0"
           title="Share Location"
         >
-          <MapPin className="w-5 h-5" />
+          <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         <button
           type="button"
           onClick={handleSendContact}
-          className="p-2.5 rounded-xl glass-card text-slate-300 hover:text-cyan-300 transition-colors hidden sm:block"
+          className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-cyan-300 transition-colors hidden sm:block flex-shrink-0"
           title="Share Contact Card"
         >
-          <User className="w-5 h-5" />
+          <User className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
         {!isRecording ? (
           <button
             type="button"
             onClick={() => setIsRecording(true)}
-            className="p-2.5 rounded-xl glass-card text-slate-300 hover:text-purple-300 transition-colors"
+            className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-purple-300 transition-colors flex-shrink-0"
           >
-            <Mic className="w-5 h-5" />
+            <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         ) : (
           <button
             type="button"
             onClick={handleStopRecording}
-            className="px-3 py-2 rounded-xl bg-rose-500 text-white font-bold text-xs flex items-center gap-2 animate-pulse"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-rose-500 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 animate-pulse flex-shrink-0"
           >
             <StopCircle className="w-4 h-4" />
-            <span>Rec {recordingTime}s</span>
+            <span>{recordingTime}s</span>
           </button>
         )}
 
@@ -481,13 +481,13 @@ export const CoreChat: React.FC = () => {
           type="text"
           value={inputContent}
           onChange={handleInputChange}
-          placeholder={isSecretMode ? "Send secret disappearing message..." : "Type your message..."}
-          className="flex-1 px-4 py-3 rounded-2xl glass-input text-xs"
+          placeholder={isSecretMode ? "Disappearing secret msg..." : "Type a message..."}
+          className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl glass-input text-xs sm:text-sm"
         />
 
         <button
           type="submit"
-          className="p-3 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 hover:scale-105 transition-all"
+          className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all flex-shrink-0"
         >
           <Send className="w-4 h-4" />
         </button>

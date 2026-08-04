@@ -85,43 +85,43 @@ export const HomeDashboard: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/10 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
-          <div className="flex items-center gap-4">
+      <div className="glass-panel p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-5 sm:gap-6 relative z-10">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative">
               <img
                 src={currentUser?.photoURL}
                 alt={currentUser?.realName}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-accent-pink shadow-xl shadow-pink-500/30"
+                className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-3 sm:border-4 border-accent-pink shadow-xl shadow-pink-500/30"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.realName || 'Naveen')}&background=ff70a6&color=fff`;
                 }}
               />
-              <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-space-950 rounded-full" />
+              <span className="absolute bottom-0 right-0 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 border-2 border-space-950 rounded-full" />
             </div>
 
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-accent-pink to-accent-purple p-0.5 shadow-lg flex items-center justify-center animate-heartbeat">
-              <Heart className="w-5 h-5 text-white fill-current" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-accent-pink to-accent-purple p-0.5 shadow-lg flex items-center justify-center animate-heartbeat flex-shrink-0">
+              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-current" />
             </div>
 
             <div className="relative">
               <img
                 src={partnerUser?.photoURL}
                 alt={partnerUser?.realName}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-accent-purple shadow-xl shadow-purple-500/30"
+                className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-3 sm:border-4 border-accent-purple shadow-xl shadow-purple-500/30"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Humera')}&background=a855f7&color=fff`;
                 }}
               />
-              <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-space-950 rounded-full" />
+              <span className="absolute bottom-0 right-0 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 border-2 border-space-950 rounded-full" />
             </div>
           </div>
 
           <div className="text-center sm:text-right">
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent">
+            <h2 className="text-lg sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent">
               {currentUser?.petName} & {partnerUser?.petName}
             </h2>
-            <p className="text-xs text-slate-300 font-medium mt-1 flex items-center justify-center sm:justify-end gap-1.5">
+            <p className="text-[11px] sm:text-xs text-slate-300 font-medium mt-1 flex items-center justify-center sm:justify-end gap-1.5">
               <span>{currentUser?.city}</span>
               <span>•</span>
               <span>{partnerUser?.city}</span>
@@ -129,26 +129,26 @@ export const HomeDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-white/10 text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider text-pink-300 mb-3">
+        <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-white/10 text-center">
+          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-pink-300 mb-2.5 sm:mb-3">
             Together For
           </p>
           <div className="grid grid-cols-4 gap-2 sm:gap-4 max-w-xl mx-auto">
-            <div className="glass-card p-3 sm:p-4 rounded-2xl">
-              <p className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">{timeTogether.days}</p>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase mt-1">Days</p>
+            <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
+              <p className="text-xl sm:text-4xl font-extrabold text-white tracking-tight">{timeTogether.days}</p>
+              <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Days</p>
             </div>
-            <div className="glass-card p-3 sm:p-4 rounded-2xl">
-              <p className="text-2xl sm:text-4xl font-extrabold text-pink-300 tracking-tight">{timeTogether.hours}</p>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase mt-1">Hours</p>
+            <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
+              <p className="text-xl sm:text-4xl font-extrabold text-pink-300 tracking-tight">{timeTogether.hours}</p>
+              <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Hours</p>
             </div>
-            <div className="glass-card p-3 sm:p-4 rounded-2xl">
-              <p className="text-2xl sm:text-4xl font-extrabold text-purple-300 tracking-tight">{timeTogether.minutes}</p>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase mt-1">Mins</p>
+            <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
+              <p className="text-xl sm:text-4xl font-extrabold text-purple-300 tracking-tight">{timeTogether.minutes}</p>
+              <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Mins</p>
             </div>
-            <div className="glass-card p-3 sm:p-4 rounded-2xl">
-              <p className="text-2xl sm:text-4xl font-extrabold text-rose-300 tracking-tight animate-pulse">{timeTogether.seconds}</p>
-              <p className="text-[10px] sm:text-xs text-slate-400 font-medium uppercase mt-1">Secs</p>
+            <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
+              <p className="text-xl sm:text-4xl font-extrabold text-rose-300 tracking-tight animate-pulse">{timeTogether.seconds}</p>
+              <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Secs</p>
             </div>
           </div>
         </div>
