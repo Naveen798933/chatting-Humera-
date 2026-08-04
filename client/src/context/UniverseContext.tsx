@@ -12,6 +12,7 @@ import {
 import { useAuth } from './AuthContext';
 import { sounds } from '../lib/soundEffects';
 import confetti from 'canvas-confetti';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CHAT ID: always sort so Naveen→Humera and Humera→Naveen produce SAME id
@@ -218,6 +219,96 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, []); // ← empty deps — attach once, never recreate
 
+  // ── Supabase Realtime Listener ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    console.log('[Supabase] Initializing real-time subscription for chat:', SHARED_CHAT_ID);
+
+    // Initial fetch
+    supabase
+      .from('messages')
+      .select('*')
+      .eq('chat_id', SHARED_CHAT_ID)
+      .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (data && !error) {
+          const loaded: Message[] = data.map(row => ({
+            id: row.id,
+            senderId: row.sender_id,
+            type: row.type || 'text',
+            content: row.content || '',
+            mediaUrl: row.media_url || undefined,
+            replyTo: row.reply_to || undefined,
+            reactions: row.reactions || {},
+            delivered: true,
+            isSecret: Boolean(row.is_secret),
+            isStarred: Boolean(row.is_starred),
+            expiresAt: row.expires_at || undefined,
+            createdAt: row.created_at || new Date().toISOString()
+          }));
+          setMessages(loaded);
+        }
+      });
+
+    // Realtime changes channel
+    const channel = supabase
+      .channel(`chat_${SHARED_CHAT_ID}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=eq.${SHARED_CHAT_ID}`
+        },
+        (payload) => {
+          console.log('[Supabase Realtime] Event received:', payload.eventType);
+          if (payload.eventType === 'INSERT') {
+            const row = payload.new;
+            const newMsg: Message = {
+              id: row.id,
+              senderId: row.sender_id,
+              type: row.type || 'text',
+              content: row.content || '',
+              mediaUrl: row.media_url || undefined,
+              replyTo: row.reply_to || undefined,
+              reactions: row.reactions || {},
+              delivered: true,
+              isSecret: Boolean(row.is_secret),
+              isStarred: Boolean(row.is_starred),
+              expiresAt: row.expires_at || undefined,
+              createdAt: row.created_at || new Date().toISOString()
+            };
+            setMessages(prev => {
+              const filtered = prev.filter(m => m.id !== newMsg.id && !m.id.startsWith('temp_'));
+              if (currentUser && newMsg.senderId !== currentUser.uid) {
+                sounds.playMessageReceivedSound();
+              }
+              return [...filtered, newMsg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+          } else if (payload.eventType === 'UPDATE') {
+            const row = payload.new;
+            setMessages(prev => prev.map(m => m.id === row.id ? {
+              ...m,
+              content: row.content,
+              reactions: row.reactions || {},
+              isStarred: Boolean(row.is_starred)
+            } : m));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Supabase Realtime] Subscription status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
+
   // ── Typing indicator real-time listener ────────────────────────────────────
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
 
@@ -340,6 +431,30 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setMessages(prev => [...prev, newMsgObj]);
     sounds.playMessageSentSound();
 
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('messages').insert({
+          id: tempId,
+          chat_id: SHARED_CHAT_ID,
+          sender_id: currentUser.uid,
+          receiver_id: currentUser.uid === NAVEEN_UID ? HUMERA_UID : NAVEEN_UID,
+          type,
+          content,
+          media_url: mediaUrl ?? null,
+          reply_to: replyToObj ?? null,
+          reactions: {},
+          delivered: true,
+          is_secret: isSecret ?? false,
+          is_starred: false,
+          expires_at: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : null,
+          created_at: new Date().toISOString()
+        });
+        console.log('[Supabase] Message inserted successfully!');
+      } catch (err: any) {
+        console.error('[Supabase] Insert failed:', err);
+      }
+    }
+
     try {
       const ref = await addDoc(
         collection(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB),
@@ -353,6 +468,11 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const deleteMessage = async (id: string, forEveryone = true) => {
     if (!forEveryone) return;
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('messages').delete().eq('id', id);
+      } catch {}
+    }
     try {
       await deleteDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, id));
     } catch (err: any) {
