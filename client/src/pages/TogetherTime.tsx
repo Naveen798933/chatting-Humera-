@@ -101,9 +101,42 @@ export const TogetherTime: React.FC = () => {
     }, 1200);
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCanvasPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    if ('touches' in e && e.touches[0]) {
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top
+      };
+    }
+    return {
+      x: (e as React.MouseEvent<HTMLCanvasElement>).clientX - rect.left,
+      y: (e as React.MouseEvent<HTMLCanvasElement>).clientY - rect.top
+    };
+  };
+
+  const drawAt = (x: number, y: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = drawColor;
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
-    draw(e);
+    const { x, y } = getCanvasPos(e);
+    drawAt(x, y);
   };
 
   const stopDrawing = () => {
@@ -115,25 +148,10 @@ export const TogetherTime: React.FC = () => {
     }
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = drawColor;
-
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+    const { x, y } = getCanvasPos(e);
+    drawAt(x, y);
   };
 
   const clearCanvas = () => {
@@ -469,7 +487,10 @@ export const TogetherTime: React.FC = () => {
                 onMouseUp={stopDrawing}
                 onMouseMove={draw}
                 onMouseLeave={stopDrawing}
-                className="w-full bg-space-950 rounded-2xl border border-white/10 cursor-crosshair"
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+                className="w-full bg-space-950 rounded-2xl border border-white/10 cursor-crosshair touch-none"
               />
             </div>
           )}

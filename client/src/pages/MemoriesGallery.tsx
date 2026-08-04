@@ -128,7 +128,11 @@ export const MemoriesGallery: React.FC = () => {
               <img
                 src={mem.mediaUrls[0]}
                 alt={mem.title}
+                loading="lazy"
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="224" viewBox="0 0 400 224"><rect fill="%230b071a" width="400" height="224"/><text fill="%23a855f7" font-size="14" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">📷 Memory Image</text></svg>';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-space-950 via-transparent to-transparent opacity-80" />
 
@@ -253,7 +257,7 @@ export const MemoriesGallery: React.FC = () => {
               <p className="text-xs text-slate-300">Enter your 4-digit Universe PIN to view private memories.</p>
 
               {pinError && (
-                <p className="text-xs text-rose-400 font-semibold">Incorrect PIN! Try 7989 or 1402.</p>
+                <p className="text-xs text-rose-400 font-semibold">Incorrect PIN. Please try again.</p>
               )}
 
               <form onSubmit={handleVerifyPin} className="space-y-4">

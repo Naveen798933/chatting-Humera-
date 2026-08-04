@@ -17,7 +17,7 @@ export const AuthPage: React.FC = () => {
       ? customEmail 
       : (selectedUser === 'naveen' ? AUTHORIZED_USERS[0].email : AUTHORIZED_USERS[1].email);
     
-    login(emailToUse, password || '1234');
+    login(emailToUse, password);
   };
 
   return (

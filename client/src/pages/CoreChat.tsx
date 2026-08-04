@@ -33,6 +33,13 @@ export const CoreChat: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, isPartnerTyping]);
 
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      setTypingStatus(false);
+    };
+  }, [setTypingStatus]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
     setInputContent(text);
@@ -151,7 +158,7 @@ export const CoreChat: React.FC = () => {
   });
 
   return (
-    <div className="max-w-4xl mx-auto h-[82vh] flex flex-col glass-panel rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative">
+    <div className="max-w-4xl mx-auto h-[calc(100vh-140px)] sm:h-[82vh] flex flex-col glass-panel rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative">
       <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-space-900/60 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -287,6 +294,9 @@ export const CoreChat: React.FC = () => {
                         src={msg.mediaUrl}
                         alt="Shared image"
                         className="w-full max-h-64 object-cover rounded-xl mb-2 border border-white/10"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120"><rect fill="%230b071a" width="200" height="120"/><text fill="%23a855f7" font-size="12" x="50%" y="55%" text-anchor="middle">📷 Image unavailable</text></svg>';
+                        }}
                       />
                     )}
 

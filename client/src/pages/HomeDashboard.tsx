@@ -93,6 +93,9 @@ export const HomeDashboard: React.FC = () => {
                 src={currentUser?.photoURL}
                 alt={currentUser?.realName}
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-accent-pink shadow-xl shadow-pink-500/30"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.realName || 'Naveen')}&background=ff70a6&color=fff`;
+                }}
               />
               <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-space-950 rounded-full" />
             </div>
@@ -106,6 +109,9 @@ export const HomeDashboard: React.FC = () => {
                 src={partnerUser?.photoURL}
                 alt={partnerUser?.realName}
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-accent-purple shadow-xl shadow-purple-500/30"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Humera')}&background=a855f7&color=fff`;
+                }}
               />
               <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-space-950 rounded-full" />
             </div>
@@ -321,6 +327,9 @@ export const HomeDashboard: React.FC = () => {
                   src={surpriseMemory.mediaUrls[0]}
                   alt={surpriseMemory.title}
                   className="w-full h-48 rounded-2xl object-cover border border-white/20"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200"><rect fill="%230b071a" width="400" height="200"/><text fill="%23ff70a6" font-size="14" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">❤️ Surprise Memory</text></svg>';
+                  }}
                 />
               )}
 

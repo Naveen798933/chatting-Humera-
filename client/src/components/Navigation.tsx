@@ -75,6 +75,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                 src={currentUser.photoURL}
                 alt={currentUser.realName}
                 className="w-9 h-9 rounded-full object-cover border-2 border-accent-pink/50 shadow-md"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.realName)}&background=ff70a6&color=fff`;
+                }}
               />
               <span className="hidden sm:inline text-xs font-bold text-pink-200">
                 {currentUser.petName}
@@ -105,7 +108,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-white/10 px-2 py-2 flex items-center justify-around">
+      <div 
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-white/10 px-2 flex items-center justify-around"
+        style={{ paddingTop: '8px', paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))' }}
+      >
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (

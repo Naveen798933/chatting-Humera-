@@ -216,10 +216,10 @@ export const LoveVaultCalendar: React.FC = () => {
                 <Key className="w-8 h-8 animate-pulse" />
               </div>
               <h3 className="text-xl font-extrabold text-white">Love Vault Locked</h3>
-              <p className="text-xs text-slate-300">Enter secret 4-digit PIN (7989 / 1402) to access private letters.</p>
+              <p className="text-xs text-slate-300">Enter your secret 4-digit PIN to access private letters.</p>
 
               {pinErr && (
-                <p className="text-xs text-rose-400 font-bold">Invalid PIN! Try 7989 or 1402.</p>
+                <p className="text-xs text-rose-400 font-bold">Incorrect PIN. Please try again.</p>
               )}
 
               <form onSubmit={handleUnlock} className="space-y-4">
