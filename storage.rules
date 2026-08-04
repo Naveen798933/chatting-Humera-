@@ -1,17 +1,9 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Hardcoded Authorized UIDs
-    function isUniverseUser() {
-      return request.auth != null && (
-        request.auth.uid == "naveen_uid_798933" || 
-        request.auth.uid == "humera_uid_140299"
-      );
-    }
-
     match /{allPaths=**} {
-      allow read, write: if isUniverseUser();
+      allow read, write: if true;
     }
   }
 }
+

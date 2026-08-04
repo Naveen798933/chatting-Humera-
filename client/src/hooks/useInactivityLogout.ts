@@ -14,14 +14,23 @@ export function useInactivityLogout(onLogout: () => void, timeoutMinutes: number
       }, timeoutMinutes * 60 * 1000);
     };
 
+    let lastReset = Date.now();
+    const handleActivity = () => {
+      const now = Date.now();
+      if (now - lastReset > 2000) {
+        lastReset = now;
+        resetTimer();
+      }
+    };
+
     const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
-    events.forEach(evt => window.addEventListener(evt, resetTimer));
+    events.forEach(evt => window.addEventListener(evt, handleActivity, { passive: true }));
 
     resetTimer();
 
     return () => {
       clearTimeout(timer);
-      events.forEach(evt => window.removeEventListener(evt, resetTimer));
+      events.forEach(evt => window.removeEventListener(evt, handleActivity));
     };
   }, [onLogout, timeoutMinutes]);
 }

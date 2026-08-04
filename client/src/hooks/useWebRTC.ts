@@ -11,6 +11,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>('new');
 
+  const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
   const STUN_SERVERS = {
@@ -26,6 +27,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
         video: video ? { width: 1280, height: 720 } : false,
         audio: true
       });
+      localStreamRef.current = stream;
       setLocalStream(stream);
 
       const pc = new RTCPeerConnection(STUN_SERVERS);
@@ -54,8 +56,9 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   }, [options]);
 
   const toggleMic = useCallback(() => {
-    if (localStream) {
-      localStream.getAudioTracks().forEach(track => {
+    const stream = localStreamRef.current || localStream;
+    if (stream) {
+      stream.getAudioTracks().forEach(track => {
         track.enabled = !track.enabled;
       });
       setIsMicMuted(prev => !prev);
@@ -63,8 +66,9 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   }, [localStream]);
 
   const toggleCamera = useCallback(() => {
-    if (localStream) {
-      localStream.getVideoTracks().forEach(track => {
+    const stream = localStreamRef.current || localStream;
+    if (stream) {
+      stream.getVideoTracks().forEach(track => {
         track.enabled = !track.enabled;
       });
       setIsCameraOff(prev => !prev);
@@ -72,8 +76,10 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   }, [localStream]);
 
   const endCall = useCallback(() => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+    const stream = localStreamRef.current;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
       setLocalStream(null);
     }
     if (peerConnectionRef.current) {
@@ -84,13 +90,13 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     setIsMicMuted(false);
     setIsCameraOff(false);
     setConnectionState('closed');
-  }, [localStream]);
+  }, []);
 
   useEffect(() => {
     return () => {
       endCall();
     };
-  }, []);
+  }, [endCall]);
 
   return {
     localStream,
