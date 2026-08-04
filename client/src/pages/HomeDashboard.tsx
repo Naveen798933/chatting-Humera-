@@ -259,56 +259,56 @@ export const HomeDashboard: React.FC = () => {
             <span>One-Tap Love Express</span>
           </h4>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             <button
               onClick={() => sendQuickAction('miss_you')}
-              className="p-3.5 rounded-2xl glass-card border border-pink-500/20 hover:border-pink-500/50 flex items-center gap-3 hover:scale-105 transition-all text-left"
+              className="p-3 rounded-2xl glass-card border border-pink-500/20 hover:border-pink-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[44px]"
             >
-              <div className="p-2.5 rounded-xl bg-pink-500/20 text-pink-400">
-                <Heart className="w-5 h-5 animate-pulse-heart fill-current" />
+              <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 flex-shrink-0">
+                <Heart className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse-heart fill-current" />
               </div>
-              <div>
-                <p className="font-bold text-xs text-white">I Miss You</p>
-                <p className="text-[10px] text-slate-400">Heartbeat sync</p>
+              <div className="min-w-0">
+                <p className="font-bold text-xs text-white truncate">I Miss You</p>
+                <p className="text-[10px] text-slate-400 truncate">Heartbeat sync</p>
               </div>
             </button>
 
             <button
               onClick={() => sendQuickAction('hug')}
-              className="p-3.5 rounded-2xl glass-card border border-purple-500/20 hover:border-purple-500/50 flex items-center gap-3 hover:scale-105 transition-all text-left"
+              className="p-3 rounded-2xl glass-card border border-purple-500/20 hover:border-purple-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[44px]"
             >
-              <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400">
-                <span className="text-xl">🤗</span>
+              <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 flex-shrink-0">
+                <span className="text-lg sm:text-xl">🤗</span>
               </div>
-              <div>
-                <p className="font-bold text-xs text-white">Send Hug</p>
-                <p className="text-[10px] text-slate-400">Warm hug effect</p>
+              <div className="min-w-0">
+                <p className="font-bold text-xs text-white truncate">Send Hug</p>
+                <p className="text-[10px] text-slate-400 truncate">Warm hug effect</p>
               </div>
             </button>
 
             <button
               onClick={() => sendQuickAction('kiss')}
-              className="p-3.5 rounded-2xl glass-card border border-rose-500/20 hover:border-rose-500/50 flex items-center gap-3 hover:scale-105 transition-all text-left"
+              className="p-3 rounded-2xl glass-card border border-rose-500/20 hover:border-rose-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[44px]"
             >
-              <div className="p-2.5 rounded-xl bg-rose-500/20 text-rose-400">
-                <span className="text-xl">💋</span>
+              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 flex-shrink-0">
+                <span className="text-lg sm:text-xl">💋</span>
               </div>
-              <div>
-                <p className="font-bold text-xs text-white">Send Kiss</p>
-                <p className="text-[10px] text-slate-400">Confetti explosion</p>
+              <div className="min-w-0">
+                <p className="font-bold text-xs text-white truncate">Send Kiss</p>
+                <p className="text-[10px] text-slate-400 truncate">Confetti explosion</p>
               </div>
             </button>
 
             <button
               onClick={handleSurpriseMode}
-              className="p-3.5 rounded-2xl glass-card border border-amber-500/20 hover:border-amber-500/50 flex items-center gap-3 hover:scale-105 transition-all text-left"
+              className="p-3 rounded-2xl glass-card border border-amber-500/20 hover:border-amber-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[44px]"
             >
-              <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
-                <Gift className="w-5 h-5" />
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 flex-shrink-0">
+                <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div>
-                <p className="font-bold text-xs text-white">Surprise Mode</p>
-                <p className="text-[10px] text-slate-400">Random memory</p>
+              <div className="min-w-0">
+                <p className="font-bold text-xs text-white truncate">Surprise</p>
+                <p className="text-[10px] text-slate-400 truncate">Random memory</p>
               </div>
             </button>
           </div>

@@ -103,13 +103,13 @@ export const LoveVaultCalendar: React.FC = () => {
     <div className="space-y-6 pb-20 max-w-6xl mx-auto">
       
       {/* Navigation Pills */}
-      <div className="glass-panel p-3 rounded-3xl border border-white/10 flex items-center gap-2 overflow-x-auto">
+      <div className="glass-panel p-2.5 sm:p-3 rounded-3xl border border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveSection('calendar')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
             activeSection === 'calendar'
               ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
-              : 'glass-card text-slate-300 hover:text-white'
+              : 'glass-card text-slate-300 hover:text-white active:scale-95'
           }`}
         >
           <Calendar className="w-4 h-4" />
@@ -118,10 +118,10 @@ export const LoveVaultCalendar: React.FC = () => {
 
         <button
           onClick={() => setActiveSection('vault')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
             activeSection === 'vault'
               ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
-              : 'glass-card text-slate-300 hover:text-white'
+              : 'glass-card text-slate-300 hover:text-white active:scale-95'
           }`}
         >
           <Lock className="w-4 h-4 text-pink-300" />
@@ -130,10 +130,10 @@ export const LoveVaultCalendar: React.FC = () => {
 
         <button
           onClick={() => setActiveSection('todos')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
             activeSection === 'todos'
               ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
-              : 'glass-card text-slate-300 hover:text-white'
+              : 'glass-card text-slate-300 hover:text-white active:scale-95'
           }`}
         >
           <CheckSquare className="w-4 h-4" />
@@ -142,10 +142,10 @@ export const LoveVaultCalendar: React.FC = () => {
 
         <button
           onClick={() => setActiveSection('map')}
-          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 sm:px-5 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 min-h-[44px] ${
             activeSection === 'map'
               ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
-              : 'glass-card text-slate-300 hover:text-white'
+              : 'glass-card text-slate-300 hover:text-white active:scale-95'
           }`}
         >
           <MapPin className="w-4 h-4" />

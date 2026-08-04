@@ -89,7 +89,7 @@ export const MemoriesGallery: React.FC = () => {
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/20 hover:scale-105 transition-all flex items-center gap-2"
+          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 min-h-[44px]"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Memory</span>
@@ -105,10 +105,10 @@ export const MemoriesGallery: React.FC = () => {
             <button
               key={alb}
               onClick={() => handleOpenAlbum(alb)}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[44px] ${
                 isActive
                   ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
-                  : 'glass-card text-slate-300 hover:text-white'
+                  : 'glass-card text-slate-300 hover:text-white active:scale-95'
               } ${isHidden ? 'border border-pink-500/40' : ''}`}
             >
               {isHidden && <Lock className="w-3.5 h-3.5 text-pink-300" />}

@@ -118,7 +118,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-2xl transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center gap-0.5 min-h-[44px] px-2 py-1 rounded-2xl transition-all duration-200 ${
                 isActive
                   ? 'bg-gradient-to-r from-accent-pink/20 to-accent-purple/20 border border-pink-500/30 text-pink-300 shadow-md shadow-pink-500/10 scale-105'
                   : 'text-slate-400 hover:text-slate-200 active:scale-95'
@@ -127,7 +127,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
               <div className={isActive ? 'text-pink-400 animate-pulse' : ''}>
                 {item.icon}
               </div>
-              <span className="text-[10px] font-semibold tracking-tight truncate max-w-[54px]">
+              <span className="text-[10px] font-semibold tracking-tight truncate max-w-[52px]">
                 {item.shortLabel}
               </span>
             </button>

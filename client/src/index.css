@@ -1,4 +1,9 @@
-/* Glassmorphism & UI Custom Styles */
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
 body {
   background-color: #06030d;
   color: #f1f5f9;
@@ -71,6 +76,14 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 112, 166, 0.6);
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @keyframes heartPulse {
