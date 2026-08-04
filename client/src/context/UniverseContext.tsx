@@ -1,11 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
-  collection, doc, addDoc, onSnapshot, query,
-  orderBy, serverTimestamp, updateDoc, deleteDoc,
-  Timestamp, setDoc, where, getDocs
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import {
   Message, Memory, VaultNote, CalendarEvent, SharedListItem,
   LoveMapPin, AmbientEffect, QuickActionNotification
 } from '../types';
@@ -156,69 +150,6 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [syncedMediaUrl, setSyncedMediaUrl] = useState('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   const [isPlayingMedia, setIsPlayingMedia] = useState(false);
 
-  // ── Firestore real-time listener ───────────────────────────────────────────
-  useEffect(() => {
-    // Direct collection reference (no server-side orderBy index required)
-    const msgsRef = collection(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB);
-
-    console.log('[OurUniverse] Attaching direct Firestore listener →', `${CHATS_COL}/${SHARED_CHAT_ID}/${MSGS_SUB}`);
-
-    const unsub = onSnapshot(
-      msgsRef,
-      (snapshot) => {
-        console.log('[OurUniverse] Firestore snapshot received — doc count:', snapshot.docs.length);
-        const loaded: Message[] = snapshot.docs.map(d => {
-          const data = d.data();
-          let createdAtStr = new Date().toISOString();
-          if (data.createdAt) {
-            if (typeof data.createdAt === 'string') {
-              createdAtStr = data.createdAt;
-            } else if (data.createdAt instanceof Timestamp) {
-              createdAtStr = data.createdAt.toDate().toISOString();
-            } else if (typeof data.createdAt.toDate === 'function') {
-              createdAtStr = data.createdAt.toDate().toISOString();
-            }
-          }
-
-          return {
-            id: d.id,
-            senderId: data.senderId,
-            type: data.type ?? 'text',
-            content: data.content ?? '',
-            mediaUrl: data.mediaUrl ?? undefined,
-            replyTo: data.replyTo ?? undefined,
-            reactions: data.reactions ?? {},
-            delivered: true,
-            seenAt: data.seenAt ?? undefined,
-            isSecret: data.isSecret ?? false,
-            isStarred: data.isStarred ?? false,
-            expiresAt: data.expiresAt ?? undefined,
-            createdAt: createdAtStr
-          };
-        }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-        setMessages(prev => {
-          if (prev.length > 0 && loaded.length > prev.length) {
-            const newest = loaded[loaded.length - 1];
-            if (currentUser && newest.senderId !== currentUser.uid) {
-              sounds.playMessageReceivedSound();
-            }
-          }
-          return loaded;
-        });
-      },
-      (err) => {
-        console.error('[OurUniverse] Firestore listener error:', err.code, err.message);
-      }
-    );
-
-    unsubMsgsRef.current = unsub;
-    return () => {
-      console.log('[OurUniverse] Detaching Firestore listener');
-      unsub();
-    };
-  }, []); // ← empty deps — attach once, never recreate
-
   // ── Supabase Realtime Listener ─────────────────────────────────────────────
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -309,42 +240,34 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [currentUser]);
 
-  // ── Typing indicator real-time listener ────────────────────────────────────
+  // ── Typing indicator ──────────────────────────────────────────────────────
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
 
   useEffect(() => {
-    const chatDocRef = doc(db, CHATS_COL, SHARED_CHAT_ID);
-    const unsub = onSnapshot(chatDocRef, (snap) => {
-      if (snap.exists() && currentUser) {
-        const data = snap.data();
-        const typingMap = data.typing || {};
+    if (!isSupabaseConfigured() || !currentUser) return;
+    const channel = supabase
+      .channel('presence')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'presence' }, (payload) => {
+        const row = payload.new as any;
         const partnerUid = currentUser.uid === NAVEEN_UID ? HUMERA_UID : NAVEEN_UID;
-        setIsPartnerTyping(Boolean(typingMap[partnerUid]));
-      }
-    });
-    return () => unsub();
+        if (row && row.user_id === partnerUid) {
+          setIsPartnerTyping(Boolean(row.is_typing));
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [currentUser]);
 
   const setTypingStatus = (isTyping: boolean) => {
-    if (!currentUser) return;
-    const chatDocRef = doc(db, CHATS_COL, SHARED_CHAT_ID);
-    setDoc(chatDocRef, {
-      typing: {
-        [currentUser.uid]: isTyping
-      }
-    }, { merge: true }).catch(() => {});
+    if (!currentUser || !isSupabaseConfigured()) return;
+    try {
+      supabase.from('presence').upsert({
+        user_id: currentUser.uid,
+        is_typing: isTyping,
+        updated_at: new Date().toISOString()
+      }).then(() => {});
+    } catch {}
   };
-
-  // ── Ensure the shared chat document exists ─────────────────────────────────
-  useEffect(() => {
-    const chatDocRef = doc(db, CHATS_COL, SHARED_CHAT_ID);
-    setDoc(chatDocRef, {
-      participants: [NAVEEN_UID, HUMERA_UID],
-      createdAt: serverTimestamp()
-    }, { merge: true }).catch(err =>
-      console.warn('[OurUniverse] Chat doc upsert failed:', err.message)
-    );
-  }, []);
 
   // ── Burn disappearing messages ─────────────────────────────────────────────
   useEffect(() => {
@@ -354,9 +277,10 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         m.isSecret && m.expiresAt && new Date(m.expiresAt).getTime() <= now
       );
       for (const m of toDelete) {
-        try {
-          await deleteDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, m.id));
-        } catch {}
+        if (isSupabaseConfigured()) {
+          try { await supabase.from('messages').delete().eq('id', m.id); } catch {}
+        }
+        setMessages(prev => prev.filter(item => item.id !== m.id));
       }
       if (toDelete.length) sounds.playSecretBurnSound();
     }, 2000);
@@ -370,7 +294,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => { writeLS(LS_TODO,  todoItems);  }, [todoItems]);
   useEffect(() => { writeLS(LS_MAP,   mapPins);    }, [mapPins]);
 
-  // ── sendMessage → Firestore write ──────────────────────────────────────────
+  // ── sendMessage → Supabase write ──────────────────────────────────────────
   const sendMessage = async (
     content: string,
     type: Message['type'] = 'text',
@@ -379,37 +303,12 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     isSecret?: boolean,
     secretTimeout = 60
   ) => {
-    if (!currentUser) {
-      console.error('[OurUniverse] sendMessage called with no currentUser');
-      return;
-    }
+    if (!currentUser) return;
 
     const replyToMsg = replyToId ? messages.find(m => m.id === replyToId) : undefined;
     const replyToObj = replyToMsg
       ? { id: replyToMsg.id, senderId: replyToMsg.senderId, excerpt: replyToMsg.content.substring(0, 40) }
       : null;
-
-    const payload: Record<string, unknown> = {
-      senderId:  currentUser.uid,
-      receiverId: currentUser.uid === NAVEEN_UID ? HUMERA_UID : NAVEEN_UID,
-      chatId:    SHARED_CHAT_ID,
-      type,
-      content,
-      mediaUrl:  mediaUrl ?? null,
-      replyTo:   replyToObj ?? null,
-      reactions: {},
-      delivered: true,
-      isSecret:  isSecret ?? false,
-      isStarred: false,
-      expiresAt: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : null,
-      createdAt: new Date().toISOString()
-    };
-
-    console.log('[OurUniverse] Writing message to Firestore →', `${CHATS_COL}/${SHARED_CHAT_ID}/${MSGS_SUB}`, {
-      senderUid: currentUser.uid,
-      chatId: SHARED_CHAT_ID,
-      content
-    });
 
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const newMsgObj: Message = {
@@ -449,20 +348,9 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           expires_at: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : null,
           created_at: new Date().toISOString()
         });
-        console.log('[Supabase] Message inserted successfully!');
       } catch (err: any) {
         console.error('[Supabase] Insert failed:', err);
       }
-    }
-
-    try {
-      const ref = await addDoc(
-        collection(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB),
-        payload
-      );
-      console.log('[OurUniverse] Message written to Firestore — docId:', ref.id);
-    } catch (err: any) {
-      console.error('[OurUniverse] Firestore write FAILED:', err.code, err.message);
     }
   };
 
@@ -473,21 +361,19 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await supabase.from('messages').delete().eq('id', id);
       } catch {}
     }
-    try {
-      await deleteDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, id));
-    } catch (err: any) {
-      console.error('[OurUniverse] deleteMessage failed:', err.message);
-    }
+    setMessages(prev => prev.filter(m => m.id !== id));
   };
 
   const toggleStarMessage = async (id: string) => {
     const msg = messages.find(m => m.id === id);
     if (!msg) return;
-    try {
-      await updateDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, id), {
-        isStarred: !msg.isStarred
-      });
-    } catch {}
+    const nextVal = !msg.isStarred;
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('messages').update({ is_starred: nextVal }).eq('id', id);
+      } catch {}
+    }
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, isStarred: nextVal } : m));
   };
 
   const addReaction = async (id: string, emoji: string) => {
@@ -499,9 +385,12 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const uids = has ? cur.filter(u => u !== currentUser.uid) : [...cur, currentUser.uid];
     const next = { ...msg.reactions };
     if (uids.length) next[emoji] = uids; else delete next[emoji];
-    try {
-      await updateDoc(doc(db, CHATS_COL, SHARED_CHAT_ID, MSGS_SUB, id), { reactions: next });
-    } catch {}
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('messages').update({ reactions: next }).eq('id', id);
+      } catch {}
+    }
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, reactions: next } : m));
   };
 
   // ── Non-message helpers ────────────────────────────────────────────────────

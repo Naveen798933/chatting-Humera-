@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { AUTHORIZED_USERS } from '../lib/firebase';
+import { AUTHORIZED_USERS } from '../lib/constants';
 import { Heart, Lock, AlertCircle, Sparkles } from 'lucide-react';
 import { motion } from '../components/motion';
 

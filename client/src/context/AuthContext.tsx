@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { UserProfile, UserUid } from '../types';
-import { AUTHORIZED_USERS } from '../lib/firebase';
+import { AUTHORIZED_USERS } from '../lib/constants';
 import { useInactivityLogout } from '../hooks/useInactivityLogout';
 
 interface AuthContextType {

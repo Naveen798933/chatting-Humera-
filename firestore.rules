@@ -1,9 +1,0 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Allow full read and write access for Our Universe private chat app
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
