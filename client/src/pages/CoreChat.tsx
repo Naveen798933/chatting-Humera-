@@ -8,7 +8,7 @@ import { Message } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
 import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import {
-  Send, Image, Mic, Smile, Lock, Pin, ShieldAlert,
+  Send, Image, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video,
   Trash2, Star, Search, CornerUpLeft, Clock,
   CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle
 } from 'lucide-react';
@@ -20,7 +20,7 @@ export const CoreChat: React.FC = () => {
   const { currentUser, partnerUser, toggleDecoyMode } = useAuth();
   const {
     messages, sendMessage, deleteMessage, editMessage, markMessagesAsSeen,
-    toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus
+    toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus, startCall
   } = useUniverse();
 
   const [inputContent, setInputContent] = useState('');
@@ -319,6 +319,24 @@ export const CoreChat: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          {/* Quick Voice Call Button */}
+          <button
+            onClick={() => { startCall('voice'); toast.love('Starting Voice Call... 📞'); }}
+            title="Start Voice Call"
+            className="p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors"
+          >
+            <Phone className="w-4 h-4" />
+          </button>
+
+          {/* Quick Video Call Button */}
+          <button
+            onClick={() => { startCall('video'); toast.love('Starting Video Call... 📹'); }}
+            title="Start Video Call"
+            className="p-2 rounded-xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-colors"
+          >
+            <Video className="w-4 h-4" />
+          </button>
+
           <button
             onClick={() => setIsSecretMode(!isSecretMode)}
             className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1 transition-all ${

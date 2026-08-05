@@ -6,6 +6,8 @@ import { ScreenshotBanner } from './components/ScreenshotBanner';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { AnniversaryOverlay } from './components/AnniversaryOverlay';
 import { IncomingCallModal } from './components/IncomingCallModal';
+import { ActiveCallOverlay } from './components/ActiveCallOverlay';
+import { useWebRTC } from './hooks/useWebRTC';
 import { Navigation, TabType } from './components/Navigation';
 import { AuthPage } from './pages/AuthPage';
 import { HomeDashboard } from './pages/HomeDashboard';
@@ -19,10 +21,29 @@ import { DecoyCalculator } from './components/DecoyCalculator';
 import { ToastContainer } from './components/Toast';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
-  const { incomingCall, acceptCall, declineCall } = useUniverse();
+  const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
+  const { isCallActive, callType, incomingCall, acceptCall, declineCall, endCall } = useUniverse();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+
+  const {
+    localStream,
+    remoteStream,
+    isMicMuted,
+    isCameraOff,
+    initializeCall,
+    toggleMic,
+    toggleCamera,
+    endCall: webrtcEndCall
+  } = useWebRTC();
+
+  React.useEffect(() => {
+    if (isCallActive && callType) {
+      initializeCall(callType === 'video');
+    } else {
+      webrtcEndCall();
+    }
+  }, [isCallActive, callType]);
 
   if (isDecoyActive) {
     return <DecoyCalculator onUnlockRealApp={toggleDecoyMode} />;
@@ -60,6 +81,22 @@ const AppContent: React.FC = () => {
         incomingCall={incomingCall}
         onAccept={acceptCall}
         onDecline={declineCall}
+      />
+      <ActiveCallOverlay
+        isOpen={isCallActive}
+        callType={callType}
+        partnerUser={partnerUser}
+        currentUser={currentUser}
+        localStream={localStream}
+        remoteStream={remoteStream}
+        isMicMuted={isMicMuted}
+        isCameraOff={isCameraOff}
+        onToggleMic={toggleMic}
+        onToggleCamera={toggleCamera}
+        onEndCall={() => {
+          endCall();
+          webrtcEndCall();
+        }}
       />
       <ToastContainer />
     </div>
