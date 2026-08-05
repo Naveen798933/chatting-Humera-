@@ -159,7 +159,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { currentUser } = useAuth();
 
   const [ambientEffect, setAmbientEffect]     = useState<AmbientEffect>('hearts');
-  const [anniversaryDate, setAnniversaryDate] = useState('2024-02-14T00:00:00.000Z');
+  const [anniversaryDate, setAnniversaryDate] = useState('2026-05-30T00:00:00.000Z');
 
   // ── Messages — localStorage & Supabase ──────────────────────────────────────
   const [messages, setMessages] = useState<Message[]>(() => readLS(LS_MSGS, SEED_MESSAGES));

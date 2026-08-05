@@ -227,20 +227,20 @@ export const HomeDashboard: React.FC = () => {
 
           {!editingMood ? (
             <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="glass-card p-4 rounded-2xl space-y-1">
+              <div className="glass-card p-4 rounded-2xl space-y-1 border border-pink-500/20">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{currentUser?.mood.emoji}</span>
+                  <span className="text-2xl animate-bounce">{currentUser?.mood.emoji || '💖'}</span>
                   <span className="text-xs font-bold text-pink-200">{currentUser?.petName}</span>
                 </div>
-                <p className="text-xs text-slate-300 italic">"{currentUser?.mood.text}"</p>
+                <p className="text-xs text-slate-300 italic">"{currentUser?.mood.text || 'Thinking of you'}"</p>
               </div>
 
-              <div className="glass-card p-4 rounded-2xl space-y-1">
+              <div className="glass-card p-4 rounded-2xl space-y-1 border border-purple-500/20">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{partnerUser?.mood.emoji}</span>
+                  <span className="text-2xl animate-bounce">{partnerUser?.mood.emoji || '💕'}</span>
                   <span className="text-xs font-bold text-purple-200">{partnerUser?.petName}</span>
                 </div>
-                <p className="text-xs text-slate-300 italic">"{partnerUser?.mood.text}"</p>
+                <p className="text-xs text-slate-300 italic">"{partnerUser?.mood.text || 'Loving you always'}"</p>
               </div>
             </div>
           ) : (
@@ -250,20 +250,46 @@ export const HomeDashboard: React.FC = () => {
                   type="text"
                   value={moodEmoji}
                   onChange={(e) => setMoodEmoji(e.target.value)}
-                  className="w-12 text-center py-2 rounded-xl glass-input text-lg"
+                  className="w-12 text-center py-2 rounded-xl glass-input text-lg font-bold"
                   placeholder="💖"
                 />
                 <input
                   type="text"
                   value={moodText}
                   onChange={(e) => setMoodText(e.target.value)}
-                  placeholder="What's on your mind?"
+                  placeholder="What's on your heart?"
                   className="flex-1 px-4 py-2 rounded-xl glass-input text-xs"
                 />
               </div>
+
+              {/* Quick Mood Presets */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1">
+                {[
+                  { emoji: '💖', label: 'Loving' },
+                  { emoji: '🥺', label: 'Missing You' },
+                  { emoji: '😊', label: 'Happy' },
+                  { emoji: '😴', label: 'Tired' },
+                  { emoji: '☕', label: 'Busy' },
+                  { emoji: '🎉', label: 'Excited' }
+                ].map(preset => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      setMoodEmoji(preset.emoji);
+                      setMoodText(preset.label);
+                    }}
+                    className="p-1.5 rounded-xl glass-card text-[10px] font-semibold text-slate-300 hover:text-white flex items-center justify-center gap-1 hover:border-pink-400/40"
+                  >
+                    <span>{preset.emoji}</span>
+                    <span className="truncate">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+
               <button
                 type="submit"
-                className="w-full py-2 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-md"
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-md hover:scale-[1.02] active:scale-95 transition-transform"
               >
                 Save Mood Status
               </button>

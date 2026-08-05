@@ -343,24 +343,44 @@ export const CoreChat: React.FC = () => {
       {/* Secret Mode Banner */}
       <AnimatePresence>
         {isSecretMode && (
-          <motion.div className="bg-rose-950/80 border-b border-rose-500/30 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-rose-200 flex-shrink-0">
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-rose-950/90 border-b border-rose-500/40 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-rose-200 flex-shrink-0"
+          >
             <div className="flex items-center gap-2">
               <Clock className="w-3.5 h-3.5 text-rose-400 animate-spin" />
-              <span className="font-semibold">Disappearing Messages Active</span>
+              <span className="font-bold text-rose-300">Disappearing Messages Active</span>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-[10px] uppercase font-bold text-rose-300 hidden sm:inline">Burn Timer:</label>
-              <select
-                value={secretTimeout}
-                onChange={(e) => setSecretTimeout(Number(e.target.value))}
-                className="bg-space-900 border border-rose-500/40 rounded-lg px-2 py-1 text-xs text-white"
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <label className="text-[10px] uppercase font-bold text-rose-300 hidden sm:inline">Burn Timer:</label>
+                <select
+                  value={secretTimeout}
+                  onChange={(e) => setSecretTimeout(Number(e.target.value))}
+                  className="bg-space-900 border border-rose-500/40 rounded-lg px-2 py-1 text-xs text-white"
+                >
+                  <option value={30}>30s</option>
+                  <option value={60}>1 min</option>
+                  <option value={600}>10 min</option>
+                  <option value={3600}>1 hr</option>
+                  <option value={86400}>24 hrs</option>
+                </select>
+              </div>
+
+              {/* Explicit Turn Off Button */}
+              <button
+                onClick={() => {
+                  setIsSecretMode(false);
+                  toast.info('Disappearing messages turned off');
+                }}
+                className="px-2 py-1 rounded-lg bg-rose-500/30 hover:bg-rose-500/50 text-rose-200 text-xs font-bold flex items-center gap-1 transition-colors"
+                title="Turn off secret mode"
               >
-                <option value={30}>30s</option>
-                <option value={60}>1 min</option>
-                <option value={600}>10 min</option>
-                <option value={3600}>1 hr</option>
-                <option value={86400}>24 hrs</option>
-              </select>
+                <X className="w-3.5 h-3.5" />
+                <span>Turn Off</span>
+              </button>
             </div>
           </motion.div>
         )}
