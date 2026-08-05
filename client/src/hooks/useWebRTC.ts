@@ -67,8 +67,16 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   const initializeCall = useCallback(async (video: boolean = true) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: video ? { width: 1280, height: 720, facingMode: 'user' } : false,
+        video: video ? {
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          frameRate: { ideal: 30, max: 60 },
+          facingMode: 'user'
+        } : false,
         audio: {
+          sampleRate: 48000,
+          sampleSize: 16,
+          channelCount: 2,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
