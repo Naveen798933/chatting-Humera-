@@ -32,14 +32,15 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
   onSwitchCamera,
   onEndCall
 }) => {
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const localMainVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localPipVideoRef  = useRef<HTMLVideoElement | null>(null);
+  const remoteVideoRef    = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef    = useRef<HTMLAudioElement | null>(null);
 
   const [callDuration, setCallDuration] = useState(0);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized]   = useState(false);
 
-  // Call duration counter
+  // Call duration timer
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
     if (isOpen) {
@@ -51,14 +52,15 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
     };
   }, [isOpen]);
 
-  // Bind local video stream
+  // Bind local stream to both main and PiP refs
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
+    if (localStream) {
+      if (localMainVideoRef.current) localMainVideoRef.current.srcObject = localStream;
+      if (localPipVideoRef.current)  localPipVideoRef.current.srcObject  = localStream;
     }
-  }, [localStream, isOpen, isCameraOff]);
+  }, [localStream, isOpen, isCameraOff, remoteStream]);
 
-  // Bind remote video & audio stream
+  // Bind remote stream to video and audio elements
   useEffect(() => {
     if (remoteStream) {
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
@@ -74,10 +76,13 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
 
   if (!isOpen || !callType) return null;
 
+  // Check if remote stream has active video track
+  const hasRemoteVideo = remoteStream && remoteStream.getVideoTracks().some(t => t.enabled && t.readyState === 'live');
+
   return (
     <AnimatePresence>
       {isMinimized ? (
-        /* Minimized Floating Call Bubble */
+        /* Floating Minimized Call Card */
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -101,14 +106,14 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
           </button>
         </motion.div>
       ) : (
-        /* Full-Screen Call Experience Overlay */
+        /* Full-Screen Calling Overlay */
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-space-950 flex flex-col justify-between p-4 sm:p-6 overflow-hidden"
         >
-          {/* Top Header Controls */}
+          {/* Header Controls */}
           <div className="flex items-center justify-between z-20">
             <div className="flex items-center gap-3">
               <img
@@ -134,27 +139,29 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             </button>
           </div>
 
-          {/* Video Stream Main View Area */}
-          <div className="relative flex-1 my-4 rounded-3xl overflow-hidden glass-panel border border-white/10 flex items-center justify-center bg-black/40">
-            {/* Remote Stream Video or Placeholder Avatar */}
-            {remoteStream ? (
+          {/* Video / Audio Main Display */}
+          <div className="relative flex-1 my-4 rounded-3xl overflow-hidden glass-panel border border-white/10 flex items-center justify-center bg-black/50">
+            {/* 1. Remote Video Stream (if partner has video) */}
+            {hasRemoteVideo ? (
               <video
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
                 className="w-full h-full object-cover"
               />
-            ) : callType === 'video' && !isCameraOff ? (
+            ) : callType === 'video' && localStream && !isCameraOff ? (
+              /* 2. Self Camera Preview (before partner connects video) */
               <div className="relative w-full h-full flex items-center justify-center">
                 <video
-                  ref={localVideoRef}
+                  ref={localMainVideoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover scale-x-[-1]"
                 />
               </div>
             ) : (
+              /* 3. Voice Call / Camera Off Avatar Placeholder */
               <div className="flex flex-col items-center justify-center gap-4 p-6 text-center">
                 <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full p-1 bg-gradient-to-tr from-accent-pink to-accent-purple shadow-2xl animate-pulse-heart">
                   <img
@@ -165,17 +172,17 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                 </div>
                 <div>
                   <h4 className="text-xl font-extrabold text-white">{partnerUser?.petName}</h4>
-                  <p className="text-xs text-slate-300 mt-1">Encrypted End-to-End {callType === 'video' ? 'Video' : 'Voice'} Call</p>
+                  <p className="text-xs text-slate-300 mt-1">Encrypted {callType === 'video' ? 'Video' : 'Voice'} Call</p>
                 </div>
               </div>
             )}
 
-            {/* Self Video View Picture-in-Picture (PiP) Overlay */}
-            {callType === 'video' && (
+            {/* Picture-in-Picture Self Video Window */}
+            {callType === 'video' && hasRemoteVideo && (
               <div className="absolute bottom-4 right-4 w-28 h-40 sm:w-36 sm:h-48 rounded-2xl overflow-hidden border-2 border-accent-pink shadow-2xl bg-space-900 z-30">
                 {!isCameraOff ? (
                   <video
-                    ref={localVideoRef}
+                    ref={localPipVideoRef}
                     autoPlay
                     playsInline
                     muted
@@ -191,9 +198,9 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             )}
           </div>
 
-          {/* Bottom WhatsApp-Style Control Action Bar */}
+          {/* Control Bar */}
           <div className="flex items-center justify-center gap-4 sm:gap-6 py-2 z-20">
-            {/* Toggle Mic Button */}
+            {/* Mic Toggle */}
             <button
               onClick={onToggleMic}
               className={`p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
@@ -213,7 +220,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
               <PhoneOff className="w-8 h-8 fill-current" />
             </button>
 
-            {/* Toggle Camera Button */}
+            {/* Camera Toggle */}
             {callType === 'video' && (
               <button
                 onClick={onToggleCamera}
@@ -226,7 +233,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
               </button>
             )}
 
-            {/* Switch Camera Button (Mobile) */}
+            {/* Switch Camera */}
             {callType === 'video' && onSwitchCamera && (
               <button
                 onClick={onSwitchCamera}
@@ -236,7 +243,8 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                 <RefreshCw className="w-6 h-6" />
               </button>
             )}
-            {/* Dedicated Remote Audio Playback Element */}
+
+            {/* Hidden AutoPlay Remote Audio Stream */}
             <audio ref={remoteAudioRef} autoPlay controls={false} className="hidden" />
           </div>
         </motion.div>
