@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { VaultNote, CalendarEvent, SharedListItem, LoveMapPin } from '../types';
+import { toast } from '../lib/toast';
 import { 
   Lock, Calendar, CheckSquare, MapPin, Plus, 
   Key, Sparkles, BookOpen, Clock, Heart, Trash2, CheckCircle2 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '../components/motion';
 
 export const LoveVaultCalendar: React.FC = () => {
-  const { isVaultUnlocked, unlockVaultWithPin, lockVault } = useAuth();
+  const { currentUser, isVaultUnlocked, unlockVaultWithPin, lockVault } = useAuth();
   const { 
     vaultNotes, addVaultNote, deleteVaultNote,
     calendarEvents, addCalendarEvent,
@@ -55,9 +56,10 @@ export const LoveVaultCalendar: React.FC = () => {
       content: newVaultContent.trim(),
       unlockDate: newVaultFutureDate ? newVaultFutureDate : undefined,
       isLocked: Boolean(newVaultFutureDate),
-      createdBy: 'naveen_uid_798933'
+      createdBy: currentUser?.uid ?? 'naveen_uid_798933'
     });
 
+    toast.love('Vault note locked & saved! 🔒');
     setNewVaultTitle('');
     setNewVaultContent('');
     setNewVaultFutureDate('');
@@ -71,9 +73,10 @@ export const LoveVaultCalendar: React.FC = () => {
       title: newCalTitle.trim(),
       date: newCalDate,
       category: newCalCategory,
-      createdBy: 'naveen_uid_798933'
+      createdBy: currentUser?.uid ?? 'naveen_uid_798933'
     });
 
+    toast.love('Calendar event added! 🗓️');
     setNewCalTitle('');
     setNewCalDate('');
   };
@@ -82,6 +85,7 @@ export const LoveVaultCalendar: React.FC = () => {
     e.preventDefault();
     if (!newTodoTitle.trim()) return;
     addTodoItem(newTodoTitle.trim(), newTodoCategory);
+    toast.success('List item added!');
     setNewTodoTitle('');
   };
 
@@ -95,6 +99,7 @@ export const LoveVaultCalendar: React.FC = () => {
       locationName: newPinLoc.trim(),
       isBucketList: true
     });
+    toast.love('Love map pin added! 📍');
     setNewPinTitle('');
     setNewPinLoc('');
   };

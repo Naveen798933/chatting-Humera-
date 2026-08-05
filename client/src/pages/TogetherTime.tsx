@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { useWebRTC } from '../hooks/useWebRTC';
+import { toast } from '../lib/toast';
+import { sounds } from '../lib/soundEffects';
 import { 
   Video, Mic, MicOff, VideoOff, PhoneOff, Play, Pause, 
   Gamepad2, Sparkles, Tv, Music, Palette, HelpCircle, Heart, Trophy, Check, X
