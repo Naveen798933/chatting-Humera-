@@ -15,23 +15,54 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   const localStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const channelRef = useRef<any>(null);
+  const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
 
-  // High-availability STUN servers for peer-to-peer NAT traversal across cellular/WiFi networks
+  // High-availability STUN servers for peer-to-peer NAT traversal across cellular & WiFi networks
   const ICE_SERVERS: RTCConfiguration = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' }
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' }
     ]
+  };
+
+  // Safe user media stream acquisition with graceful fallbacks
+  const getMediaStream = async (video: boolean): Promise<MediaStream | null> => {
+    try {
+      // Preferred HD Media constraints
+      return await navigator.mediaDevices.getUserMedia({
+        video: video ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+    } catch (e1) {
+      try {
+        // Fallback 1: Basic video + audio
+        return await navigator.mediaDevices.getUserMedia({
+          video: video,
+          audio: true
+        });
+      } catch (e2) {
+        try {
+          // Fallback 2: Audio only (if camera is unavailable/blocked)
+          return await navigator.mediaDevices.getUserMedia({
+            audio: true
+          });
+        } catch (e3) {
+          console.error('All media devices acquisition attempts failed:', e3);
+          return null;
+        }
+      }
+    }
   };
 
   const createPeerConnection = useCallback((stream: MediaStream) => {
     const pc = new RTCPeerConnection(ICE_SERVERS);
     peerConnectionRef.current = pc;
 
-    // Add all local audio & video tracks to the peer connection
+    // Add all local audio & video tracks to peer connection
     stream.getTracks().forEach(track => {
       pc.addTrack(track, stream);
     });
@@ -41,6 +72,10 @@ export function useWebRTC(options?: UseWebRTCOptions) {
       if (event.streams && event.streams[0]) {
         setRemoteStream(event.streams[0]);
         options?.onRemoteStream?.(event.streams[0]);
+      } else if (event.track) {
+        const newStream = new MediaStream([event.track]);
+        setRemoteStream(newStream);
+        options?.onRemoteStream?.(newStream);
       }
     };
 
@@ -65,86 +100,81 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   }, [options]);
 
   const initializeCall = useCallback(async (video: boolean = true) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: video ? {
-          width: { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-          frameRate: { ideal: 30, max: 60 },
-          facingMode: 'user'
-        } : false,
-        audio: {
-          sampleRate: 48000,
-          sampleSize: 16,
-          channelCount: 2,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+    const stream = await getMediaStream(video);
+    if (!stream) return null;
+
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+
+    const pc = createPeerConnection(stream);
+
+    // Connect Supabase Realtime Signaling Channel
+    if (isSupabaseConfigured()) {
+      const channel = supabase.channel('ou_webrtc_signaling');
+      channelRef.current = channel;
+
+      const processQueuedIceCandidates = async () => {
+        while (iceCandidatesQueue.current.length > 0) {
+          const candidate = iceCandidatesQueue.current.shift();
+          if (candidate && pc.remoteDescription) {
+            try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
+          }
         }
-      });
+      };
 
-      localStreamRef.current = stream;
-      setLocalStream(stream);
+      channel
+        .on('broadcast', { event: 'REQUEST_OFFER' }, async () => {
+          if (pc && pc.signalingState !== 'closed') {
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: video });
+            await pc.setLocalDescription(offer);
+            channel.send({ type: 'broadcast', event: 'SIGNAL_OFFER', payload: { offer } });
+          }
+        })
+        .on('broadcast', { event: 'SIGNAL_OFFER' }, async (payload) => {
+          const { offer } = payload.payload || {};
+          if (offer && pc && pc.signalingState !== 'closed') {
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            await processQueuedIceCandidates();
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
 
-      const pc = createPeerConnection(stream);
-
-      // Connect Supabase Realtime Signaling Channel
-      if (isSupabaseConfigured()) {
-        const channel = supabase.channel('ou_webrtc_signaling');
-        channelRef.current = channel;
-
-        channel
-          .on('broadcast', { event: 'SIGNAL_OFFER' }, async (payload) => {
-            const { offer } = payload.payload || {};
-            if (offer && pc && pc.signalingState !== 'closed') {
-              await pc.setRemoteDescription(new RTCSessionDescription(offer));
-              const answer = await pc.createAnswer();
-              await pc.setLocalDescription(answer);
-
-              channel.send({
-                type: 'broadcast',
-                event: 'SIGNAL_ANSWER',
-                payload: { answer }
-              });
+            channel.send({
+              type: 'broadcast',
+              event: 'SIGNAL_ANSWER',
+              payload: { answer }
+            });
+          }
+        })
+        .on('broadcast', { event: 'SIGNAL_ANSWER' }, async (payload) => {
+          const { answer } = payload.payload || {};
+          if (answer && pc && pc.signalingState !== 'closed') {
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            await processQueuedIceCandidates();
+          }
+        })
+        .on('broadcast', { event: 'SIGNAL_ICE' }, async (payload) => {
+          const { candidate } = payload.payload || {};
+          if (candidate && pc && pc.signalingState !== 'closed') {
+            if (pc.remoteDescription) {
+              try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) {}
+            } else {
+              iceCandidatesQueue.current.push(candidate);
             }
-          })
-          .on('broadcast', { event: 'SIGNAL_ANSWER' }, async (payload) => {
-            const { answer } = payload.payload || {};
-            if (answer && pc && pc.signalingState !== 'closed') {
-              await pc.setRemoteDescription(new RTCSessionDescription(answer));
-            }
-          })
-          .on('broadcast', { event: 'SIGNAL_ICE' }, async (payload) => {
-            const { candidate } = payload.payload || {};
-            if (candidate && pc && pc.signalingState !== 'closed') {
-              try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-              } catch (e) {}
-            }
-          })
-          .subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-              // Initiate SDP offer as caller
-              const offer = await pc.createOffer({
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: video
-              });
-              await pc.setLocalDescription(offer);
+          }
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            // Send request offer or send initial offer
+            channel.send({ type: 'broadcast', event: 'REQUEST_OFFER', payload: {} });
 
-              channel.send({
-                type: 'broadcast',
-                event: 'SIGNAL_OFFER',
-                payload: { offer }
-              });
-            }
-          });
-      }
-
-      return pc;
-    } catch (err) {
-      console.error('Error accessing media devices for WebRTC call:', err);
-      return null;
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: video });
+            await pc.setLocalDescription(offer);
+            channel.send({ type: 'broadcast', event: 'SIGNAL_OFFER', payload: { offer } });
+          }
+        });
     }
+
+    return pc;
   }, [createPeerConnection]);
 
   const toggleMic = useCallback(() => {
@@ -185,6 +215,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
       channelRef.current = null;
     }
 
+    iceCandidatesQueue.current = [];
     setRemoteStream(null);
     setIsMicMuted(false);
     setIsCameraOff(false);
