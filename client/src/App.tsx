@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { UniverseProvider } from './context/UniverseContext';
+import { UniverseProvider, useUniverse } from './context/UniverseContext';
 import { AmbientBackground } from './components/AmbientBackground';
 import { ScreenshotBanner } from './components/ScreenshotBanner';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { AnniversaryOverlay } from './components/AnniversaryOverlay';
+import { IncomingCallModal } from './components/IncomingCallModal';
 import { Navigation, TabType } from './components/Navigation';
 import { AuthPage } from './pages/AuthPage';
 import { HomeDashboard } from './pages/HomeDashboard';
@@ -19,6 +20,7 @@ import { ToastContainer } from './components/Toast';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
+  const { incomingCall, acceptCall, declineCall } = useUniverse();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
@@ -53,6 +55,11 @@ const AppContent: React.FC = () => {
       <AdminBackupModal
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
+      />
+      <IncomingCallModal
+        incomingCall={incomingCall}
+        onAccept={acceptCall}
+        onDecline={declineCall}
       />
       <ToastContainer />
     </div>

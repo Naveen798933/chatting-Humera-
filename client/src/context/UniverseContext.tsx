@@ -5,6 +5,7 @@ import {
 } from '../types';
 import { useAuth } from './AuthContext';
 import { sounds } from '../lib/soundEffects';
+import { toast } from '../lib/toast';
 import confetti from 'canvas-confetti';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -139,7 +140,10 @@ interface UniverseContextType {
 
   isCallActive: boolean;
   callType: 'voice' | 'video' | null;
+  incomingCall: { callerId: string; callerName: string; callerPhoto: string; callType: 'voice' | 'video' } | null;
   startCall: (type: 'voice' | 'video') => void;
+  acceptCall: () => void;
+  declineCall: () => void;
   endCall: () => void;
 
   syncedMediaUrl: string;
@@ -175,6 +179,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [recentNotification, setNotif] = useState<QuickActionNotification | null>(null);
   const [isCallActive, setCallActive]  = useState(false);
   const [callType, setCallType]        = useState<'voice' | 'video' | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ callerId: string; callerName: string; callerPhoto: string; callType: 'voice' | 'video' } | null>(null);
   const [syncedMediaUrl, setSyncedMediaUrl] = useState('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   const [isPlayingMedia, setIsPlayingMedia] = useState(false);
 
@@ -322,6 +327,36 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               return [...prev, msg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
             });
           }
+        })
+        .on('broadcast', { event: 'INCOMING_CALL' }, (payload) => {
+          const { callerId, callerName, callerPhoto, callType: cType } = payload.payload || {};
+          if (callerId && callerId !== currentUser.uid) {
+            setIncomingCall({ callerId, callerName, callerPhoto, callType: cType || 'voice' });
+          }
+        })
+        .on('broadcast', { event: 'ACCEPT_CALL' }, (payload) => {
+          const { responderId } = payload.payload || {};
+          if (responderId && responderId !== currentUser.uid) {
+            setIncomingCall(null);
+            setCallActive(true);
+            toast.love('Call Connected! 📞');
+          }
+        })
+        .on('broadcast', { event: 'DECLINE_CALL' }, (payload) => {
+          const { responderId } = payload.payload || {};
+          if (responderId && responderId !== currentUser.uid) {
+            setIncomingCall(null);
+            setCallActive(false);
+            setCallType(null);
+            sounds.playSecretBurnSound();
+            toast.info('Call declined by partner');
+          }
+        })
+        .on('broadcast', { event: 'END_CALL' }, () => {
+          setIncomingCall(null);
+          setCallActive(false);
+          setCallType(null);
+          toast.info('Call ended');
         })
         .subscribe();
     }
@@ -599,8 +634,65 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setTimeout(() => setNotif(null), 4000);
   };
 
-  const startCall = (type: 'voice' | 'video') => { setCallActive(true); setCallType(type); sounds.playCallRingtone(); };
-  const endCall   = () => { setCallActive(false); setCallType(null); };
+  const startCall = (type: 'voice' | 'video') => {
+    if (!currentUser) return;
+    setCallActive(true);
+    setCallType(type);
+    sounds.playCallRingtone();
+    try {
+      spChatChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'INCOMING_CALL',
+        payload: {
+          callerId: currentUser.uid,
+          callerName: currentUser.petName || currentUser.realName,
+          callerPhoto: currentUser.photoURL,
+          callType: type
+        }
+      });
+    } catch {}
+  };
+
+  const acceptCall = () => {
+    if (!currentUser) return;
+    setIncomingCall(null);
+    setCallActive(true);
+    sounds.playMessageReceivedSound();
+    try {
+      spChatChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'ACCEPT_CALL',
+        payload: { responderId: currentUser.uid }
+      });
+    } catch {}
+  };
+
+  const declineCall = () => {
+    if (!currentUser) return;
+    setIncomingCall(null);
+    setCallActive(false);
+    setCallType(null);
+    try {
+      spChatChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'DECLINE_CALL',
+        payload: { responderId: currentUser.uid }
+      });
+    } catch {}
+  };
+
+  const endCall = () => {
+    setIncomingCall(null);
+    setCallActive(false);
+    setCallType(null);
+    try {
+      spChatChannelRef.current?.send({
+        type: 'broadcast',
+        event: 'END_CALL',
+        payload: {}
+      });
+    } catch {}
+  };
 
   const importDatabaseBackup = (json: string): boolean => {
     try {
@@ -625,7 +717,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       todoItems, addTodoItem, toggleTodoItem, deleteTodoItem,
       mapPins, addMapPin,
       recentNotification, sendQuickAction,
-      isCallActive, callType, startCall, endCall,
+      isCallActive, callType, incomingCall, startCall, acceptCall, declineCall, endCall,
       syncedMediaUrl, setSyncedMediaUrl, isPlayingMedia, setIsPlayingMedia,
       importDatabaseBackup
     }}>
