@@ -140,6 +140,7 @@ interface UniverseContextType {
 
   isCallActive: boolean;
   callType: 'voice' | 'video' | null;
+  callRole: 'caller' | 'answerer' | null;
   incomingCall: { callerId: string; callerName: string; callerPhoto: string; callType: 'voice' | 'video' } | null;
   startCall: (type: 'voice' | 'video') => void;
   acceptCall: () => void;
@@ -179,6 +180,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [recentNotification, setNotif] = useState<QuickActionNotification | null>(null);
   const [isCallActive, setCallActive]  = useState(false);
   const [callType, setCallType]        = useState<'voice' | 'video' | null>(null);
+  const [callRole, setCallRole]        = useState<'caller' | 'answerer' | null>(null);
   const [incomingCall, setIncomingCall] = useState<{ callerId: string; callerName: string; callerPhoto: string; callType: 'voice' | 'video' } | null>(null);
   const [syncedMediaUrl, setSyncedMediaUrl] = useState('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   const [isPlayingMedia, setIsPlayingMedia] = useState(false);
@@ -638,6 +640,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!currentUser) return;
     setCallActive(true);
     setCallType(type);
+    setCallRole('caller');
     sounds.playCallRingtone();
     try {
       spChatChannelRef.current?.send({
@@ -655,7 +658,10 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const acceptCall = () => {
     if (!currentUser) return;
+    const type = incomingCall?.callType || 'voice';
     setIncomingCall(null);
+    setCallType(type);
+    setCallRole('answerer');
     setCallActive(true);
     sounds.playMessageReceivedSound();
     try {
@@ -672,6 +678,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIncomingCall(null);
     setCallActive(false);
     setCallType(null);
+    setCallRole(null);
     try {
       spChatChannelRef.current?.send({
         type: 'broadcast',
@@ -685,6 +692,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIncomingCall(null);
     setCallActive(false);
     setCallType(null);
+    setCallRole(null);
     try {
       spChatChannelRef.current?.send({
         type: 'broadcast',
@@ -717,7 +725,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       todoItems, addTodoItem, toggleTodoItem, deleteTodoItem,
       mapPins, addMapPin,
       recentNotification, sendQuickAction,
-      isCallActive, callType, incomingCall, startCall, acceptCall, declineCall, endCall,
+      isCallActive, callType, callRole, incomingCall, startCall, acceptCall, declineCall, endCall,
       syncedMediaUrl, setSyncedMediaUrl, isPlayingMedia, setIsPlayingMedia,
       importDatabaseBackup
     }}>

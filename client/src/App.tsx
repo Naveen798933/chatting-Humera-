@@ -22,7 +22,7 @@ import { ToastContainer } from './components/Toast';
 
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
-  const { isCallActive, callType, incomingCall, acceptCall, declineCall, endCall } = useUniverse();
+  const { isCallActive, callType, callRole, incomingCall, acceptCall, declineCall, endCall } = useUniverse();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
@@ -38,12 +38,12 @@ const AppContent: React.FC = () => {
   } = useWebRTC();
 
   React.useEffect(() => {
-    if (isCallActive && callType) {
-      initializeCall(callType === 'video');
+    if (isCallActive && callType && callRole) {
+      initializeCall(callType === 'video', callRole);
     } else {
       webrtcEndCall();
     }
-  }, [isCallActive, callType]);
+  }, [isCallActive, callType, callRole]);
 
   if (isDecoyActive) {
     return <DecoyCalculator onUnlockRealApp={toggleDecoyMode} />;

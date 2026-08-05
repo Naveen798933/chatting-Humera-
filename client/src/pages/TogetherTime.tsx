@@ -47,19 +47,16 @@ export const TogetherTime: React.FC = () => {
 
   const handleStartVoiceCall = () => {
     startCall('voice');
-    initializeCall(false);
     toast.love('Calling... 📞');
   };
 
   const handleStartVideoCall = () => {
     startCall('video');
-    initializeCall(true);
     toast.love('Starting Video Call... 📹');
   };
 
   const handleHangUp = () => {
     endCall();
-    webrtcEndCall();
     toast.info('Call ended');
   };
 
