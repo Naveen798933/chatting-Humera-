@@ -270,19 +270,18 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [currentUser]);
 
-  // ── Typing indicator via BroadcastChannel ────────────────────────────────
+  // ── Typing indicator via BroadcastChannel & Supabase Realtime Broadcast ──
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const typingChannelRef = useRef<BroadcastChannel | null>(null);
   const typingClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spChatChannelRef = useRef<any>(null);
 
   useEffect(() => {
     if (!currentUser) return;
-    // BroadcastChannel lets both tabs on same device communicate without Supabase
-    const channel = new BroadcastChannel('ou_typing_indicator');
-    typingChannelRef.current = channel;
+    const bcChannel = new BroadcastChannel('ou_typing_indicator');
+    typingChannelRef.current = bcChannel;
 
-    channel.onmessage = (e) => {
-      const { userId, isTyping } = e.data || {};
+    const handleIncomingTyping = (userId: string, isTyping: boolean) => {
       if (userId && userId !== currentUser.uid) {
         setIsPartnerTyping(Boolean(isTyping));
         if (isTyping) {
@@ -292,9 +291,48 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     };
 
+    bcChannel.onmessage = (e) => {
+      const { userId, isTyping } = e.data || {};
+      handleIncomingTyping(userId, isTyping);
+    };
+
+    // Supabase Realtime Channel for internet-wide cross-device typing & actions
+    if (isSupabaseConfigured()) {
+      const spChannel = supabase.channel('ou_chat_broadcast');
+      spChatChannelRef.current = spChannel;
+
+      spChannel
+        .on('broadcast', { event: 'TYPING_STATUS' }, (payload) => {
+          const { userId, isTyping } = payload.payload || {};
+          handleIncomingTyping(userId, isTyping);
+        })
+        .on('broadcast', { event: 'MARK_SEEN' }, (payload) => {
+          const { readerId, seenAt } = payload.payload || {};
+          if (readerId && readerId !== currentUser.uid) {
+            const seenTime = seenAt || new Date().toISOString();
+            setMessages(prev => prev.map(m => m.senderId !== readerId && !m.seen ? { ...m, seen: true, seenAt: seenTime } : m));
+          }
+        })
+        .on('broadcast', { event: 'NEW_MESSAGE' }, (payload) => {
+          const { msg } = payload.payload || {};
+          if (msg && msg.senderId !== currentUser.uid) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === msg.id)) return prev;
+              sounds.playMessageReceivedSound();
+              return [...prev, msg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            });
+          }
+        })
+        .subscribe();
+    }
+
     return () => {
-      channel.close();
+      bcChannel.close();
       typingChannelRef.current = null;
+      if (spChatChannelRef.current) {
+        supabase.removeChannel(spChatChannelRef.current);
+        spChatChannelRef.current = null;
+      }
       if (typingClearRef.current) clearTimeout(typingClearRef.current);
     };
   }, [currentUser]);
@@ -303,15 +341,17 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!currentUser) return;
     try {
       typingChannelRef.current?.postMessage({ userId: currentUser.uid, isTyping });
-      // Also update Supabase presence if table exists
-      if (isSupabaseConfigured()) {
-        supabase.from('presence').upsert({
-          user_id: currentUser.uid,
-          is_typing: isTyping,
-          updated_at: new Date().toISOString()
-        }).then(() => {});
-      }
     } catch {}
+
+    if (spChatChannelRef.current) {
+      try {
+        spChatChannelRef.current.send({
+          type: 'broadcast',
+          event: 'TYPING_STATUS',
+          payload: { userId: currentUser.uid, isTyping }
+        });
+      } catch {}
+    }
   };
 
   // ── Burn disappearing messages ─────────────────────────────────────────────
@@ -407,6 +447,16 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       msgSyncChannelRef.current?.postMessage({ type: 'NEW_MESSAGE', msg: newMsgObj });
     } catch {}
 
+    if (spChatChannelRef.current) {
+      try {
+        spChatChannelRef.current.send({
+          type: 'broadcast',
+          event: 'NEW_MESSAGE',
+          payload: { msg: newMsgObj }
+        });
+      } catch {}
+    }
+
     if (isSupabaseConfigured()) {
       try {
         await supabase.from('messages').insert({
@@ -472,6 +522,16 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         seenAt: nowIso
       });
     } catch {}
+
+    if (spChatChannelRef.current) {
+      try {
+        spChatChannelRef.current.send({
+          type: 'broadcast',
+          event: 'MARK_SEEN',
+          payload: { readerId: currentUser.uid, seenAt: nowIso }
+        });
+      } catch {}
+    }
 
     if (isSupabaseConfigured()) {
       try {

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { UserProfile, UserUid } from '../types';
 import { AUTHORIZED_USERS } from '../lib/constants';
 import { useInactivityLogout } from '../hooks/useInactivityLogout';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface AuthContextType {
   currentUser: UserProfile | null;
@@ -68,42 +69,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useInactivityLogout(handleAutoLogout, 15);
 
-  // ── Presence Heartbeat via BroadcastChannel & LocalStorage ────────────────
+  // ── Presence Heartbeat via BroadcastChannel & Supabase Realtime ──────────
   useEffect(() => {
     if (!currentUser) return;
 
-    const channel = new BroadcastChannel('ou_presence_sync');
+    const bcChannel = new BroadcastChannel('ou_presence_sync');
     let presenceTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    // Send heartbeat every 3 seconds
-    const sendHeartbeat = () => {
-      const nowIso = new Date().toISOString();
-      localStorage.setItem(`ou_last_seen_${currentUser.uid}`, nowIso);
-      try {
-        channel.postMessage({
-          type: 'PRESENCE_HEARTBEAT',
-          userId: currentUser.uid,
-          timestamp: nowIso
-        });
-      } catch {}
-    };
+    // Supabase Realtime Channel for cross-device Internet presence
+    const spChannel = isSupabaseConfigured()
+      ? supabase.channel('ou_presence_global')
+      : null;
 
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 3500);
-
-    // Listen for partner's heartbeat
-    channel.onmessage = (e) => {
-      if (e.data?.type === 'PRESENCE_HEARTBEAT' && e.data.userId !== currentUser.uid) {
+    const handleIncomingPresence = (userId: string, timestamp: string) => {
+      if (userId !== currentUser.uid) {
         setPartnerUser(prev => {
           if (!prev) return prev;
           return {
             ...prev,
             online: true,
-            lastSeen: e.data.timestamp || new Date().toISOString()
+            lastSeen: timestamp || new Date().toISOString()
           };
         });
 
-        // Reset partner offline timer (if no heartbeat for 8s, mark offline)
         if (presenceTimeout) clearTimeout(presenceTimeout);
         presenceTimeout = setTimeout(() => {
           setPartnerUser(prev => prev ? { ...prev, online: false } : prev);
@@ -111,10 +99,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    if (spChannel) {
+      spChannel
+        .on('broadcast', { event: 'PRESENCE_HEARTBEAT' }, (payload) => {
+          const { userId, timestamp } = payload.payload || {};
+          if (userId) handleIncomingPresence(userId, timestamp);
+        })
+        .subscribe();
+    }
+
+    // Send heartbeat every 3.5 seconds
+    const sendHeartbeat = () => {
+      const nowIso = new Date().toISOString();
+      localStorage.setItem(`ou_last_seen_${currentUser.uid}`, nowIso);
+      try {
+        bcChannel.postMessage({
+          type: 'PRESENCE_HEARTBEAT',
+          userId: currentUser.uid,
+          timestamp: nowIso
+        });
+      } catch {}
+
+      if (spChannel) {
+        try {
+          spChannel.send({
+            type: 'broadcast',
+            event: 'PRESENCE_HEARTBEAT',
+            payload: { userId: currentUser.uid, timestamp: nowIso }
+          });
+        } catch {}
+      }
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 3500);
+
+    // Listen for partner's local tab heartbeat
+    bcChannel.onmessage = (e) => {
+      if (e.data?.type === 'PRESENCE_HEARTBEAT' && e.data.userId) {
+        handleIncomingPresence(e.data.userId, e.data.timestamp);
+      }
+    };
+
     return () => {
       clearInterval(interval);
       if (presenceTimeout) clearTimeout(presenceTimeout);
-      channel.close();
+      bcChannel.close();
+      if (spChannel) supabase.removeChannel(spChannel);
     };
   }, [currentUser]);
 
