@@ -158,6 +158,29 @@ class SoundSynthesizer {
       osc.stop(ctx.currentTime + 0.3);
     } catch (e) {}
   }
+
+  // Play Call Ringtone sound
+  playCallRingtone() {
+    try {
+      const ctx = this.getContext();
+      [440, 480].forEach(freq => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      });
+    } catch (e) {}
+  }
 }
 
 export const sounds = new SoundSynthesizer();

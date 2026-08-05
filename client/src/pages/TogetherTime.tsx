@@ -43,7 +43,25 @@ export const TogetherTime: React.FC = () => {
     syncedMediaUrl, setSyncedMediaUrl, isPlayingMedia, setIsPlayingMedia 
   } = useUniverse();
 
-  const { isMicMuted, isCameraOff, toggleMic, toggleCamera } = useWebRTC();
+  const { isMicMuted, isCameraOff, initializeCall, toggleMic, toggleCamera, endCall: webrtcEndCall } = useWebRTC();
+
+  const handleStartVoiceCall = () => {
+    startCall('voice');
+    initializeCall(false);
+    toast.love('Calling... 📞');
+  };
+
+  const handleStartVideoCall = () => {
+    startCall('video');
+    initializeCall(true);
+    toast.love('Starting Video Call... 📹');
+  };
+
+  const handleHangUp = () => {
+    endCall();
+    webrtcEndCall();
+    toast.info('Call ended');
+  };
 
   const [activeTab, setActiveTab] = useState<'calls' | 'watch' | 'games'>('calls');
 
@@ -219,15 +237,15 @@ export const TogetherTime: React.FC = () => {
 
               <div className="flex justify-center gap-4">
                 <button
-                  onClick={() => startCall('voice')}
-                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs shadow-lg flex items-center gap-2 hover:scale-105 transition-all"
+                  onClick={handleStartVoiceCall}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs shadow-lg flex items-center gap-2 hover:scale-105 transition-all active:scale-95"
                 >
                   <Mic className="w-4 h-4" />
                   <span>Start Voice Call</span>
                 </button>
                 <button
-                  onClick={() => startCall('video')}
-                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg flex items-center gap-2 hover:scale-105 transition-all"
+                  onClick={handleStartVideoCall}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg flex items-center gap-2 hover:scale-105 transition-all active:scale-95"
                 >
                   <Video className="w-4 h-4" />
                   <span>Start Video Call</span>
@@ -266,8 +284,8 @@ export const TogetherTime: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={endCall}
-                  className="p-5 rounded-full bg-rose-600 text-white shadow-xl hover:scale-110 transition-transform"
+                  onClick={handleHangUp}
+                  className="p-5 rounded-full bg-rose-600 text-white shadow-xl hover:scale-110 active:scale-95 transition-transform"
                 >
                   <PhoneOff className="w-7 h-7" />
                 </button>

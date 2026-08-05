@@ -599,7 +599,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setTimeout(() => setNotif(null), 4000);
   };
 
-  const startCall = (type: 'voice' | 'video') => { setCallActive(true); setCallType(type); };
+  const startCall = (type: 'voice' | 'video') => { setCallActive(true); setCallType(type); sounds.playCallRingtone(); };
   const endCall   = () => { setCallActive(false); setCallType(null); };
 
   const importDatabaseBackup = (json: string): boolean => {
