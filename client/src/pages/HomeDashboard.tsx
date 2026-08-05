@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
-import { 
-  Heart, Sun, Moon, CloudSun, Smile, Sparkles, 
-  Send, Music, Gift, Volume2 
+import { toast } from '../lib/toast';
+import {
+  Heart, Sun, Moon, CloudSun, Smile, Sparkles,
+  Send, Music, Gift, MapPin, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -64,6 +65,7 @@ export const HomeDashboard: React.FC = () => {
       const random = memories[Math.floor(Math.random() * memories.length)];
       setSurpriseMemory(random);
     }
+    toast.love('Surprise sent! 🎉');
   };
 
   const hour = new Date().getHours();
@@ -173,22 +175,36 @@ export const HomeDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-3xl border border-white/10 flex flex-col justify-between">
+        {/* Couple Connection Card — replaces fake weather */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 flex flex-col justify-between gap-4">
           <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <CloudSun className="w-4 h-4 text-sky-400" />
-            <span>Couple Weather</span>
+            <MapPin className="w-4 h-4 text-pink-400" />
+            <span>Our Distance</span>
           </h4>
-          <div className="space-y-3 my-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-medium">Naveen (Hyd):</span>
-              <span className="font-bold text-amber-300">28°C ☀️ Sunny</span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🏙️</span>
+              <div>
+                <p className="text-xs font-bold text-white">{currentUser?.realName}</p>
+                <p className="text-[10px] text-slate-400">{currentUser?.city}</p>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-medium">Humera (Blr):</span>
-              <span className="font-bold text-sky-300">24°C 🌤️ Pleasant</span>
+            <div className="flex justify-center">
+              <div className="flex flex-col items-center">
+                <div className="w-px h-4 bg-pink-500/30" />
+                <Heart className="w-4 h-4 text-pink-400 fill-current animate-heartbeat" />
+                <div className="w-px h-4 bg-pink-500/30" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🌆</span>
+              <div>
+                <p className="text-xs font-bold text-white">{partnerUser?.realName}</p>
+                <p className="text-[10px] text-slate-400">{partnerUser?.city}</p>
+              </div>
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 italic">280 km away, 0 km apart in heart ❤️</p>
+          <p className="text-[10px] text-pink-300/70 italic text-center">~280 km apart in distance, 0 km apart in heart ❤️</p>
         </div>
       </div>
 

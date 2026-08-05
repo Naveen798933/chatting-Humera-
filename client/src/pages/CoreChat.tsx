@@ -1,32 +1,43 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
+import { toast } from '../lib/toast';
 import { Message } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
-import { 
-  Send, Image, Mic, Flame, Heart, Smile, Lock, 
-  Trash2, Star, Search, CornerUpLeft, Clock, 
-  CheckCheck, ShieldAlert, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3
+import {
+  Send, Image, Mic, Smile, Lock,
+  Trash2, Star, Search, CornerUpLeft, Clock,
+  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
+const QUICK_REACTIONS = ['❤️', '🔥', '😂', '😍', '👏', '💋'];
+
 export const CoreChat: React.FC = () => {
   const { currentUser, partnerUser } = useAuth();
-  const { messages, sendMessage, deleteMessage, toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus } = useUniverse();
+  const {
+    messages, sendMessage, deleteMessage, editMessage,
+    toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus
+  } = useUniverse();
 
   const [inputContent, setInputContent] = useState('');
   const [isSecretMode, setIsSecretMode] = useState(false);
   const [secretTimeout, setSecretTimeout] = useState<number>(60);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [forwardingMsg, setForwardingMsg] = useState<Message | null>(null);
+  const [editingMsg, setEditingMsg] = useState<Message | null>(null);
+  const [editContent, setEditContent] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [activeReactionMsgId, setActiveReactionMsgId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const editInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -40,23 +51,26 @@ export const CoreChat: React.FC = () => {
     };
   }, [setTypingStatus]);
 
+  useEffect(() => {
+    if (editingMsg) {
+      editInputRef.current?.focus();
+    }
+  }, [editingMsg]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
     setInputContent(text);
-
     if (text.trim().length > 0) {
       setTypingStatus(true);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => {
-        setTypingStatus(false);
-      }, 2500);
+      typingTimeoutRef.current = setTimeout(() => setTypingStatus(false), 2500);
     } else {
       setTypingStatus(false);
     }
   };
 
   useEffect(() => {
-    let timer: any;
+    let timer: ReturnType<typeof setInterval>;
     if (isRecording) {
       timer = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } else {
@@ -68,87 +82,81 @@ export const CoreChat: React.FC = () => {
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputContent.trim()) return;
-
     setTypingStatus(false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-    sendMessage(
-      inputContent.trim(),
-      'text',
-      undefined,
-      replyingTo?.id,
-      isSecretMode,
-      secretTimeout
-    );
-
+    sendMessage(inputContent.trim(), 'text', undefined, replyingTo?.id, isSecretMode, secretTimeout);
     setInputContent('');
     setReplyingTo(null);
     setShowEmojiPicker(false);
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMsg || !editContent.trim()) return;
+    await editMessage(editingMsg.id, editContent.trim());
+    toast.success('Message updated ✏️');
+    setEditingMsg(null);
+    setEditContent('');
+  };
+
+  const handleStartEdit = (msg: Message) => {
+    setEditingMsg(msg);
+    setEditContent(msg.content);
+    setActiveReactionMsgId(null);
+  };
+
+  const handleDelete = async (msg: Message) => {
+    await deleteMessage(msg.id, true);
+    toast.info('Message deleted');
+    setActiveReactionMsgId(null);
+  };
+
   const handleSendLocation = () => {
-    sendMessage(
-      `📍 Shared live location: ${currentUser?.city}`,
-      'location',
-      undefined,
-      replyingTo?.id,
-      isSecretMode,
-      secretTimeout
-    );
+    sendMessage(`📍 Shared live location: ${currentUser?.city}`, 'location', undefined, replyingTo?.id, isSecretMode, secretTimeout);
+    toast.success('Location shared!');
   };
 
   const handleSendContact = () => {
-    sendMessage(
-      `👤 Shared Contact: ${currentUser?.realName} (${currentUser?.petName})`,
-      'contact',
-      undefined,
-      replyingTo?.id,
-      isSecretMode,
-      secretTimeout
-    );
+    sendMessage(`👤 Shared Contact: ${currentUser?.realName} (${currentUser?.petName})`, 'contact', undefined, replyingTo?.id, isSecretMode, secretTimeout);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const isVideo = file.type.startsWith('video');
-      const reader = new FileReader();
-      reader.onload = () => {
-        const mediaUrl = reader.result as string;
-        sendMessage(
-          `Shared ${isVideo ? 'a video' : 'an image'}`,
-          isVideo ? 'video' : 'image',
-          mediaUrl,
-          replyingTo?.id,
-          isSecretMode,
-          secretTimeout
-        );
-        setReplyingTo(null);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large! Max 5MB');
+      return;
     }
+    const isVideo = file.type.startsWith('video');
+    const reader = new FileReader();
+    reader.onload = () => {
+      const mediaUrl = reader.result as string;
+      sendMessage(`Shared ${isVideo ? 'a video' : 'an image'}`, isVideo ? 'video' : 'image', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
+      setReplyingTo(null);
+      toast.love(`${isVideo ? 'Video' : 'Image'} sent! 💕`);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleStopRecording = () => {
     setIsRecording(false);
     sendMessage(
-      `Voice note (${recordingTime}s)`,
+      `🎙️ Voice note (${recordingTime}s)`,
       'audio',
       'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
       replyingTo?.id,
       isSecretMode,
       secretTimeout
     );
+    toast.love('Voice note sent 🎙️');
   };
 
   const handleForwardConfirm = () => {
     if (forwardingMsg) {
-      sendMessage(
-        `Forwarded: ${forwardingMsg.content}`,
-        forwardingMsg.type,
-        forwardingMsg.mediaUrl
-      );
+      sendMessage(`Forwarded: ${forwardingMsg.content}`, forwardingMsg.type, forwardingMsg.mediaUrl);
       setForwardingMsg(null);
+      toast.success('Message forwarded!');
     }
   };
 
@@ -159,24 +167,28 @@ export const CoreChat: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto h-[calc(100dvh-130px)] sm:h-[82vh] flex flex-col glass-panel rounded-2xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative">
-      <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/10 flex items-center justify-between bg-space-900/80 backdrop-blur-md">
+      {/* Chat Header */}
+      <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/10 flex items-center justify-between bg-space-900/80 backdrop-blur-md flex-shrink-0">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="relative flex-shrink-0">
             <img
               src={partnerUser?.photoURL}
               alt={partnerUser?.realName}
               className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-accent-pink shadow-md"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+              }}
             />
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 border-2 border-space-950 rounded-full" />
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-space-950 rounded-full" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1 truncate">
+            <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
               <span className="truncate">{partnerUser?.petName}</span>
-              <span className="text-[10px] text-pink-300 font-normal hidden xs:inline">({partnerUser?.realName})</span>
+              <span className="text-[10px] text-pink-300/70 font-normal hidden sm:inline">({partnerUser?.realName})</span>
             </h3>
-            <p className="text-[9px] sm:text-[10px] text-emerald-400 font-medium flex items-center gap-1 truncate">
+            <p className="text-[9px] sm:text-[10px] text-emerald-400 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping flex-shrink-0" />
-              <span className="truncate">Online in Universe</span>
+              <span>Online in Universe</span>
             </p>
           </div>
         </div>
@@ -191,7 +203,7 @@ export const CoreChat: React.FC = () => {
             }`}
           >
             <Lock className="w-3.5 h-3.5" />
-            <span>{isSecretMode ? 'Secret Mode' : 'Secret'}</span>
+            <span className="hidden xs:inline">{isSecretMode ? 'Secret' : 'Secret'}</span>
           </button>
 
           <button
@@ -203,40 +215,43 @@ export const CoreChat: React.FC = () => {
         </div>
       </div>
 
+      {/* Secret Mode Banner */}
       <AnimatePresence>
         {isSecretMode && (
-          <motion.div className="bg-rose-950/80 border-b border-rose-500/30 px-6 py-2 flex items-center justify-between text-xs text-rose-200">
+          <motion.div className="bg-rose-950/80 border-b border-rose-500/30 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-rose-200 flex-shrink-0">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-rose-400 animate-spin" />
-              <span>Disappearing Messages Active</span>
+              <Clock className="w-3.5 h-3.5 text-rose-400 animate-spin" />
+              <span className="font-semibold">Disappearing Messages Active</span>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-[10px] uppercase font-bold text-rose-300">Burn Timer:</label>
+              <label className="text-[10px] uppercase font-bold text-rose-300 hidden sm:inline">Burn Timer:</label>
               <select
                 value={secretTimeout}
                 onChange={(e) => setSecretTimeout(Number(e.target.value))}
                 className="bg-space-900 border border-rose-500/40 rounded-lg px-2 py-1 text-xs text-white"
               >
-                <option value={30}>30 Seconds</option>
-                <option value={60}>1 Minute</option>
-                <option value={600}>10 Minutes</option>
-                <option value={3600}>1 Hour</option>
-                <option value={86400}>24 Hours</option>
+                <option value={30}>30s</option>
+                <option value={60}>1 min</option>
+                <option value={600}>10 min</option>
+                <option value={3600}>1 hr</option>
+                <option value={86400}>24 hrs</option>
               </select>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Search Bar */}
       {showSearch && (
-        <div className="p-3 bg-space-900/90 border-b border-white/10 flex items-center gap-2">
-          <Search className="w-4 h-4 text-slate-400 ml-2" />
+        <div className="p-3 bg-space-900/90 border-b border-white/10 flex items-center gap-2 flex-shrink-0">
+          <Search className="w-4 h-4 text-slate-400 ml-2 shrink-0" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search chat history..."
+            placeholder="Search messages..."
             className="flex-1 bg-transparent text-xs text-white focus:outline-none"
+            autoFocus
           />
           <button onClick={() => { setSearchQuery(''); setShowSearch(false); }} className="p-1 text-slate-400">
             <X className="w-4 h-4" />
@@ -244,7 +259,22 @@ export const CoreChat: React.FC = () => {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3" id="chat-messages">
+
+        {/* Empty state */}
+        {filteredMessages.length === 0 && !searchQuery && (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-4 py-10">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-accent-pink/20 to-accent-purple/20 flex items-center justify-center border border-pink-500/20">
+              <MessageCircle className="w-8 h-8 text-pink-400/60" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white/80">Start Your Universe</p>
+              <p className="text-xs text-slate-400 mt-1">Send the first message to {partnerUser?.petName} 💕</p>
+            </div>
+          </div>
+        )}
+
         {filteredMessages.map((msg, idx) => {
           const isMe = msg.senderId === currentUser?.uid;
           const showDateSep = idx === 0 || new Date(msg.createdAt).toDateString() !== new Date(filteredMessages[idx - 1].createdAt).toDateString();
@@ -252,112 +282,142 @@ export const CoreChat: React.FC = () => {
           return (
             <React.Fragment key={msg.id}>
               {showDateSep && (
-                <div className="flex items-center justify-center my-4">
+                <div className="flex items-center justify-center my-3">
                   <span className="px-3 py-1 rounded-full glass-card text-[10px] font-semibold text-slate-400 border border-white/5">
                     {new Date(msg.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </span>
                 </div>
               )}
 
-              <motion.div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group`}>
+              <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group`}>
                 {msg.replyTo && (
-                  <div className="text-[10px] text-slate-300 mb-1 px-3 py-1 rounded-lg bg-white/5 border-l-2 border-accent-pink max-w-xs truncate">
-                    Replying to: "{msg.replyTo.excerpt}"
+                  <div className={`text-[10px] text-slate-300 mb-1 px-3 py-1.5 rounded-xl bg-white/5 border-l-2 border-accent-pink max-w-[75%] ${isMe ? 'text-right' : 'text-left'}`}>
+                    <span className="text-pink-300 font-semibold text-[9px] block mb-0.5">Replying to</span>
+                    <span className="truncate block">"{msg.replyTo.excerpt}"</span>
                   </div>
                 )}
 
-                <div className="flex items-end gap-2 max-w-[85%] sm:max-w-[70%]">
+                <div className={`flex items-end gap-2 max-w-[88%] sm:max-w-[72%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                   {!isMe && (
                     <img
                       src={partnerUser?.photoURL}
                       alt={partnerUser?.realName}
-                      className="w-7 h-7 rounded-full object-cover mb-1 border border-pink-400/40"
+                      className="w-7 h-7 rounded-full object-cover mb-1 border border-pink-400/40 flex-shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Partner&background=a855f7&color=fff`;
+                      }}
                     />
                   )}
 
-                  <div
-                    className={`p-3.5 rounded-2xl relative shadow-lg ${
-                      isMe
-                        ? 'bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-br-none'
-                        : 'glass-panel text-slate-100 rounded-bl-none border border-white/10'
-                    } ${msg.isSecret ? 'border-2 border-dashed border-rose-400/60' : ''}`}
-                  >
-                    {msg.isSecret && (
-                      <div className="flex items-center gap-1 text-[9px] font-bold text-rose-300 mb-1">
-                        <Lock className="w-3 h-3" />
-                        <span>Secret Message (Self-Destructing)</span>
+                  <div className="flex flex-col gap-1">
+                    {/* Message bubble */}
+                    <div
+                      className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer ${
+                        isMe
+                          ? 'bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-br-sm'
+                          : 'glass-panel text-slate-100 rounded-bl-sm border border-white/10'
+                      } ${msg.isSecret ? 'border-2 border-dashed border-rose-400/60' : ''}`}
+                      onClick={() => setActiveReactionMsgId(activeReactionMsgId === msg.id ? null : msg.id)}
+                    >
+                      {msg.isSecret && (
+                        <div className="flex items-center gap-1 text-[9px] font-bold text-rose-300 mb-1.5">
+                          <Lock className="w-3 h-3" />
+                          <span>Self-Destructing</span>
+                        </div>
+                      )}
+
+                      {msg.type === 'image' && msg.mediaUrl && (
+                        <img
+                          src={msg.mediaUrl}
+                          alt="Shared image"
+                          className="w-full max-h-56 object-cover rounded-xl mb-2 border border-white/10"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+
+                      {msg.type === 'video' && msg.mediaUrl && (
+                        <video src={msg.mediaUrl} controls className="w-full max-h-56 rounded-xl mb-2 border border-white/10" />
+                      )}
+
+                      {msg.type === 'audio' && msg.mediaUrl && (
+                        <div className="flex items-center gap-3 p-2 rounded-xl bg-space-950/50 mb-1">
+                          <span className="text-lg">🎙️</span>
+                          <audio src={msg.mediaUrl} controls className="h-8 flex-1 max-w-[180px]" />
+                        </div>
+                      )}
+
+                      <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+
+                      <div className={`flex items-center gap-1.5 mt-1.5 text-[9px] opacity-60 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        {msg.isEdited && <span className="italic">(edited)</span>}
+                        {isMe && <CheckCheck className="w-3 h-3 text-pink-200" />}
+                        {msg.isStarred && <Star className="w-3 h-3 text-amber-300 fill-current" />}
                       </div>
-                    )}
 
-                    {msg.type === 'image' && msg.mediaUrl && (
-                      <img
-                        src={msg.mediaUrl}
-                        alt="Shared image"
-                        className="w-full max-h-64 object-cover rounded-xl mb-2 border border-white/10"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120"><rect fill="%230b071a" width="200" height="120"/><text fill="%23a855f7" font-size="12" x="50%" y="55%" text-anchor="middle">📷 Image unavailable</text></svg>';
-                        }}
-                      />
-                    )}
-
-                    {msg.type === 'video' && msg.mediaUrl && (
-                      <video
-                        src={msg.mediaUrl}
-                        controls
-                        className="w-full max-h-64 rounded-xl mb-2 border border-white/10"
-                      />
-                    )}
-
-                    {msg.type === 'audio' && msg.mediaUrl && (
-                      <div className="flex items-center gap-3 p-2 rounded-xl bg-space-950/50">
-                        <audio src={msg.mediaUrl} controls className="h-8 w-48" />
-                      </div>
-                    )}
-
-                    <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-
-                    <div className="flex items-center justify-end gap-1.5 mt-1 text-[9px] opacity-75">
-                      <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      {isMe && <CheckCheck className="w-3 h-3 text-pink-200" />}
-                      {msg.isStarred && <Star className="w-3 h-3 text-amber-300 fill-current" />}
+                      {/* Reactions */}
+                      {Object.keys(msg.reactions).length > 0 && (
+                        <div className="absolute -bottom-3 right-2 flex items-center gap-0.5 bg-space-950 border border-white/10 px-1.5 py-0.5 rounded-full shadow-md text-xs">
+                          {Object.entries(msg.reactions).map(([emoji, uids]) => (
+                            <span key={emoji}>{emoji}{uids.length > 1 ? <sup className="text-[8px]">{uids.length}</sup> : ''}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {Object.keys(msg.reactions).length > 0 && (
-                      <div className="absolute -bottom-3 right-2 flex items-center gap-1 bg-space-950 border border-white/10 px-2 py-0.5 rounded-full shadow-md text-xs">
-                        {Object.entries(msg.reactions).map(([emoji, uids]) => (
-                          <span key={emoji}>{emoji} {uids.length > 1 ? uids.length : ''}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="hidden group-hover:flex items-center gap-1 opacity-80 hover:opacity-100">
-                    <button onClick={() => addReaction(msg.id, '❤️')} className="p-1 hover:bg-white/10 rounded">❤️</button>
-                    <button onClick={() => addReaction(msg.id, '🔥')} className="p-1 hover:bg-white/10 rounded">🔥</button>
-                    <button onClick={() => setReplyingTo(msg)} className="p-1 hover:bg-white/10 rounded text-slate-300" title="Reply">
-                      <CornerUpLeft className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => setForwardingMsg(msg)} className="p-1 hover:bg-white/10 rounded text-slate-300" title="Forward">
-                      <Forward className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => toggleStarMessage(msg.id)} className="p-1 hover:bg-white/10 rounded text-slate-300" title="Star">
-                      <Star className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => deleteMessage(msg.id, true)} className="p-1 hover:bg-white/10 rounded text-rose-400" title="Delete for Everyone">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {/* Quick reaction / action bar — shows on click */}
+                    <AnimatePresence>
+                      {activeReactionMsgId === msg.id && (
+                        <motion.div className={`flex items-center gap-1 bg-space-900/95 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl backdrop-blur-md ${isMe ? 'self-end' : 'self-start'}`}>
+                          {QUICK_REACTIONS.map(emoji => (
+                            <button
+                              key={emoji}
+                              onClick={(e) => { e.stopPropagation(); addReaction(msg.id, emoji); setActiveReactionMsgId(null); }}
+                              className="text-base hover:scale-125 transition-transform active:scale-95 p-0.5"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                          <div className="w-px h-4 bg-white/10 mx-0.5" />
+                          <button onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setActiveReactionMsgId(null); inputRef.current?.focus(); }} className="p-1 text-slate-300 hover:text-pink-300" title="Reply">
+                            <CornerUpLeft className="w-3.5 h-3.5" />
+                          </button>
+                          {isMe && (
+                            <button onClick={(e) => { e.stopPropagation(); handleStartEdit(msg); }} className="p-1 text-slate-300 hover:text-sky-300" title="Edit">
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button onClick={(e) => { e.stopPropagation(); setForwardingMsg(msg); setActiveReactionMsgId(null); }} className="p-1 text-slate-300 hover:text-purple-300" title="Forward">
+                            <Forward className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); toggleStarMessage(msg.id); setActiveReactionMsgId(null); }} className="p-1 text-slate-300 hover:text-amber-300" title="Star">
+                            <Star className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete(msg); }} className="p-1 text-slate-300 hover:text-rose-400" title="Delete">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </React.Fragment>
           );
         })}
+
+        {/* Typing indicator */}
         {isPartnerTyping && (
-          <div className="flex items-center gap-2 text-xs text-pink-300 italic mb-2 animate-pulse px-2">
+          <div className="flex items-center gap-2 text-xs text-pink-300 italic mb-2 px-2">
             <img
               src={partnerUser?.photoURL}
               alt={partnerUser?.realName}
               className="w-5 h-5 rounded-full object-cover border border-pink-400/40"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Partner&background=a855f7&color=fff`;
+              }}
             />
             <span>{partnerUser?.petName || partnerUser?.realName} is typing</span>
             <span className="inline-flex gap-1 items-center">
@@ -371,29 +431,46 @@ export const CoreChat: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Edit message inline */}
+      {editingMsg && (
+        <form onSubmit={handleEditSubmit} className="bg-sky-950/80 px-4 py-2.5 border-t border-sky-500/30 flex items-center gap-2 flex-shrink-0">
+          <Edit3 className="w-4 h-4 text-sky-400 shrink-0" />
+          <input
+            ref={editInputRef}
+            type="text"
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            className="flex-1 bg-transparent text-xs text-white focus:outline-none"
+            placeholder="Edit message..."
+          />
+          <button type="submit" className="p-1.5 rounded-lg bg-sky-500/30 text-sky-300 hover:bg-sky-500/50" title="Save edit">
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button type="button" onClick={() => { setEditingMsg(null); setEditContent(''); }} className="p-1.5 text-slate-400 hover:text-white" title="Cancel">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </form>
+      )}
+
+      {/* Reply Bar */}
       {replyingTo && (
-        <div className="bg-space-900/90 px-6 py-2 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
-          <div className="flex items-center gap-2 truncate">
-            <CornerUpLeft className="w-4 h-4 text-accent-pink" />
-            <span>Replying: "{replyingTo.content.substring(0, 40)}..."</span>
+        <div className="bg-space-900/90 px-4 sm:px-6 py-2 border-t border-white/10 flex items-center justify-between text-xs text-slate-300 flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <CornerUpLeft className="w-4 h-4 text-accent-pink shrink-0" />
+            <span className="truncate">Replying: "{replyingTo.content.substring(0, 50)}{replyingTo.content.length > 50 ? '...' : ''}"</span>
           </div>
-          <button onClick={() => setReplyingTo(null)} className="text-slate-400 hover:text-white">
+          <button onClick={() => setReplyingTo(null)} className="text-slate-400 hover:text-white ml-2 shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* Emoji Picker Popup Overlay */}
+      {/* Emoji Picker */}
       {showEmojiPicker && (
-        <div className="absolute bottom-20 left-6 z-50">
+        <div className="absolute bottom-20 left-4 z-50">
           <EmojiGifPicker
-            onSelectEmoji={(emoji) => {
-              setInputContent(prev => prev + emoji);
-            }}
-            onSelectSticker={(url) => {
-              sendMessage('Sticker', 'image', url);
-              setShowEmojiPicker(false);
-            }}
+            onSelectEmoji={(emoji) => setInputContent(prev => prev + emoji)}
+            onSelectSticker={(url) => { sendMessage('Sticker', 'image', url); setShowEmojiPicker(false); }}
             onClose={() => setShowEmojiPicker(false)}
           />
         </div>
@@ -405,16 +482,17 @@ export const CoreChat: React.FC = () => {
           <div className="glass-panel-glow p-6 rounded-3xl max-w-xs w-full text-center space-y-4">
             <Forward className="w-8 h-8 text-pink-300 mx-auto" />
             <h4 className="font-bold text-sm text-white">Forward Message?</h4>
-            <p className="text-xs text-slate-300 italic">"{forwardingMsg.content}"</p>
+            <p className="text-xs text-slate-300 italic line-clamp-3">"{forwardingMsg.content}"</p>
             <div className="flex gap-2 pt-2">
-              <button onClick={() => setForwardingMsg(null)} className="flex-1 py-2 rounded-xl glass-card text-xs">Cancel</button>
-              <button onClick={handleForwardConfirm} className="flex-1 py-2 rounded-xl bg-accent-pink text-white text-xs font-bold">Forward</button>
+              <button onClick={() => setForwardingMsg(null)} className="flex-1 py-2.5 rounded-xl glass-card text-xs font-semibold">Cancel</button>
+              <button onClick={handleForwardConfirm} className="flex-1 py-2.5 rounded-xl bg-accent-pink text-white text-xs font-bold">Forward</button>
             </div>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSend} className="p-2.5 sm:p-4 bg-space-900/90 border-t border-white/10 flex items-center gap-1.5 sm:gap-2">
+      {/* Input Bar */}
+      <form onSubmit={handleSend} className="p-2.5 sm:p-4 bg-space-900/90 border-t border-white/10 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         <input
           type="file"
           ref={fileInputRef}
@@ -422,6 +500,7 @@ export const CoreChat: React.FC = () => {
           accept="image/*,video/*"
           className="hidden"
         />
+
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -449,20 +528,12 @@ export const CoreChat: React.FC = () => {
           <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
 
-        <button
-          type="button"
-          onClick={handleSendContact}
-          className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-cyan-300 transition-colors hidden sm:block flex-shrink-0"
-          title="Share Contact Card"
-        >
-          <User className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
-
         {!isRecording ? (
           <button
             type="button"
             onClick={() => setIsRecording(true)}
             className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-purple-300 transition-colors flex-shrink-0"
+            title="Voice Note"
           >
             <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
@@ -478,16 +549,19 @@ export const CoreChat: React.FC = () => {
         )}
 
         <input
+          ref={inputRef}
           type="text"
           value={inputContent}
           onChange={handleInputChange}
-          placeholder={isSecretMode ? "Disappearing secret msg..." : "Type a message..."}
+          onKeyDown={(e) => e.key === 'Escape' && setActiveReactionMsgId(null)}
+          placeholder={isSecretMode ? '🔒 Disappearing message...' : `Message ${partnerUser?.petName ?? ''}...`}
           className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl glass-input text-xs sm:text-sm"
         />
 
         <button
           type="submit"
-          className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all flex-shrink-0"
+          disabled={!inputContent.trim()}
+          className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all flex-shrink-0 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
         >
           <Send className="w-4 h-4" />
         </button>

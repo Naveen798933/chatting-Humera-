@@ -93,21 +93,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoginError(null);
     const cleanEmail = email.trim().toLowerCase();
 
-    // Check stealth decoy code "0000"
+    // Stealth decoy mode: PIN "0000" shows fake calculator
     if (pass === '0000') {
       setIsDecoyActive(true);
       return true;
     }
-    
-    // Check 2-account boundary rule (Section 3)
+
+    // Check if email belongs to an authorized user
     const match = AUTHORIZED_USERS.find(u => u.email.toLowerCase() === cleanEmail);
     if (!match) {
       setLoginError("This universe is private ❤️");
       return false;
     }
 
-    if (pass.length < 4) {
-      setLoginError("Invalid password. Please enter your secret key.");
+    // ✅ SECURITY FIX: Actually validate the PIN against the stored credential
+    const trimmedPass = pass.trim();
+    if (!trimmedPass || trimmedPass !== match.pin) {
+      setLoginError("Incorrect secret key. Try again 💔");
       return false;
     }
 

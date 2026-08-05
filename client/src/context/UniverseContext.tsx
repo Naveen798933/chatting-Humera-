@@ -81,6 +81,7 @@ interface UniverseContextType {
   messages: Message[];
   sendMessage: (content: string, type?: Message['type'], mediaUrl?: string, replyToId?: string, isSecret?: boolean, secretTimeout?: number) => Promise<void>;
   deleteMessage: (id: string, forEveryone?: boolean) => Promise<void>;
+  editMessage: (id: string, newContent: string) => Promise<void>;
   toggleStarMessage: (id: string) => void;
   addReaction: (id: string, emoji: string) => void;
 
@@ -240,32 +241,47 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [currentUser]);
 
-  // ── Typing indicator ──────────────────────────────────────────────────────
+  // ── Typing indicator via BroadcastChannel ────────────────────────────────
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const typingChannelRef = useRef<BroadcastChannel | null>(null);
+  const typingClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured() || !currentUser) return;
-    const channel = supabase
-      .channel('presence')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'presence' }, (payload) => {
-        const row = payload.new as any;
-        const partnerUid = currentUser.uid === NAVEEN_UID ? HUMERA_UID : NAVEEN_UID;
-        if (row && row.user_id === partnerUid) {
-          setIsPartnerTyping(Boolean(row.is_typing));
+    if (!currentUser) return;
+    // BroadcastChannel lets both tabs on same device communicate without Supabase
+    const channel = new BroadcastChannel('ou_typing_indicator');
+    typingChannelRef.current = channel;
+
+    channel.onmessage = (e) => {
+      const { userId, isTyping } = e.data || {};
+      if (userId && userId !== currentUser.uid) {
+        setIsPartnerTyping(Boolean(isTyping));
+        if (isTyping) {
+          if (typingClearRef.current) clearTimeout(typingClearRef.current);
+          typingClearRef.current = setTimeout(() => setIsPartnerTyping(false), 3500);
         }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+      }
+    };
+
+    return () => {
+      channel.close();
+      typingChannelRef.current = null;
+      if (typingClearRef.current) clearTimeout(typingClearRef.current);
+    };
   }, [currentUser]);
 
   const setTypingStatus = (isTyping: boolean) => {
-    if (!currentUser || !isSupabaseConfigured()) return;
+    if (!currentUser) return;
     try {
-      supabase.from('presence').upsert({
-        user_id: currentUser.uid,
-        is_typing: isTyping,
-        updated_at: new Date().toISOString()
-      }).then(() => {});
+      typingChannelRef.current?.postMessage({ userId: currentUser.uid, isTyping });
+      // Also update Supabase presence if table exists
+      if (isSupabaseConfigured()) {
+        supabase.from('presence').upsert({
+          user_id: currentUser.uid,
+          is_typing: isTyping,
+          updated_at: new Date().toISOString()
+        }).then(() => {});
+      }
     } catch {}
   };
 
@@ -364,6 +380,19 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setMessages(prev => prev.filter(m => m.id !== id));
   };
 
+  const editMessage = async (id: string, newContent: string) => {
+    const msg = messages.find(m => m.id === id);
+    if (!msg || !newContent.trim()) return;
+    const content = newContent.trim();
+    // Optimistic update
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, content, isEdited: true } : m));
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('messages').update({ content, is_edited: true }).eq('id', id);
+      } catch {}
+    }
+  };
+
   const toggleStarMessage = async (id: string) => {
     const msg = messages.find(m => m.id === id);
     if (!msg) return;
@@ -441,7 +470,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <UniverseContext.Provider value={{
       ambientEffect, setAmbientEffect, anniversaryDate, setAnniversaryDate,
-      messages, sendMessage, deleteMessage, toggleStarMessage, addReaction,
+      messages, sendMessage, deleteMessage, editMessage, toggleStarMessage, addReaction,
       isPartnerTyping, setTypingStatus,
       memories, addMemory, toggleFavoriteMemory,
       vaultNotes, addVaultNote, deleteVaultNote,

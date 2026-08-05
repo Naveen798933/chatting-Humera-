@@ -15,6 +15,7 @@ import { TogetherTime } from './pages/TogetherTime';
 import { LoveAIAssistant } from './components/LoveAIAssistant';
 import { AdminBackupModal } from './components/AdminBackupModal';
 import { DecoyCalculator } from './components/DecoyCalculator';
+import { ToastContainer } from './components/Toast';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
@@ -53,6 +54,7 @@ const AppContent: React.FC = () => {
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
       />
+      <ToastContainer />
     </div>
   );
 };

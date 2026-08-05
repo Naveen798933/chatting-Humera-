@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { Memory } from '../types';
-import { 
-  Heart, Image, FolderHeart, Lock, Plus, Star, 
-  Calendar, MapPin, Sparkles, X 
+import { toast } from '../lib/toast';
+import {
+  Heart, Image, FolderHeart, Lock, Plus, Star,
+  Calendar, MapPin, Sparkles, X, Upload, ZoomIn
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
 export const MemoriesGallery: React.FC = () => {
-  const { isVaultUnlocked, unlockVaultWithPin } = useAuth();
+  const { currentUser, isVaultUnlocked, unlockVaultWithPin } = useAuth();
   const { memories, addMemory, toggleFavoriteMemory } = useUniverse();
 
   const [activeAlbum, setActiveAlbum] = useState<Memory['album'] | 'All'>('All');
@@ -17,11 +18,14 @@ export const MemoriesGallery: React.FC = () => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState(false);
+  const [lightboxMem, setLightboxMem] = useState<Memory | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [album, setAlbum] = useState<Memory['album']>('Random');
   const [mediaUrl, setMediaUrl] = useState('');
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const filePickerRef = useRef<HTMLInputElement | null>(null);
 
   const albumsList: (Memory['album'] | 'All')[] = [
     'All', 'Favorites', 'Vacations', 'Birthdays', 'Random', 'Hidden'
@@ -47,24 +51,47 @@ export const MemoriesGallery: React.FC = () => {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error('Image too large! Max 8MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      setUploadPreview(url);
+      setMediaUrl(url);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleCreateMemory = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !mediaUrl.trim()) return;
+    const url = uploadPreview || mediaUrl.trim();
+    if (!title.trim() || !url) {
+      toast.error('Title and image are required');
+      return;
+    }
 
     addMemory({
       title: title.trim(),
       description: description.trim(),
-      mediaUrls: [mediaUrl.trim()],
+      mediaUrls: [url],
       type: 'photo',
       album,
       date: new Date().toISOString().split('T')[0],
       isFavorite: album === 'Favorites',
-      createdBy: 'naveen_uid_798933'
+      createdBy: currentUser?.uid ?? 'naveen_uid_798933'
     });
 
+    toast.love('Memory saved! 📸');
     setTitle('');
     setDescription('');
     setMediaUrl('');
+    setUploadPreview(null);
     setShowAddModal(false);
   };
 
@@ -124,7 +151,7 @@ export const MemoriesGallery: React.FC = () => {
             key={mem.id}
             className="glass-card rounded-3xl overflow-hidden border border-white/10 flex flex-col group"
           >
-            <div className="relative h-56 overflow-hidden">
+            <div className="relative h-56 overflow-hidden cursor-pointer" onClick={() => setLightboxMem(mem)}>
               <img
                 src={mem.mediaUrls[0]}
                 alt={mem.title}
@@ -136,12 +163,19 @@ export const MemoriesGallery: React.FC = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-space-950 via-transparent to-transparent opacity-80" />
 
+              {/* Lightbox zoom hint */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+                <div className="p-3 rounded-full bg-black/50 backdrop-blur-sm">
+                  <ZoomIn className="w-6 h-6 text-white" />
+                </div>
+              </div>
+
               <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-bold bg-space-950/80 backdrop-blur-md text-pink-300 border border-white/10">
                 {mem.album}
               </span>
 
               <button
-                onClick={() => toggleFavoriteMemory(mem.id)}
+                onClick={(e) => { e.stopPropagation(); toggleFavoriteMemory(mem.id); }}
                 className="absolute top-3 right-3 p-2 rounded-full bg-space-950/80 backdrop-blur-md text-amber-300 hover:scale-110 transition-transform"
               >
                 <Star className={`w-4 h-4 ${mem.isFavorite ? 'fill-current' : ''}`} />
@@ -173,13 +207,13 @@ export const MemoriesGallery: React.FC = () => {
       <AnimatePresence>
         {showAddModal && (
           <motion.div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div className="glass-panel-glow p-6 rounded-3xl max-w-md w-full border border-pink-400/40 space-y-4">
+            <motion.div className="glass-panel-glow p-6 rounded-3xl max-w-md w-full border border-pink-400/40 space-y-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <h3 className="font-extrabold text-base text-white flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-accent-pink" />
                   <span>Add New Memory</span>
                 </h3>
-                <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
+                <button onClick={() => { setShowAddModal(false); setUploadPreview(null); }} className="text-slate-400 hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -197,15 +231,40 @@ export const MemoriesGallery: React.FC = () => {
                   />
                 </div>
 
+                {/* File Upload Section */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Image / Photo URL:</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-2">Photo / Image:</label>
+                  <input ref={filePickerRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                  {uploadPreview ? (
+                    <div className="relative rounded-xl overflow-hidden border border-pink-400/30">
+                      <img src={uploadPreview} alt="Preview" className="w-full h-40 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => { setUploadPreview(null); setMediaUrl(''); }}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-rose-500/80"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => filePickerRef.current?.click()}
+                      className="w-full py-6 rounded-xl border-2 border-dashed border-pink-500/30 hover:border-pink-500/60 transition-colors flex flex-col items-center gap-2 text-slate-400 hover:text-pink-300"
+                    >
+                      <Upload className="w-6 h-6" />
+                      <span className="text-xs font-semibold">Upload from device</span>
+                      <span className="text-[10px]">JPG, PNG, WEBP — max 8MB</span>
+                    </button>
+                  )}
+                  <p className="text-[10px] text-slate-500 mt-1.5 text-center">— or paste a URL —</p>
                   <input
                     type="url"
-                    value={mediaUrl}
-                    onChange={(e) => setMediaUrl(e.target.value)}
+                    value={uploadPreview ? '' : mediaUrl}
+                    onChange={(e) => { setMediaUrl(e.target.value); setUploadPreview(null); }}
                     placeholder="https://images.unsplash.com/..."
-                    className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
-                    required
+                    className="w-full px-4 py-2 rounded-xl glass-input text-xs mt-1"
+                    disabled={Boolean(uploadPreview)}
                   />
                 </div>
 
@@ -213,7 +272,7 @@ export const MemoriesGallery: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Album Category:</label>
                   <select
                     value={album}
-                    onChange={(e) => setAlbum(e.target.value as any)}
+                    onChange={(e) => setAlbum(e.target.value as Memory['album'])}
                     className="w-full px-4 py-2.5 rounded-xl bg-space-900 border border-white/10 text-xs text-white"
                   >
                     <option value="Random">Random Moments</option>
@@ -230,15 +289,15 @@ export const MemoriesGallery: React.FC = () => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="What made this moment special?"
-                    className="w-full px-4 py-2.5 rounded-xl glass-input text-xs h-20"
+                    className="w-full px-4 py-2.5 rounded-xl glass-input text-xs h-20 resize-none"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/25"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/25 hover:scale-[1.02] active:scale-95 transition-all"
                 >
-                  Save to Memories
+                  Save to Memories ❤️
                 </button>
               </form>
             </motion.div>
@@ -266,22 +325,15 @@ export const MemoriesGallery: React.FC = () => {
                   maxLength={4}
                   value={enteredPin}
                   onChange={(e) => setEnteredPin(e.target.value)}
-                  placeholder="****"
+                  placeholder="••••"
                   className="w-full text-center tracking-widest text-lg font-bold px-4 py-3 rounded-2xl glass-input"
                   required
                 />
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowPinModal(false)}
-                    className="flex-1 py-2.5 rounded-xl glass-card text-slate-300 font-bold text-xs"
-                  >
+                  <button type="button" onClick={() => setShowPinModal(false)} className="flex-1 py-2.5 rounded-xl glass-card text-slate-300 font-bold text-xs">
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs"
-                  >
+                  <button type="submit" className="flex-1 py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs">
                     Unlock
                   </button>
                 </div>
@@ -290,6 +342,36 @@ export const MemoriesGallery: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxMem && (
+          <motion.div
+            className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
+            onClick={() => setLightboxMem(null)}
+          >
+            <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setLightboxMem(null)}
+                className="absolute -top-10 right-0 text-white/60 hover:text-white p-2"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={lightboxMem.mediaUrls[0]}
+                alt={lightboxMem.title}
+                className="w-full max-h-[70vh] object-contain rounded-2xl"
+              />
+              <div className="mt-3 text-center">
+                <p className="font-bold text-sm text-white">{lightboxMem.title}</p>
+                {lightboxMem.description && <p className="text-xs text-slate-400 mt-1 italic">"{lightboxMem.description}"</p>}
+                <p className="text-[10px] text-slate-500 mt-1">{lightboxMem.date}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+
   );
 };
