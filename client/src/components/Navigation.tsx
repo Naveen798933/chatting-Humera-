@@ -23,24 +23,24 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-3 sm:px-6 py-2.5 sm:py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-2.5 sm:px-6 py-2 sm:py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
         
-        {/* Brand Logo */}
+        {/* Brand Logo - Compact on mobile to leave plenty of room for Logout button */}
         <div 
           onClick={() => setActiveTab('home')}
-          className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group select-none"
+          className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer group select-none flex-shrink-0"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-accent-rose via-accent-pink to-accent-purple p-0.5 shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-accent-rose via-accent-pink to-accent-purple p-0.5 shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
             <div className="w-full h-full bg-space-950 rounded-[10px] flex items-center justify-center">
-              <span className="text-lg sm:text-xl animate-pulse-heart">❤️</span>
+              <span className="text-base sm:text-xl animate-pulse-heart">❤️</span>
             </div>
           </div>
           <div className="min-w-0">
             <h1 className="font-extrabold text-xs sm:text-base tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent truncate">
               OUR UNIVERSE
             </h1>
-            <p className="text-[9px] sm:text-[10px] text-pink-400 font-medium tracking-wide truncate">
+            <p className="hidden sm:block text-[10px] text-pink-400 font-medium tracking-wide truncate">
               NAVEEN & HUMERA PRIVATE
             </p>
           </div>
@@ -67,19 +67,19 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
           })}
         </nav>
 
-        {/* Admin / User Controls */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        {/* Admin / User Controls / Prominent Always-Visible Logout Button */}
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
           {currentUser && (
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <img
                 src={currentUser.photoURL}
                 alt={currentUser.realName}
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-accent-pink/50 shadow-md flex-shrink-0"
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-accent-pink/50 shadow-md flex-shrink-0"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.realName)}&background=ff70a6&color=fff`;
                 }}
               />
-              <span className="hidden sm:inline text-xs font-bold text-pink-200">
+              <span className="hidden md:inline text-xs font-bold text-pink-200">
                 {currentUser.petName}
               </span>
             </div>
@@ -89,20 +89,20 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
             <button
               onClick={onOpenAdmin}
               title="Admin Panel & Backup"
-              className="p-2 rounded-xl glass-card hover:border-pink-400/40 text-slate-300 hover:text-pink-300 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl glass-card hover:border-pink-400/40 text-slate-300 hover:text-pink-300 transition-colors flex-shrink-0"
             >
               <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           )}
 
-          {/* Prominent Logout Button */}
+          {/* 🔴 ALWAYS VISIBLE & TOUCH-FRIENDLY LOGOUT BUTTON */}
           <button
             onClick={logout}
             title="Logout"
-            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center gap-1.5 hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
+            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-[11px] sm:text-xs font-extrabold flex items-center gap-1 shadow-lg shadow-rose-600/30 border border-rose-400/40 active:scale-95 transition-all flex-shrink-0 min-h-[36px]"
           >
             <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Logout</span>
+            <span>Logout</span>
           </button>
         </div>
       </div>

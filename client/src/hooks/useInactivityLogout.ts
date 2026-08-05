@@ -5,7 +5,7 @@ import { useEffect } from 'react';
  */
 export function useInactivityLogout(onLogout: () => void, timeoutMinutes: number = 15) {
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
 
     const resetTimer = () => {
       clearTimeout(timer);
