@@ -1,6 +1,7 @@
 import React from 'react';
-import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut } from 'lucide-react';
+import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useShakeLock } from '../hooks/useShakeLock';
 import { toast } from '../lib/toast';
 
 export type TabType = 'home' | 'chat' | 'memories' | 'vault' | 'together' | 'ai';
@@ -12,7 +13,13 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, onOpenAdmin }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, toggleDecoyMode } = useAuth();
+
+  // Mobile Shake-to-Lock: Shaking phone triggers stealth decoy calculator
+  useShakeLock(() => {
+    toast.info('Mobile Shake Panic triggered!');
+    toggleDecoyMode();
+  });
 
   const navItems: { id: TabType; label: string; shortLabel: string; icon: React.ReactNode }[] = [
     { id: 'home',     label: 'Home',     shortLabel: 'Home',    icon: <Home className="w-5 h-5" /> },
@@ -42,8 +49,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
               <span className="text-sm sm:text-xl animate-heartbeat">❤️</span>
             </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="font-extrabold text-[11px] sm:text-base tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent truncate">
+          <div className="min-w-0" onDoubleClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}>
+            <h1 className="font-extrabold text-[11px] sm:text-base tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent truncate cursor-pointer" title="Double tap for Stealth Decoy">
               OUR UNIVERSE
             </h1>
             <p className="hidden sm:block text-[10px] text-pink-400/80 font-medium tracking-wide truncate">
@@ -93,6 +100,15 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
               </span>
             </div>
           )}
+
+          {/* Stealth / Panic Calculator Lock Button */}
+          <button
+            onClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}
+            title="Panic / Stealth Mode (Alt + L)"
+            className="p-1.5 sm:p-2 rounded-xl glass-card hover:border-rose-400/40 text-rose-300 hover:text-rose-200 transition-colors flex-shrink-0"
+          >
+            <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
 
           {currentUser?.role === 'owner' && (
             <button
