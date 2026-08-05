@@ -32,6 +32,7 @@ const LS_VAULT = 'ou_shared_vault';
 const LS_CAL   = 'ou_shared_calendar';
 const LS_TODO  = 'ou_shared_todos';
 const LS_MAP   = 'ou_shared_mappins';
+const LS_MSGS  = 'ou_shared_messages';
 
 function readLS<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
@@ -39,6 +40,31 @@ function readLS<T>(key: string, fallback: T): T {
 function writeLS(key: string, v: unknown) {
   try { localStorage.setItem(key, JSON.stringify(v)); } catch {}
 }
+
+const SEED_MESSAGES: Message[] = [
+  {
+    id: 'msg_seed_1',
+    senderId: NAVEEN_UID,
+    type: 'text',
+    content: 'Welcome to Our Universe! ❤️ Every moment with you is magical, Humera.',
+    reactions: { '❤️': [HUMERA_UID] },
+    delivered: true,
+    isSecret: false,
+    isStarred: true,
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
+  },
+  {
+    id: 'msg_seed_2',
+    senderId: HUMERA_UID,
+    type: 'text',
+    content: 'I love our private space so much Bangaram! 💕',
+    reactions: { '💖': [NAVEEN_UID] },
+    delivered: true,
+    isSecret: false,
+    isStarred: true,
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString()
+  }
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Seed data for first-time runs
@@ -134,9 +160,9 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [ambientEffect, setAmbientEffect]     = useState<AmbientEffect>('hearts');
   const [anniversaryDate, setAnniversaryDate] = useState('2024-02-14T00:00:00.000Z');
 
-  // ── Messages — live Firestore ───────────────────────────────────────────────
-  const [messages, setMessages]     = useState<Message[]>([]);
-  const unsubMsgsRef = useRef<(() => void) | null>(null);
+  // ── Messages — localStorage & Supabase ──────────────────────────────────────
+  const [messages, setMessages] = useState<Message[]>(() => readLS(LS_MSGS, SEED_MESSAGES));
+  const msgSyncChannelRef = useRef<BroadcastChannel | null>(null);
 
   // ── Non-message data — localStorage with BroadcastChannel ─────────────────
   const [memories, setMemories]         = useState<Memory[]>(() => readLS(LS_MEMS, SEED_MEMORIES));
@@ -213,7 +239,9 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               createdAt: row.created_at || new Date().toISOString()
             };
             setMessages(prev => {
-              const filtered = prev.filter(m => m.id !== newMsg.id && !m.id.startsWith('temp_'));
+              const exists = prev.some(m => m.id === newMsg.id);
+              if (exists) return prev;
+              const filtered = prev.filter(m => m.id !== newMsg.id && !(m.content === newMsg.content && m.senderId === newMsg.senderId && m.id.startsWith('temp_')));
               if (currentUser && newMsg.senderId !== currentUser.uid) {
                 sounds.playMessageReceivedSound();
               }
@@ -303,12 +331,38 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => clearInterval(interval);
   }, [messages]);
 
-  // ── Persist non-message state ──────────────────────────────────────────────
+  // ── Persist all state to LocalStorage ─────────────────────────────────────
+  useEffect(() => { writeLS(LS_MSGS,  messages);  }, [messages]);
   useEffect(() => { writeLS(LS_MEMS,  memories);  }, [memories]);
   useEffect(() => { writeLS(LS_VAULT, vaultNotes); }, [vaultNotes]);
   useEffect(() => { writeLS(LS_CAL,   calendarEvents); }, [calendarEvents]);
   useEffect(() => { writeLS(LS_TODO,  todoItems);  }, [todoItems]);
   useEffect(() => { writeLS(LS_MAP,   mapPins);    }, [mapPins]);
+
+  // ── Cross-tab Local Realtime Sync via BroadcastChannel ───────────────────
+  useEffect(() => {
+    const bc = new BroadcastChannel('ou_chat_sync');
+    msgSyncChannelRef.current = bc;
+    bc.onmessage = (e) => {
+      if (e.data?.type === 'NEW_MESSAGE' && e.data.msg) {
+        setMessages(prev => {
+          if (prev.some(m => m.id === e.data.msg.id)) return prev;
+          if (currentUser && e.data.msg.senderId !== currentUser.uid) {
+            sounds.playMessageReceivedSound();
+          }
+          return [...prev, e.data.msg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        });
+      } else if (e.data?.type === 'DELETE_MESSAGE' && e.data.id) {
+        setMessages(prev => prev.filter(m => m.id !== e.data.id));
+      } else if (e.data?.type === 'EDIT_MESSAGE' && e.data.id && e.data.content) {
+        setMessages(prev => prev.map(m => m.id === e.data.id ? { ...m, content: e.data.content, isEdited: true } : m));
+      }
+    };
+    return () => {
+      bc.close();
+      msgSyncChannelRef.current = null;
+    };
+  }, [currentUser]);
 
   // ── sendMessage → Supabase write ──────────────────────────────────────────
   const sendMessage = async (
@@ -345,6 +399,9 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // ⚡ Optimistic local UI update — instant 0ms rendering for sender
     setMessages(prev => [...prev, newMsgObj]);
     sounds.playMessageSentSound();
+    try {
+      msgSyncChannelRef.current?.postMessage({ type: 'NEW_MESSAGE', msg: newMsgObj });
+    } catch {}
 
     if (isSupabaseConfigured()) {
       try {
@@ -372,12 +429,13 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const deleteMessage = async (id: string, forEveryone = true) => {
     if (!forEveryone) return;
+    setMessages(prev => prev.filter(m => m.id !== id));
+    try { msgSyncChannelRef.current?.postMessage({ type: 'DELETE_MESSAGE', id }); } catch {}
     if (isSupabaseConfigured()) {
       try {
         await supabase.from('messages').delete().eq('id', id);
       } catch {}
     }
-    setMessages(prev => prev.filter(m => m.id !== id));
   };
 
   const editMessage = async (id: string, newContent: string) => {
@@ -386,6 +444,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const content = newContent.trim();
     // Optimistic update
     setMessages(prev => prev.map(m => m.id === id ? { ...m, content, isEdited: true } : m));
+    try { msgSyncChannelRef.current?.postMessage({ type: 'EDIT_MESSAGE', id, content }); } catch {}
     if (isSupabaseConfigured()) {
       try {
         await supabase.from('messages').update({ content, is_edited: true }).eq('id', id);

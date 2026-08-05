@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
+import { useScreenSize } from '../hooks/useScreenSize';
 import { toast } from '../lib/toast';
 import { Message } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
@@ -34,11 +35,18 @@ export const CoreChat: React.FC = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [activeReactionMsgId, setActiveReactionMsgId] = useState<string | null>(null);
 
+  const { isMobile } = useScreenSize();
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Real microphone audio recording refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -139,17 +147,63 @@ export const CoreChat: React.FC = () => {
     e.target.value = '';
   };
 
+  const handleStartRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('Voice recording is not supported on this browser.');
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Audio = reader.result as string;
+          sendMessage(
+            `🎙️ Voice note`,
+            'audio',
+            base64Audio,
+            replyingTo?.id,
+            isSecretMode,
+            secretTimeout
+          );
+          toast.love('Voice note sent 🎙️');
+        };
+        reader.readAsDataURL(audioBlob);
+
+        // Stop all stream tracks to release microphone
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach(t => t.stop());
+          mediaStreamRef.current = null;
+        }
+      };
+
+      recorder.start(100);
+      setIsRecording(true);
+      toast.info('Recording... Speak into microphone 🎙️');
+    } catch (err: any) {
+      console.error('Microphone recording error:', err);
+      toast.error('Could not access microphone! Please allow mic permissions.');
+    }
+  };
+
   const handleStopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
     setIsRecording(false);
-    sendMessage(
-      `🎙️ Voice note (${recordingTime}s)`,
-      'audio',
-      'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      replyingTo?.id,
-      isSecretMode,
-      secretTimeout
-    );
-    toast.love('Voice note sent 🎙️');
   };
 
   const handleForwardConfirm = () => {
@@ -166,7 +220,9 @@ export const CoreChat: React.FC = () => {
   });
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100dvh-130px)] sm:h-[82vh] flex flex-col glass-panel rounded-2xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative">
+    <div className={`max-w-4xl mx-auto flex flex-col glass-panel rounded-2xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative ${
+      isMobile ? 'h-[calc(100dvh-140px)]' : 'h-[82vh]'
+    }`}>
       {/* Chat Header */}
       <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/10 flex items-center justify-between bg-space-900/80 backdrop-blur-md flex-shrink-0">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -531,9 +587,9 @@ export const CoreChat: React.FC = () => {
         {!isRecording ? (
           <button
             type="button"
-            onClick={() => setIsRecording(true)}
-            className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-purple-300 transition-colors flex-shrink-0"
-            title="Voice Note"
+            onClick={handleStartRecording}
+            className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-purple-300 active:scale-95 transition-all flex-shrink-0"
+            title="Record Voice Note"
           >
             <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
@@ -542,6 +598,7 @@ export const CoreChat: React.FC = () => {
             type="button"
             onClick={handleStopRecording}
             className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-rose-500 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 animate-pulse flex-shrink-0"
+            title="Stop & Send Voice Note"
           >
             <StopCircle className="w-4 h-4" />
             <span>{recordingTime}s</span>

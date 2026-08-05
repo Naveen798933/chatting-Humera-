@@ -41,7 +41,7 @@ const AppContent: React.FC = () => {
         onOpenAdmin={() => setIsAdminOpen(true)}
       />
 
-      <main className="flex-1 px-3 sm:px-6 md:px-8 pt-5 sm:pt-6 pb-24 md:pb-8 max-w-7xl mx-auto w-full overflow-x-hidden">
+      <main className={`flex-1 px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 max-w-7xl mx-auto w-full overflow-x-hidden ${activeTab === 'chat' ? 'pb-20 md:pb-6' : 'pb-28 md:pb-10'}`}>
         {activeTab === 'home' && <HomeDashboard />}
         {activeTab === 'chat' && <CoreChat />}
         {activeTab === 'memories' && <MemoriesGallery />}

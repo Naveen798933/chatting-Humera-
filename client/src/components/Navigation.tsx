@@ -17,23 +17,20 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
   const navItems: { id: TabType; label: string; shortLabel: string; icon: React.ReactNode }[] = [
     { id: 'home',     label: 'Home',     shortLabel: 'Home',    icon: <Home className="w-5 h-5" /> },
     { id: 'chat',     label: 'Chat',     shortLabel: 'Chat',    icon: <MessageCircle className="w-5 h-5" /> },
-    { id: 'memories', label: 'Memories', shortLabel: 'Memories', icon: <Heart className="w-5 h-5" /> },
+    { id: 'memories', label: 'Memories', shortLabel: 'Gallery', icon: <Heart className="w-5 h-5" /> },
     { id: 'vault',    label: 'Vault',    shortLabel: 'Vault',   icon: <Lock className="w-5 h-5" /> },
     { id: 'together', label: 'Together', shortLabel: 'Together', icon: <Video className="w-5 h-5" /> },
     { id: 'ai',       label: 'Love AI',  shortLabel: 'AI',      icon: <Sparkles className="w-5 h-5" /> },
   ];
 
-  // Mobile shows 5 items + logout icon (no text to save space)
-  const mobileNavItems = navItems;
-
   const handleLogout = () => {
-    toast.love('Goodbye, see you soon! 💕');
-    setTimeout(() => logout(), 800);
+    toast.love('Goodbye! Logging out... 💕');
+    setTimeout(() => logout(), 500);
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-2.5 sm:px-6 py-2 sm:py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-2 sm:px-6 py-2 sm:py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
 
         {/* Brand Logo */}
         <div
@@ -42,11 +39,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
         >
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-accent-rose via-accent-pink to-accent-purple p-0.5 shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
             <div className="w-full h-full bg-space-950 rounded-[10px] flex items-center justify-center">
-              <span className="text-base sm:text-xl animate-heartbeat">❤️</span>
+              <span className="text-sm sm:text-xl animate-heartbeat">❤️</span>
             </div>
           </div>
           <div className="min-w-0">
-            <h1 className="font-extrabold text-xs sm:text-base tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent truncate">
+            <h1 className="font-extrabold text-[11px] sm:text-base tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent truncate">
               OUR UNIVERSE
             </h1>
             <p className="hidden sm:block text-[10px] text-pink-400/80 font-medium tracking-wide truncate">
@@ -76,10 +73,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
           })}
         </nav>
 
-        {/* Desktop User Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+        {/* User Controls & PROMINENT LOGOUT BUTTON */}
+        <div className="flex items-center gap-1 sm:gap-2.5 flex-shrink-0">
           {currentUser && (
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <div className="relative">
                 <img
                   src={currentUser.photoURL}
@@ -107,48 +104,57 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
             </button>
           )}
 
-          {/* Logout button — always visible */}
+          {/* Prominent Header Logout Button — ALWAYS visible on all screen sizes */}
           <button
             onClick={handleLogout}
-            title="Logout"
-            className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-[11px] sm:text-xs font-bold flex items-center gap-1 shadow-lg shadow-rose-600/30 border border-rose-400/30 active:scale-95 transition-all flex-shrink-0 min-h-[34px]"
+            title="Logout of Universe"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-bold flex items-center gap-1 shadow-lg shadow-rose-600/40 border border-rose-400/40 active:scale-95 transition-all flex-shrink-0 min-h-[36px]"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline sm:inline">Logout</span>
+            <LogOut className="w-4 h-4" />
+            <span className="text-[11px] font-bold">Exit</span>
           </button>
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation Bar — 6 items with icons only on very small screens */}
+      {/* Mobile Bottom Navigation Bar — 6 Navigation Tabs + Logout */}
       <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-xl border-t border-white/10 flex items-center justify-around shadow-2xl"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around shadow-2xl px-1"
         style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))', paddingTop: '6px' }}
       >
-        {mobileNavItems.map((item) => {
+        {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[44px] px-1 py-1 rounded-xl transition-all duration-200 relative ${
+              className={`flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[40px] px-1 py-1 rounded-xl transition-all duration-200 relative ${
                 isActive
                   ? 'text-pink-300'
                   : 'text-slate-400 hover:text-slate-200 active:scale-95'
               }`}
             >
-              {/* Active glow indicator */}
               {isActive && (
-                <span className="absolute inset-0 rounded-xl bg-gradient-to-b from-accent-pink/15 to-accent-purple/10 border border-pink-500/20" />
+                <span className="absolute inset-0 rounded-xl bg-gradient-to-b from-accent-pink/20 to-accent-purple/15 border border-pink-500/30" />
               )}
-              <div className={`relative z-10 ${isActive ? 'text-pink-400 drop-shadow-[0_0_6px_rgba(255,112,166,0.8)]' : ''}`}>
+              <div className={`relative z-10 ${isActive ? 'text-pink-400 drop-shadow-[0_0_8px_rgba(255,112,166,0.9)] scale-110' : ''}`}>
                 {item.icon}
               </div>
-              <span className={`text-[9px] font-semibold tracking-tight truncate max-w-[48px] relative z-10 ${isActive ? 'text-pink-300' : ''}`}>
+              <span className={`text-[9px] font-semibold tracking-tight truncate max-w-[44px] relative z-10 ${isActive ? 'text-pink-300 font-bold' : ''}`}>
                 {item.shortLabel}
               </span>
             </button>
           );
         })}
+
+        {/* Mobile Bottom Bar Logout Shortcut */}
+        <button
+          onClick={handleLogout}
+          title="Logout"
+          className="flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[40px] px-1 py-1 rounded-xl text-rose-400 hover:text-rose-300 active:scale-95 transition-all"
+        >
+          <LogOut className="w-5 h-5 text-rose-400" />
+          <span className="text-[9px] font-bold tracking-tight text-rose-400">Exit</span>
+        </button>
       </div>
     </header>
   );
