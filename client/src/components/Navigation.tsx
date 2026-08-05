@@ -118,7 +118,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center gap-0.5 min-h-[44px] px-1.5 py-1 rounded-2xl transition-all duration-200 ${
+              className={`flex flex-col items-center justify-center gap-0.5 min-h-[44px] px-2 py-1 rounded-2xl transition-all duration-200 ${
                 isActive
                   ? 'bg-gradient-to-r from-accent-pink/20 to-accent-purple/20 border border-pink-500/30 text-pink-300 shadow-md shadow-pink-500/10 scale-105'
                   : 'text-slate-400 hover:text-slate-200 active:scale-95'
@@ -127,24 +127,12 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
               <div className={isActive ? 'text-pink-400 animate-pulse' : ''}>
                 {item.icon}
               </div>
-              <span className="text-[9px] font-semibold tracking-tight truncate max-w-[48px]">
+              <span className="text-[10px] font-semibold tracking-tight truncate max-w-[52px]">
                 {item.shortLabel}
               </span>
             </button>
           );
         })}
-
-        {/* 🔴 Direct Logout Button in Mobile Bottom Bar */}
-        <button
-          onClick={logout}
-          title="Logout"
-          className="flex flex-col items-center justify-center gap-0.5 min-h-[44px] px-2 py-1 rounded-2xl bg-rose-600/30 border border-rose-500/50 text-rose-300 active:scale-95 transition-all"
-        >
-          <LogOut className="w-4 h-4 text-rose-400" />
-          <span className="text-[9px] font-extrabold tracking-tight text-rose-300">
-            Logout
-          </span>
-        </button>
       </div>
     </header>
   );
