@@ -48,6 +48,25 @@ export const CoreChat: React.FC = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleBubbleClick = (msg: Message) => {
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+      // Double tap -> React with ❤️
+      addReaction(msg.id, '❤️');
+      sounds.playKissSound();
+      toast.love('Reacted with ❤️');
+      setActiveReactionMsgId(null);
+    } else {
+      clickTimerRef.current = setTimeout(() => {
+        clickTimerRef.current = null;
+        // Single tap -> Toggle quick action bar
+        setActiveReactionMsgId(prev => prev === msg.id ? null : msg.id);
+      }, 220);
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -384,19 +403,14 @@ export const CoreChat: React.FC = () => {
                   )}
 
                   <div className="flex flex-col gap-1">
-                    {/* Message bubble — double tap to react ❤️ */}
+                    {/* Message bubble — tap for actions, double-tap for ❤️ */}
                     <div
                       className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer transition-transform active:scale-[0.98] ${
                         isMe
                           ? 'bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-br-sm'
                           : 'glass-panel text-slate-100 rounded-bl-sm border border-white/10'
                       } ${msg.isSecret ? 'border-2 border-dashed border-rose-400/60' : ''}`}
-                      onClick={() => setActiveReactionMsgId(activeReactionMsgId === msg.id ? null : msg.id)}
-                      onDoubleClick={() => {
-                        addReaction(msg.id, '❤️');
-                        sounds.playKissSound();
-                        toast.love('Reacted with ❤️');
-                      }}
+                      onClick={() => handleBubbleClick(msg)}
                     >
                       {msg.isSecret && (
                         <div className="flex items-center gap-1 text-[9px] font-bold text-rose-300 mb-1.5">
