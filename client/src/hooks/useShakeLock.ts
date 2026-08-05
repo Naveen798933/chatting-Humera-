@@ -2,37 +2,50 @@ import { useEffect, useRef } from 'react';
 
 /**
  * Mobile Shake-to-Lock Hook
- * Triggers callback when rapid physical device motion/acceleration is detected
+ * Requires deliberate physical shake motion (excludes gravity noise to prevent false triggers)
  */
-export function useShakeLock(onShake: () => void, threshold: number = 22) {
-  const lastTimeRef = useRef<number>(0);
-  const lastXRef = useRef<number>(0);
-  const lastYRef = useRef<number>(0);
-  const lastZRef = useRef<number>(0);
+export function useShakeLock(onShake: () => void) {
+  const lastTimeRef = useRef<number>(Date.now());
+  const shakeCountRef = useRef<number>(0);
+  const cooldownRef = useRef<boolean>(false);
 
   useEffect(() => {
     const handleDeviceMotion = (e: DeviceMotionEvent) => {
-      const current = e.accelerationIncludingGravity;
-      if (!current || current.x === null || current.y === null || current.z === null) return;
+      if (cooldownRef.current) return;
+
+      // Prefer linear acceleration (excluding gravity) to prevent false gravity triggers
+      const acc = e.acceleration || e.accelerationIncludingGravity;
+      if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
 
       const now = Date.now();
-      const diffTime = now - lastTimeRef.current;
+      const timeDiff = now - lastTimeRef.current;
 
-      if (diffTime > 100) {
-        const dx = current.x - lastXRef.current;
-        const dy = current.y - lastYRef.current;
-        const dz = current.z - lastZRef.current;
+      if (timeDiff > 120) {
+        // Calculate G-force vector magnitude
+        const magnitude = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
 
-        const speed = (Math.abs(dx) + Math.abs(dy) + Math.abs(dz)) / diffTime * 10000;
+        // A real physical shake generates > 28 m/s² acceleration spike!
+        if (magnitude > 28) {
+          shakeCountRef.current += 1;
 
-        if (speed > threshold * 10) {
-          onShake();
+          // Require 2 consecutive strong shake motions within 800ms
+          if (shakeCountRef.current >= 2) {
+            cooldownRef.current = true;
+            shakeCountRef.current = 0;
+            onShake();
+
+            setTimeout(() => {
+              cooldownRef.current = false;
+            }, 3000);
+          }
+        } else {
+          // Reset shake counter if motion subsides
+          if (timeDiff > 800) {
+            shakeCountRef.current = 0;
+          }
         }
 
         lastTimeRef.current = now;
-        lastXRef.current = current.x;
-        lastYRef.current = current.y;
-        lastZRef.current = current.z;
       }
     };
 
@@ -45,5 +58,5 @@ export function useShakeLock(onShake: () => void, threshold: number = 22) {
         window.removeEventListener('devicemotion', handleDeviceMotion);
       }
     };
-  }, [onShake, threshold]);
+  }, [onShake]);
 }
