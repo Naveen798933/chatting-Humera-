@@ -108,6 +108,7 @@ interface UniverseContextType {
   sendMessage: (content: string, type?: Message['type'], mediaUrl?: string, replyToId?: string, isSecret?: boolean, secretTimeout?: number) => Promise<void>;
   deleteMessage: (id: string, forEveryone?: boolean) => Promise<void>;
   editMessage: (id: string, newContent: string) => Promise<void>;
+  markMessagesAsSeen: () => void;
   toggleStarMessage: (id: string) => void;
   addReaction: (id: string, emoji: string) => void;
 
@@ -356,6 +357,9 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setMessages(prev => prev.filter(m => m.id !== e.data.id));
       } else if (e.data?.type === 'EDIT_MESSAGE' && e.data.id && e.data.content) {
         setMessages(prev => prev.map(m => m.id === e.data.id ? { ...m, content: e.data.content, isEdited: true } : m));
+      } else if (e.data?.type === 'MARK_SEEN' && e.data.readerId) {
+        const seenTime = e.data.seenAt || new Date().toISOString();
+        setMessages(prev => prev.map(m => m.senderId !== e.data.readerId && !m.seen ? { ...m, seen: true, seenAt: seenTime } : m));
       }
     };
     return () => {
@@ -452,6 +456,30 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const markMessagesAsSeen = () => {
+    if (!currentUser) return;
+    const nowIso = new Date().toISOString();
+    setMessages(prev => {
+      const hasUnseen = prev.some(m => m.senderId !== currentUser.uid && !m.seen);
+      if (!hasUnseen) return prev;
+      return prev.map(m => m.senderId !== currentUser.uid ? { ...m, seen: true, seenAt: m.seenAt || nowIso } : m);
+    });
+
+    try {
+      msgSyncChannelRef.current?.postMessage({
+        type: 'MARK_SEEN',
+        readerId: currentUser.uid,
+        seenAt: nowIso
+      });
+    } catch {}
+
+    if (isSupabaseConfigured()) {
+      try {
+        supabase.from('messages').update({ seen: true, seen_at: nowIso }).neq('sender_id', currentUser.uid).then(() => {});
+      } catch {}
+    }
+  };
+
   const toggleStarMessage = async (id: string) => {
     const msg = messages.find(m => m.id === id);
     if (!msg) return;
@@ -529,7 +557,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <UniverseContext.Provider value={{
       ambientEffect, setAmbientEffect, anniversaryDate, setAnniversaryDate,
-      messages, sendMessage, deleteMessage, editMessage, toggleStarMessage, addReaction,
+      messages, sendMessage, deleteMessage, editMessage, markMessagesAsSeen, toggleStarMessage, addReaction,
       isPartnerTyping, setTypingStatus,
       memories, addMemory, toggleFavoriteMemory,
       vaultNotes, addVaultNote, deleteVaultNote,

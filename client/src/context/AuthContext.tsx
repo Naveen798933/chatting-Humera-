@@ -10,6 +10,7 @@ interface AuthContextType {
   loginError: string | null;
   isVaultUnlocked: boolean;
   isDecoyActive: boolean;
+  formatLastSeen: (lastSeenIso?: string, isOnline?: boolean) => string;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
   unlockVaultWithPin: (pin: string) => boolean;
@@ -67,26 +68,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useInactivityLogout(handleAutoLogout, 15);
 
+  // ── Presence Heartbeat via BroadcastChannel & LocalStorage ────────────────
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('our_universe_active_user', JSON.stringify(currentUser));
-      const partner = AUTHORIZED_USERS.find(u => u.uid !== currentUser.uid);
-      if (partner) {
-        setPartnerUser(prev => prev ? { ...prev, uid: partner.uid, email: partner.email, realName: partner.realName } : {
-          uid: partner.uid,
-          email: partner.email,
-          realName: partner.realName,
-          nickname: partner.nickname,
-          petName: partner.petName,
-          role: partner.role,
-          photoURL: partner.photoURL,
-          city: partner.city,
-          mood: { emoji: '🥹', text: 'Missing you ❤️', updatedAt: new Date().toISOString() },
-          online: true,
-          lastSeen: new Date().toISOString()
+    if (!currentUser) return;
+
+    const channel = new BroadcastChannel('ou_presence_sync');
+    let presenceTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    // Send heartbeat every 3 seconds
+    const sendHeartbeat = () => {
+      const nowIso = new Date().toISOString();
+      localStorage.setItem(`ou_last_seen_${currentUser.uid}`, nowIso);
+      try {
+        channel.postMessage({
+          type: 'PRESENCE_HEARTBEAT',
+          userId: currentUser.uid,
+          timestamp: nowIso
         });
+      } catch {}
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 3500);
+
+    // Listen for partner's heartbeat
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'PRESENCE_HEARTBEAT' && e.data.userId !== currentUser.uid) {
+        setPartnerUser(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            online: true,
+            lastSeen: e.data.timestamp || new Date().toISOString()
+          };
+        });
+
+        // Reset partner offline timer (if no heartbeat for 8s, mark offline)
+        if (presenceTimeout) clearTimeout(presenceTimeout);
+        presenceTimeout = setTimeout(() => {
+          setPartnerUser(prev => prev ? { ...prev, online: false } : prev);
+        }, 8000);
       }
-    }
+    };
+
+    return () => {
+      clearInterval(interval);
+      if (presenceTimeout) clearTimeout(presenceTimeout);
+      channel.close();
+    };
   }, [currentUser]);
 
   const login = (email: string, pass: string): boolean => {
@@ -192,6 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loginError,
       isVaultUnlocked,
       isDecoyActive,
+      formatLastSeen,
       login,
       logout,
       unlockVaultWithPin,
@@ -205,6 +235,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+export function formatLastSeen(lastSeenIso?: string, isOnline?: boolean): string {
+  if (isOnline) return 'Online';
+  if (!lastSeenIso) return 'Offline';
+
+  const date = new Date(lastSeenIso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+
+  if (diffMins < 1) return 'Last seen just now';
+  if (diffMins < 60) return `Last seen ${diffMins}m ago`;
+
+  const isToday = date.toDateString() === now.toDateString();
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (isToday) return `Last seen Today at ${timeStr}`;
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `Last seen Yesterday at ${timeStr}`;
+  }
+
+  return `Last seen ${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} at ${timeStr}`;
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

@@ -50,6 +50,7 @@ export interface Message {
   };
   reactions: Record<string, UserUid[]>; // emoji -> array of UIDs
   delivered: boolean;
+  seen?: boolean;
   seenAt?: string;
   isEdited?: boolean;
   isStarred?: boolean;

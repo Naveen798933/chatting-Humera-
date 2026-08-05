@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, formatLastSeen } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { useScreenSize } from '../hooks/useScreenSize';
+import { sounds } from '../lib/soundEffects';
 import { toast } from '../lib/toast';
 import { Message } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
@@ -17,7 +18,7 @@ const QUICK_REACTIONS = ['❤️', '🔥', '😂', '😍', '👏', '💋'];
 export const CoreChat: React.FC = () => {
   const { currentUser, partnerUser } = useAuth();
   const {
-    messages, sendMessage, deleteMessage, editMessage,
+    messages, sendMessage, deleteMessage, editMessage, markMessagesAsSeen,
     toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus
   } = useUniverse();
 
@@ -50,6 +51,8 @@ export const CoreChat: React.FC = () => {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Automatically mark unread incoming messages as seen when chat is open
+    markMessagesAsSeen();
   }, [messages.length, isPartnerTyping]);
 
   useEffect(() => {
@@ -242,10 +245,25 @@ export const CoreChat: React.FC = () => {
               <span className="truncate">{partnerUser?.petName}</span>
               <span className="text-[10px] text-pink-300/70 font-normal hidden sm:inline">({partnerUser?.realName})</span>
             </h3>
-            <p className="text-[9px] sm:text-[10px] text-emerald-400 font-medium flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping flex-shrink-0" />
-              <span>Online in Universe</span>
-            </p>
+            {isPartnerTyping ? (
+              <p className="text-[9px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1.5 animate-pulse">
+                <span className="flex gap-1 items-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+                <span>{partnerUser?.petName || 'Partner'} is typing...</span>
+              </p>
+            ) : (
+              <p className={`text-[9px] sm:text-[10px] font-medium flex items-center gap-1 ${
+                partnerUser?.online ? 'text-emerald-400' : 'text-slate-400'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                  partnerUser?.online ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
+                }`} />
+                <span>{formatLastSeen(partnerUser?.lastSeen, partnerUser?.online)}</span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -366,14 +384,19 @@ export const CoreChat: React.FC = () => {
                   )}
 
                   <div className="flex flex-col gap-1">
-                    {/* Message bubble */}
+                    {/* Message bubble — double tap to react ❤️ */}
                     <div
-                      className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer ${
+                      className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer transition-transform active:scale-[0.98] ${
                         isMe
                           ? 'bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-br-sm'
                           : 'glass-panel text-slate-100 rounded-bl-sm border border-white/10'
                       } ${msg.isSecret ? 'border-2 border-dashed border-rose-400/60' : ''}`}
                       onClick={() => setActiveReactionMsgId(activeReactionMsgId === msg.id ? null : msg.id)}
+                      onDoubleClick={() => {
+                        addReaction(msg.id, '❤️');
+                        sounds.playKissSound();
+                        toast.love('Reacted with ❤️');
+                      }}
                     >
                       {msg.isSecret && (
                         <div className="flex items-center gap-1 text-[9px] font-bold text-rose-300 mb-1.5">
@@ -398,18 +421,29 @@ export const CoreChat: React.FC = () => {
                       )}
 
                       {msg.type === 'audio' && msg.mediaUrl && (
-                        <div className="flex items-center gap-3 p-2 rounded-xl bg-space-950/50 mb-1">
-                          <span className="text-lg">🎙️</span>
-                          <audio src={msg.mediaUrl} controls className="h-8 flex-1 max-w-[180px]" />
+                        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-space-950/70 border border-white/10 mb-1">
+                          <span className="text-xl animate-pulse">🎙️</span>
+                          <audio src={msg.mediaUrl} controls className="h-8 flex-1 max-w-[200px]" />
                         </div>
                       )}
 
                       <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
 
-                      <div className={`flex items-center gap-1.5 mt-1.5 text-[9px] opacity-60 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      {/* Timestamp & Read Receipts */}
+                      <div className={`flex items-center gap-1.5 mt-1.5 text-[9px] opacity-70 ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         {msg.isEdited && <span className="italic">(edited)</span>}
-                        {isMe && <CheckCheck className="w-3 h-3 text-pink-200" />}
+                        {isMe && (
+                          msg.seen ? (
+                            <span className="flex items-center text-cyan-300 font-bold gap-0.5 drop-shadow-[0_0_6px_rgba(56,189,248,0.8)]" title={`Seen ${msg.seenAt ? new Date(msg.seenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}`}>
+                              <CheckCheck className="w-3.5 h-3.5 text-cyan-300" />
+                            </span>
+                          ) : msg.delivered ? (
+                            <span title="Delivered"><CheckCheck className="w-3.5 h-3.5 text-slate-300" /></span>
+                          ) : (
+                            <span title="Sent"><Check className="w-3.5 h-3.5 text-slate-400" /></span>
+                          )
+                        )}
                         {msg.isStarred && <Star className="w-3 h-3 text-amber-300 fill-current" />}
                       </div>
 
