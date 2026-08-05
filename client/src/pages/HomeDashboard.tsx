@@ -115,7 +115,9 @@ export const HomeDashboard: React.FC = () => {
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Humera')}&background=a855f7&color=fff`;
                 }}
               />
-              <span className="absolute bottom-0 right-0 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 border-2 border-space-950 rounded-full" />
+              <span className={`absolute bottom-0 right-0 w-3 h-3 sm:w-4 sm:h-4 border-2 border-space-950 rounded-full ${
+                partnerUser?.online ? 'bg-emerald-500' : 'bg-slate-500'
+              }`} />
             </div>
           </div>
 
