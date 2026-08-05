@@ -6,8 +6,9 @@ import { sounds } from '../lib/soundEffects';
 import { toast } from '../lib/toast';
 import { Message } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
+import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import {
-  Send, Image, Mic, Smile, Lock,
+  Send, Image, Mic, Smile, Lock, Pin, ShieldAlert,
   Trash2, Star, Search, CornerUpLeft, Clock,
   CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle
 } from 'lucide-react';
@@ -16,7 +17,7 @@ import { motion, AnimatePresence } from '../components/motion';
 const QUICK_REACTIONS = ['❤️', '🔥', '😂', '😍', '👏', '💋'];
 
 export const CoreChat: React.FC = () => {
-  const { currentUser, partnerUser } = useAuth();
+  const { currentUser, partnerUser, toggleDecoyMode } = useAuth();
   const {
     messages, sendMessage, deleteMessage, editMessage, markMessagesAsSeen,
     toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus
@@ -28,6 +29,7 @@ export const CoreChat: React.FC = () => {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [forwardingMsg, setForwardingMsg] = useState<Message | null>(null);
   const [editingMsg, setEditingMsg] = useState<Message | null>(null);
+  const [pinnedMsg, setPinnedMsg] = useState<Message | null>(null);
   const [editContent, setEditContent] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -99,12 +101,17 @@ export const CoreChat: React.FC = () => {
     markMessagesAsSeen();
   }, [messages.length, isPartnerTyping]);
 
+  // Panic Hotkey Listener (Esc + L -> Stealth Decoy)
   useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      setTypingStatus(false);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'L' || e.key === 'l') && e.altKey) {
+        toast.info('Panic mode activated!');
+        toggleDecoyMode();
+      }
     };
-  }, [setTypingStatus]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleDecoyMode]);
 
   useEffect(() => {
     if (editingMsg) {
@@ -359,6 +366,22 @@ export const CoreChat: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Pinned Message Banner */}
+      <AnimatePresence>
+        {pinnedMsg && (
+          <motion.div className="bg-amber-950/70 border-b border-amber-500/30 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-amber-200 flex-shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Pin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="font-bold text-amber-300 shrink-0">Pinned:</span>
+              <span className="truncate">{pinnedMsg.content}</span>
+            </div>
+            <button onClick={() => setPinnedMsg(null)} className="text-amber-400 hover:text-white ml-2 shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Search Bar */}
       {showSearch && (
         <div className="p-3 bg-space-900/90 border-b border-white/10 flex items-center gap-2 flex-shrink-0">
@@ -460,9 +483,8 @@ export const CoreChat: React.FC = () => {
                       )}
 
                       {msg.type === 'audio' && msg.mediaUrl && (
-                        <div className="flex items-center gap-3 p-2.5 rounded-xl bg-space-950/70 border border-white/10 mb-1">
-                          <span className="text-xl animate-pulse">🎙️</span>
-                          <audio src={msg.mediaUrl} controls className="h-8 flex-1 max-w-[200px]" />
+                        <div className="my-1">
+                          <VoiceNotePlayer src={msg.mediaUrl} isMe={isMe} />
                         </div>
                       )}
 
@@ -510,6 +532,9 @@ export const CoreChat: React.FC = () => {
                             </button>
                           ))}
                           <div className="w-px h-4 bg-white/10 mx-0.5" />
+                          <button onClick={(e) => { e.stopPropagation(); setPinnedMsg(pinnedMsg?.id === msg.id ? null : msg); setActiveReactionMsgId(null); toast.love(pinnedMsg?.id === msg.id ? 'Message unpinned' : 'Message pinned! 📌'); }} className="p-1 text-slate-300 hover:text-amber-300" title="Pin message">
+                            <Pin className="w-3.5 h-3.5" />
+                          </button>
                           <button onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setActiveReactionMsgId(null); inputRef.current?.focus(); }} className="p-1 text-slate-300 hover:text-pink-300" title="Reply">
                             <CornerUpLeft className="w-3.5 h-3.5" />
                           </button>
