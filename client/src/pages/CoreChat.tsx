@@ -39,6 +39,7 @@ export const CoreChat: React.FC = () => {
   const { isMobile } = useScreenSize();
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
@@ -68,9 +69,33 @@ export const CoreChat: React.FC = () => {
     }
   };
 
+  const scrollToBottom = (instant = false) => {
+    const container = chatContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: instant ? 'auto' : 'smooth'
+      });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
+    }
+  };
+
+  // Instant scroll to latest messages on mount & load
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    // Automatically mark unread incoming messages as seen when chat is open
+    scrollToBottom(true);
+    const t1 = setTimeout(() => scrollToBottom(true), 60);
+    const t2 = setTimeout(() => scrollToBottom(true), 250);
+    markMessagesAsSeen();
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
+  // Smooth scroll on new message or partner typing
+  useEffect(() => {
+    scrollToBottom(false);
     markMessagesAsSeen();
   }, [messages.length, isPartnerTyping]);
 
@@ -353,7 +378,7 @@ export const CoreChat: React.FC = () => {
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3" id="chat-messages">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3" id="chat-messages">
 
         {/* Empty state */}
         {filteredMessages.length === 0 && !searchQuery && (
