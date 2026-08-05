@@ -34,6 +34,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
 }) => {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const [callDuration, setCallDuration] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -57,10 +58,11 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
     }
   }, [localStream, isOpen, isCameraOff]);
 
-  // Bind remote video stream
+  // Bind remote video & audio stream
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    if (remoteStream) {
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
     }
   }, [remoteStream, isOpen]);
 
@@ -234,6 +236,8 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                 <RefreshCw className="w-6 h-6" />
               </button>
             )}
+            {/* Dedicated Remote Audio Playback Element */}
+            <audio ref={remoteAudioRef} autoPlay controls={false} className="hidden" />
           </div>
         </motion.div>
       )}
