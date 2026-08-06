@@ -9,7 +9,7 @@ import { Message } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
 import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import {
-  Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video,
+  Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video, Camera,
   Trash2, Star, Search, CornerUpLeft, Clock, Paperclip,
   CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical
 } from 'lucide-react';
@@ -922,17 +922,28 @@ export const CoreChat: React.FC = () => {
             />
           </div>
 
-          {/* Right Controls: 📎 Attachment + 🎤 Voice / 🚀 Send Toggle */}
+          {/* Right Controls: 📎 Attachment + 📷 Camera + 🎤 Voice / 🚀 Send Toggle */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            {/* 📎 Attachment / Photo / Video Button */}
+            {/* 📎 Attachment / File Upload Button */}
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
               className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-pink-300 hover:bg-white/10 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
-              title="Attach Photo/Video"
-              aria-label="Attach photo or video"
+              title="Attach File/Media"
+              aria-label="Attach file or media"
             >
               <Paperclip className="w-5 h-5" />
+            </button>
+
+            {/* 📷 Camera / Photo Upload Button */}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
+              className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-purple-300 hover:bg-white/10 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+              title="Take/Upload Photo"
+              aria-label="Take or upload photo"
+            >
+              <Camera className="w-5 h-5" />
             </button>
 
             {/* Location Button (Desktop / Tablet) */}
