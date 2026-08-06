@@ -265,17 +265,34 @@ export const TogetherTime: React.FC = () => {
                       src={partnerUser?.photoURL}
                       alt={partnerUser?.realName}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+                      }}
                     />
                   ) : (
                     <div className="text-center">
-                      <img src={partnerUser?.photoURL} className="w-24 h-24 rounded-full mx-auto border-4 border-pink-400 mb-2" />
+                      <img
+                        src={partnerUser?.photoURL}
+                        alt={partnerUser?.realName}
+                        className="w-24 h-24 rounded-full mx-auto border-4 border-pink-400 mb-2 object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+                        }}
+                      />
                       <p className="font-bold text-white text-sm">{partnerUser?.petName}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="absolute bottom-4 right-4 w-32 h-44 rounded-2xl overflow-hidden border-2 border-accent-pink shadow-xl bg-space-900">
-                  <img src={currentUser?.photoURL} className="w-full h-full object-cover" />
+                  <img
+                    src={currentUser?.photoURL}
+                    alt={currentUser?.realName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.realName || 'User')}&background=ff70a6&color=fff`;
+                    }}
+                  />
                 </div>
               </div>
 

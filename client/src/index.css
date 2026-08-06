@@ -1,5 +1,6 @@
 /* ─── Base Reset & Responsive Viewport Safeguards ─────────────────────────── */
 html, body, #root {
+  color-scheme: dark;
   overflow-x: hidden;
   max-width: 100vw;
   width: 100%;
