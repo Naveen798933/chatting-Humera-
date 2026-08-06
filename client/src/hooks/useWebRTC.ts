@@ -67,26 +67,30 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     });
   };
 
-  // ── Acquire Studio Audio & Ultra-HD Video Stream ───────────────────────────
+  // ── Acquire Studio Audio & Low-Latency Video Stream ─────────────────────────
   const acquireStream = async (video: boolean, mode: 'user' | 'environment' = 'user'): Promise<MediaStream | null> => {
-    const studioAudioConstraints: MediaTrackConstraints = {
-      echoCancellation: { ideal: true },
-      noiseSuppression: { ideal: true },
-      autoGainControl:  { ideal: true },
-      sampleRate:       { ideal: 48000 },
-      sampleSize:       { ideal: 16 },
-      channelCount:     { ideal: 2 },
+    const studioAudioConstraints: MediaTrackConstraints & Record<string, any> = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      sampleRate: { ideal: 48000 },
+      sampleSize: { ideal: 16 },
+      channelCount: { ideal: 2 },
+      googEchoCancellation: true,
+      googAutoGainControl: true,
+      googNoiseSuppression: true,
+      googHighpassFilter: true
     };
 
     const hdVideoConstraints: MediaTrackConstraints = {
-      width:       { ideal: 1920, min: 1280 },
-      height:      { ideal: 1080, min: 720 },
-      frameRate:   { ideal: 60, min: 30 },
+      width:       { ideal: 1280, max: 1920 },
+      height:      { ideal: 720, max: 1080 },
+      frameRate:   { ideal: 30, max: 30 },
       facingMode:  mode,
       aspectRatio: { ideal: 1.777777778 },
     };
 
-    // Attempt 1: 1080p Full HD 60fps Video + Studio Stereo Audio
+    // Attempt 1: HD 30fps Low-Latency Video + Studio Stereo Audio
     try {
       if (video) {
         return await navigator.mediaDevices.getUserMedia({
@@ -96,7 +100,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
       }
     } catch (_) {}
 
-    // Attempt 2: 720p HD Video + Studio Audio
+    // Attempt 2: Standard HD Video + Studio Audio
     try {
       if (video) {
         return await navigator.mediaDevices.getUserMedia({
@@ -373,7 +377,8 @@ export function useWebRTC(options?: UseWebRTCOptions) {
       // Start Screen Share
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-          console.error('[WebRTC] Screen sharing is not supported on this browser');
+          console.warn('[WebRTC] Screen sharing is not supported on mobile browsers');
+          alert('Screen sharing is not supported on mobile browsers. Please use a desktop browser for screen sharing 🖥️');
           return;
         }
 
@@ -401,7 +406,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
           }
         };
       } catch (err) {
-        console.error('[WebRTC] Screen share error or cancelled:', err);
+        console.warn('[WebRTC] Screen share error or cancelled:', err);
       }
     }
   }, [isScreenSharing]);
