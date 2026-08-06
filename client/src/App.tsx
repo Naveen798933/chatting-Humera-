@@ -152,10 +152,10 @@ const AppContent: React.FC = () => {
         onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
       />
 
-      <main className={`flex-1 max-w-7xl mx-auto w-full overflow-x-hidden ${
+      <main className={`flex-1 w-full overflow-x-hidden ${
         activeTab === 'chat'
-          ? 'px-1 sm:px-4 md:px-8 pt-2 sm:pt-4 md:pt-6 pb-16 md:pb-6'
-          : 'px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 pb-28 md:pb-10'
+          ? 'max-w-7xl mx-auto px-1 sm:px-4 md:px-8 pt-2 sm:pt-4 md:pt-6 pb-[76px] md:pb-6'
+          : 'max-w-7xl mx-auto px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 pb-28 md:pb-10'
       }`}>
         {activeTab === 'home' && <HomeDashboard />}
         {activeTab === 'chat' && <CoreChat />}

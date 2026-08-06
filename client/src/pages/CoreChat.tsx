@@ -277,7 +277,7 @@ export const CoreChat: React.FC = () => {
 
   return (
     <div className={`max-w-4xl mx-auto flex flex-col glass-panel rounded-xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative ${
-      isMobile ? 'h-[calc(100dvh-145px)]' : 'h-[82vh]'
+      isMobile ? 'h-[calc(100dvh-220px)]' : 'h-[82vh]'
     }`}>
       {/* Chat Header */}
       <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/10 flex items-center justify-between bg-space-900/80 backdrop-blur-md flex-shrink-0">
@@ -745,7 +745,7 @@ export const CoreChat: React.FC = () => {
 
       {/* Emoji Picker */}
       {showEmojiPicker && (
-        <div className="absolute bottom-16 sm:bottom-20 left-2 right-2 sm:left-4 sm:right-auto z-50 flex justify-center sm:block max-w-full">
+        <div className="absolute bottom-[68px] left-2 right-2 sm:left-4 sm:right-auto z-50 flex justify-center sm:block max-w-full">
           <EmojiGifPicker
             onSelectEmoji={(emoji) => setInputContent(prev => prev + emoji)}
             onSelectSticker={(url) => { sendMessage('Sticker', 'image', url); setShowEmojiPicker(false); }}
