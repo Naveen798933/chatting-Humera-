@@ -78,7 +78,7 @@ export const HomeDashboard: React.FC = () => {
     <div className="space-y-6 pb-20 max-w-5xl mx-auto">
       <AnimatePresence>
         {recentNotification && (
-          <motion.div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 glass-panel-glow px-6 py-3 rounded-full border border-pink-400/40 text-white font-bold text-sm shadow-2xl flex items-center gap-3">
+          <motion.div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 glass-panel-glow px-4 sm:px-6 py-3 rounded-full border border-pink-400/40 text-white font-bold text-xs sm:text-sm shadow-2xl flex items-center gap-2 sm:gap-3 max-w-[calc(100vw-2rem)] w-max">
             <span className="text-xl animate-bounce">
               {recentNotification.type === 'kiss' ? '💋' : recentNotification.type === 'hug' ? '🤗' : recentNotification.type === 'miss_you' ? '❤️' : '🎉'}
             </span>
@@ -123,14 +123,14 @@ export const HomeDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="text-center sm:text-right">
-            <h2 className="text-lg sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent">
+          <div className="text-center sm:text-right min-w-0">
+            <h2 className="text-base sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent truncate">
               {currentUser?.petName} & {partnerUser?.petName}
             </h2>
-            <p className="text-[11px] sm:text-xs text-slate-300 font-medium mt-1 flex items-center justify-center sm:justify-end gap-1.5">
-              <span>{currentUser?.city}</span>
+            <p className="text-[10px] sm:text-xs text-slate-300 font-medium mt-1 flex flex-wrap items-center justify-center sm:justify-end gap-1">
+              <span className="truncate max-w-[140px] sm:max-w-none">{currentUser?.city}</span>
               <span>•</span>
-              <span>{partnerUser?.city}</span>
+              <span className="truncate max-w-[140px] sm:max-w-none">{partnerUser?.city}</span>
             </p>
           </div>
         </div>
@@ -338,10 +338,10 @@ export const HomeDashboard: React.FC = () => {
             <span>One-Tap Love Express</span>
           </h4>
 
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-1 xs:grid-cols-2 gap-2.5 sm:gap-3">
             <button
               onClick={() => sendQuickAction('miss_you')}
-              className="p-3 rounded-2xl glass-card border border-pink-500/20 hover:border-pink-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[44px]"
+              className="p-3 rounded-2xl glass-card border border-pink-500/20 hover:border-pink-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"
             >
               <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 flex-shrink-0">
                 <Heart className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse-heart fill-current" />
@@ -354,7 +354,7 @@ export const HomeDashboard: React.FC = () => {
 
             <button
               onClick={() => sendQuickAction('hug')}
-              className="p-3 rounded-2xl glass-card border border-purple-500/20 hover:border-purple-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[44px]"
+              className="p-3 rounded-2xl glass-card border border-purple-500/20 hover:border-purple-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"
             >
               <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 flex-shrink-0">
                 <span className="text-lg sm:text-xl">🤗</span>
@@ -367,7 +367,7 @@ export const HomeDashboard: React.FC = () => {
 
             <button
               onClick={() => sendQuickAction('kiss')}
-              className="p-3 rounded-2xl glass-card border border-rose-500/20 hover:border-rose-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[44px]"
+              className="p-3 rounded-2xl glass-card border border-rose-500/20 hover:border-rose-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"
             >
               <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 flex-shrink-0">
                 <span className="text-lg sm:text-xl">💋</span>
@@ -380,7 +380,7 @@ export const HomeDashboard: React.FC = () => {
 
             <button
               onClick={handleSurpriseMode}
-              className="p-3 rounded-2xl glass-card border border-amber-500/20 hover:border-amber-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[44px]"
+              className="p-3 rounded-2xl glass-card border border-amber-500/20 hover:border-amber-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"
             >
               <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 flex-shrink-0">
                 <Gift className="w-4 h-4 sm:w-5 sm:h-5" />

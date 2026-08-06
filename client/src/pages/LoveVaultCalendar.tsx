@@ -170,25 +170,25 @@ export const LoveVaultCalendar: React.FC = () => {
             </h3>
 
             {/* Add Event Form */}
-            <form onSubmit={handleCreateCalendarEvent} className="grid grid-cols-1 sm:grid-cols-4 gap-3 my-4">
+            <form onSubmit={handleCreateCalendarEvent} className="flex flex-col sm:grid sm:grid-cols-4 gap-3 my-4">
               <input
                 type="text"
                 value={newCalTitle}
                 onChange={(e) => setNewCalTitle(e.target.value)}
                 placeholder="Event name e.g. Maldives Trip"
-                className="sm:col-span-2 px-4 py-2.5 rounded-xl glass-input text-xs"
+                className="w-full sm:col-span-2 px-4 py-2.5 rounded-xl glass-input text-xs"
                 required
               />
               <input
                 type="date"
                 value={newCalDate}
                 onChange={(e) => setNewCalDate(e.target.value)}
-                className="px-4 py-2.5 rounded-xl bg-space-900 border border-white/10 text-xs text-white"
+                className="w-full px-4 py-2.5 rounded-xl bg-space-900 border border-white/10 text-xs text-white"
                 required
               />
               <button
                 type="submit"
-                className="py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-md"
+                className="w-full py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-md min-h-[44px]"
               >
                 Add Milestone
               </button>
@@ -341,28 +341,30 @@ export const LoveVaultCalendar: React.FC = () => {
             <span>Shared Bucket Lists & Wishlist</span>
           </h3>
 
-          <form onSubmit={handleCreateTodo} className="flex gap-2">
+          <form onSubmit={handleCreateTodo} className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={newTodoTitle}
               onChange={(e) => setNewTodoTitle(e.target.value)}
-              placeholder="Add bucket list item e.g. Hot air balloon in Turkey"
-              className="flex-1 px-4 py-2.5 rounded-xl glass-input text-xs"
+              placeholder="Add bucket list item..."
+              className="flex-1 min-w-0 px-4 py-2.5 rounded-xl glass-input text-xs"
               required
             />
-            <select
-              value={newTodoCategory}
-              onChange={(e) => setNewTodoCategory(e.target.value as any)}
-              className="px-4 py-2.5 rounded-xl bg-space-900 border border-white/10 text-xs text-white"
-            >
-              <option value="bucket">Bucket List</option>
-              <option value="movies">Movies</option>
-              <option value="travel">Travel</option>
-              <option value="foods">Foods</option>
-            </select>
-            <button type="submit" className="px-5 py-2.5 rounded-xl bg-accent-purple text-white font-bold text-xs">
-              Add Item
-            </button>
+            <div className="flex gap-2">
+              <select
+                value={newTodoCategory}
+                onChange={(e) => setNewTodoCategory(e.target.value as any)}
+                className="flex-1 sm:flex-none px-3 py-2.5 rounded-xl bg-space-900 border border-white/10 text-xs text-white min-h-[44px]"
+              >
+                <option value="bucket">Bucket List</option>
+                <option value="movies">Movies</option>
+                <option value="travel">Travel</option>
+                <option value="foods">Foods</option>
+              </select>
+              <button type="submit" className="px-4 sm:px-5 py-2.5 rounded-xl bg-accent-purple text-white font-bold text-xs min-h-[44px] whitespace-nowrap">
+                Add Item
+              </button>
+            </div>
           </form>
 
           <div className="space-y-3">
@@ -404,13 +406,13 @@ export const LoveVaultCalendar: React.FC = () => {
             <span>Love Map & Visited Destinations</span>
           </h3>
 
-          <form onSubmit={handleCreateMapPin} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <form onSubmit={handleCreateMapPin} className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
             <input
               type="text"
               value={newPinTitle}
               onChange={(e) => setNewPinTitle(e.target.value)}
               placeholder="Pin title e.g. Eiffel Tower"
-              className="px-4 py-2.5 rounded-xl glass-input text-xs"
+              className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
               required
             />
             <input
@@ -418,10 +420,10 @@ export const LoveVaultCalendar: React.FC = () => {
               value={newPinLoc}
               onChange={(e) => setNewPinLoc(e.target.value)}
               placeholder="Location e.g. Paris, France"
-              className="px-4 py-2.5 rounded-xl glass-input text-xs"
+              className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
               required
             />
-            <button type="submit" className="py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs">
+            <button type="submit" className="w-full py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs min-h-[44px]">
               Pin Location
             </button>
           </form>

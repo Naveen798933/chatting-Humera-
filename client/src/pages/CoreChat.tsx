@@ -348,7 +348,7 @@ export const CoreChat: React.FC = () => {
             }`}
           >
             <Lock className="w-4 h-4" />
-            <span className="hidden xs:inline">{isSecretMode ? 'Secret' : 'Secret'}</span>
+            <span className="hidden sm:inline">{isSecretMode ? 'Secret ON' : 'Secret'}</span>
           </button>
 
           <button
@@ -375,7 +375,7 @@ export const CoreChat: React.FC = () => {
                   initial={{ opacity: 0, scale: 0.95, y: -10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 top-11 z-50 w-48 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1"
+                  className="absolute right-0 top-11 z-50 w-44 sm:w-48 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1"
                 >
                   <button
                     onClick={() => {

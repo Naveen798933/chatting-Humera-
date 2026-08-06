@@ -217,38 +217,40 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             )}
           </div>
 
-          {/* Control Bar */}
-          <div className="flex items-center justify-center gap-4 sm:gap-6 py-2 z-20">
-            {/* Mic Toggle */}
+          {/* Control Bar — Responsive to all phone sizes */}
+          <div
+            className="flex items-center justify-center gap-2 sm:gap-4 lg:gap-6 py-2 z-20 flex-wrap"
+            style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}
+          >
             <button
               onClick={onToggleMic}
-              className={`p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
+              className={`p-3 sm:p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
                 isMicMuted ? 'bg-rose-500/30 text-rose-300 border border-rose-500/50' : 'glass-panel text-white hover:bg-white/20'
               }`}
               title={isMicMuted ? 'Unmute Mic' : 'Mute Mic'}
             >
-              {isMicMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+              {isMicMuted ? <MicOff className="w-5 h-5 sm:w-6 sm:h-6" /> : <Mic className="w-5 h-5 sm:w-6 sm:h-6" />}
             </button>
 
             {/* End Call Button */}
             <button
               onClick={onEndCall}
-              className="p-5 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-2xl shadow-rose-600/50 hover:scale-110 active:scale-95 transition-transform"
+              className="p-4 sm:p-5 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-2xl shadow-rose-600/50 hover:scale-110 active:scale-95 transition-transform"
               title="End Call"
             >
-              <PhoneOff className="w-8 h-8 fill-current" />
+              <PhoneOff className="w-6 h-6 sm:w-8 sm:h-8 fill-current" />
             </button>
 
             {/* Camera Toggle */}
             {callType === 'video' && (
               <button
                 onClick={onToggleCamera}
-                className={`p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
+                className={`p-3 sm:p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
                   isCameraOff ? 'bg-rose-500/30 text-rose-300 border border-rose-500/50' : 'glass-panel text-white hover:bg-white/20'
                 }`}
                 title={isCameraOff ? 'Turn Camera On' : 'Turn Camera Off'}
               >
-                {isCameraOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+                {isCameraOff ? <VideoOff className="w-5 h-5 sm:w-6 sm:h-6" /> : <Video className="w-5 h-5 sm:w-6 sm:h-6" />}
               </button>
             )}
 
@@ -256,10 +258,10 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             {callType === 'video' && onSwitchCamera && (
               <button
                 onClick={onSwitchCamera}
-                className="p-4 rounded-full glass-panel text-slate-200 hover:text-white shadow-xl transition-transform active:scale-95"
+                className="p-3 sm:p-4 rounded-full glass-panel text-slate-200 hover:text-white shadow-xl transition-transform active:scale-95"
                 title="Switch Camera"
               >
-                <RefreshCw className="w-6 h-6" />
+                <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             )}
 
@@ -267,12 +269,12 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             {callType === 'video' && onToggleScreenShare && (
               <button
                 onClick={onToggleScreenShare}
-                className={`p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
+                className={`p-3 sm:p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
                   isScreenSharing ? 'bg-sky-500/40 text-sky-200 border border-sky-400/50 animate-pulse' : 'glass-panel text-slate-200 hover:text-white'
                 }`}
                 title={isScreenSharing ? 'Stop Screen Share' : 'Share Screen'}
               >
-                <MonitorUp className="w-6 h-6" />
+                <MonitorUp className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             )}
 
