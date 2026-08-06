@@ -169,7 +169,10 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [anniversaryDate, setAnniversaryDate] = useState('2026-05-30T00:00:00.000Z');
 
   // ── Messages — localStorage & Supabase ──────────────────────────────────────
-  const [messages, setMessages] = useState<Message[]>(() => readLS(LS_MSGS, SEED_MESSAGES));
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const raw = readLS(LS_MSGS, SEED_MESSAGES);
+    return raw.map(m => ({ ...m, reactions: m.reactions || {} }));
+  });
   const msgSyncChannelRef = useRef<BroadcastChannel | null>(null);
 
   // ── Non-message data — localStorage with BroadcastChannel ─────────────────
@@ -432,12 +435,13 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     msgSyncChannelRef.current = bc;
     bc.onmessage = (e) => {
       if (e.data?.type === 'NEW_MESSAGE' && e.data.msg) {
+        const normalizedMsg = { ...e.data.msg, reactions: e.data.msg.reactions || {} };
         setMessages(prev => {
-          if (prev.some(m => m.id === e.data.msg.id)) return prev;
-          if (currentUser && e.data.msg.senderId !== currentUser.uid) {
+          if (prev.some(m => m.id === normalizedMsg.id)) return prev;
+          if (currentUser && normalizedMsg.senderId !== currentUser.uid) {
             sounds.playMessageReceivedSound();
           }
-          return [...prev, e.data.msg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          return [...prev, normalizedMsg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         });
       } else if (e.data?.type === 'DELETE_MESSAGE' && e.data.id) {
         setMessages(prev => prev.filter(m => m.id !== e.data.id));
