@@ -1,0 +1,16 @@
+{
+  "short_name": "Our Universe",
+  "name": "Our Universe — Naveen & Humera Private Space",
+  "icons": [
+    {
+      "src": "/heart.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b071a",
+  "theme_color": "#0b071a",
+  "display": "standalone",
+  "orientation": "portrait"
+}
