@@ -867,36 +867,48 @@ export const CoreChat: React.FC = () => {
         document.body
       )}
 
-      {/* WhatsApp Style Chat Composer Container */}
+      {/* Pro WhatsApp-Style Chat Composer Container */}
       <div className="relative flex-shrink-0 z-20">
         
-        {/* Emoji & Sticker Picker Overlay — floats cleanly directly above input bar */}
-        {showEmojiPicker && (
-          <div className="absolute bottom-full left-2 sm:left-4 mb-2 z-50 flex justify-center sm:block max-w-full">
-            <EmojiGifPicker
-              onSelectEmoji={(emoji) => setInputContent(prev => prev + emoji)}
-              onSelectSticker={(url) => { sendMessage('Sticker', 'image', url); setShowEmojiPicker(false); }}
-              onClose={() => setShowEmojiPicker(false)}
-            />
-          </div>
-        )}
+        {/* Emoji & Sticker Picker Overlay */}
+        <AnimatePresence>
+          {showEmojiPicker && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute bottom-full left-0 right-0 sm:left-4 sm:right-auto mb-2 z-50 flex justify-center sm:block max-w-full px-2 sm:px-0"
+            >
+              <EmojiGifPicker
+                onSelectEmoji={(emoji) => setInputContent(prev => prev + emoji)}
+                onSelectSticker={(url) => { sendMessage('Sticker', 'image', url); setShowEmojiPicker(false); }}
+                onClose={() => setShowEmojiPicker(false)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* WhatsApp-Style Form Bar */}
-        <form onSubmit={handleSend} className="p-2 sm:p-3 bg-space-900/95 border-t border-white/10 flex items-end gap-1.5 sm:gap-2">
+        {/* Composer Form Bar */}
+        <form
+          onSubmit={handleSend}
+          className="px-2 py-2 sm:px-4 sm:py-3 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-end gap-1.5 sm:gap-2"
+          style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))' }}
+        >
+          {/* Integrated Input Capsule (Pill shape: Emoji + Textarea + Attach + Camera) */}
+          <div className="flex-1 min-w-0 flex items-end bg-space-900/90 border border-white/15 rounded-3xl p-1.5 focus-within:border-pink-400/70 focus-within:ring-1 focus-within:ring-pink-400/40 transition-all shadow-inner">
+            
+            {/* 😊 Emoji Button inside Capsule */}
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="p-2 text-slate-300 hover:text-amber-300 active:scale-95 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center flex-shrink-0 rounded-full"
+              title="Emoji & Stickers"
+              aria-label="Toggle emoji picker"
+            >
+              <Smile className="w-5 h-5" />
+            </button>
 
-          {/* Left: 😊 Emoji Button */}
-          <button
-            type="button"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-amber-300 hover:bg-white/10 active:scale-95 transition-all flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            title="Emoji & Stickers"
-            aria-label="Toggle emoji picker"
-          >
-            <Smile className="w-6 h-6" />
-          </button>
-
-          {/* Middle: Rounded Textarea (Auto-resize & Enter to Send) */}
-          <div className="flex-1 min-w-0 relative">
+            {/* Middle Textarea inside Capsule */}
             <textarea
               ref={inputRef}
               value={inputContent}
@@ -912,7 +924,7 @@ export const CoreChat: React.FC = () => {
               }}
               placeholder={isSecretMode ? '🔒 Disappearing message...' : `Message ${partnerUser?.petName ?? ''}...`}
               rows={1}
-              className="w-full px-4 py-2.5 sm:py-3 rounded-2xl glass-input text-xs sm:text-sm resize-none overflow-y-auto max-h-24 leading-relaxed"
+              className="flex-1 min-w-0 px-2 py-1.5 bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm resize-none overflow-y-auto max-h-24 leading-relaxed focus:outline-none scrollbar-none"
               style={{ touchAction: 'manipulation', WebkitUserSelect: 'text', userSelect: 'text' }}
               autoComplete="off"
               autoCorrect="on"
@@ -920,58 +932,46 @@ export const CoreChat: React.FC = () => {
               enterKeyHint="send"
               aria-label="Type a message"
             />
-          </div>
 
-          {/* Right Controls: 📎 Attachment + 📷 Camera + 🎤 Voice / 🚀 Send Toggle */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {/* 📎 Attachment / File Upload Button */}
+            {/* 📎 Attachment Clip inside Capsule */}
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-pink-300 hover:bg-white/10 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
-              title="Attach File/Media"
-              aria-label="Attach file or media"
+              className="p-2 text-slate-300 hover:text-pink-300 active:scale-95 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center flex-shrink-0 rounded-full"
+              title="Attach Media"
+              aria-label="Attach media"
             >
               <Paperclip className="w-5 h-5" />
             </button>
 
-            {/* 📷 Camera / Photo Upload Button */}
+            {/* 📷 Camera Button inside Capsule */}
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-purple-300 hover:bg-white/10 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
-              title="Take/Upload Photo"
-              aria-label="Take or upload photo"
+              className="p-2 text-slate-300 hover:text-purple-300 active:scale-95 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center flex-shrink-0 rounded-full hidden sm:flex"
+              title="Take Photo"
+              aria-label="Take photo"
             >
               <Camera className="w-5 h-5" />
             </button>
+          </div>
 
-            {/* Location Button (Desktop / Tablet) */}
-            <button
-              type="button"
-              onClick={handleSendLocation}
-              className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-emerald-300 hover:bg-white/10 transition-all hidden md:flex items-center justify-center min-w-[44px] min-h-[44px]"
-              title="Share Location"
-              aria-label="Share live location"
-            >
-              <MapPin className="w-5 h-5" />
-            </button>
-
-            {/* Voice Record Button (when empty) OR Send Button (when text present) */}
+          {/* Dynamic Action Button Outside Capsule (Circular Floating Button for Send / Voice) */}
+          <div className="flex-shrink-0">
             {inputContent.trim().length > 0 ? (
               <button
                 type="submit"
-                className="p-3 sm:p-3.5 rounded-full bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all flex items-center justify-center min-w-[44px] min-h-[44px]"
+                className="w-11 h-11 rounded-full bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
                 title="Send Message"
                 aria-label="Send message"
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-5 h-5 ml-0.5" />
               </button>
             ) : !isRecording ? (
               <button
                 type="button"
                 onClick={handleStartRecording}
-                className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-purple-300 hover:bg-white/10 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="w-11 h-11 rounded-full bg-space-900 border border-white/15 text-slate-200 hover:text-purple-300 hover:border-purple-400/40 active:scale-95 transition-all flex items-center justify-center shadow-md"
                 title="Record Voice Note"
                 aria-label="Record voice note"
               >
@@ -981,7 +981,7 @@ export const CoreChat: React.FC = () => {
               <button
                 type="button"
                 onClick={handleStopRecording}
-                className="px-3 py-2 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 animate-pulse shadow-lg shadow-rose-500/30 min-h-[44px]"
+                className="h-11 px-3.5 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 animate-pulse shadow-lg shadow-rose-500/40"
                 title="Stop & Send Voice Note"
                 aria-label="Stop recording and send voice note"
               >
