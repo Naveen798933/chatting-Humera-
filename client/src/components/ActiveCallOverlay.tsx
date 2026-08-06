@@ -107,7 +107,14 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
           onClick={() => setIsMinimized(false)}
         >
           <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-pink-400">
-            <img src={partnerUser?.photoURL} alt={partnerUser?.realName} className="w-full h-full object-cover" />
+            <img
+              src={partnerUser?.photoURL}
+              alt={partnerUser?.realName}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+              }}
+            />
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-black" />
           </div>
           <div>
@@ -136,6 +143,9 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                 src={partnerUser?.photoURL}
                 alt={partnerUser?.realName}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-pink-400 shadow-lg"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+                }}
               />
               <div>
                 <h3 className="font-extrabold text-white text-sm sm:text-base">{partnerUser?.petName || partnerUser?.realName}</h3>
@@ -187,6 +197,9 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                     src={partnerUser?.photoURL}
                     alt={partnerUser?.realName}
                     className="w-full h-full rounded-full object-cover border-4 border-space-950"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+                    }}
                   />
                 </div>
                 <div>
@@ -209,7 +222,14 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-space-950">
-                    <img src={currentUser?.photoURL} className="w-12 h-12 rounded-full border border-pink-400 mb-1" />
+                    <img
+                      src={currentUser?.photoURL}
+                      alt={currentUser?.realName}
+                      className="w-12 h-12 rounded-full border border-pink-400 mb-1 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.realName || 'User')}&background=ff70a6&color=fff`;
+                      }}
+                    />
                     <span className="text-[10px] text-slate-400">Cam Off</span>
                   </div>
                 )}

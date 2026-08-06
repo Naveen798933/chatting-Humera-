@@ -50,7 +50,14 @@ export const PartnerProfileDrawer: React.FC<PartnerProfileDrawerProps> = ({
             {/* Profile Avatar & Info */}
             <div className="text-center space-y-3">
               <div className="relative w-28 h-28 mx-auto rounded-full p-1 bg-gradient-to-tr from-accent-pink to-accent-purple shadow-2xl">
-                <img src={partnerUser.photoURL} alt={partnerUser.realName} className="w-full h-full rounded-full object-cover border-4 border-space-950" />
+                <img
+                  src={partnerUser.photoURL}
+                  alt={partnerUser.realName}
+                  className="w-full h-full rounded-full object-cover border-4 border-space-950"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser.realName)}&background=a855f7&color=fff`;
+                  }}
+                />
                 <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-space-950 ${partnerUser.online ? 'bg-emerald-400' : 'bg-slate-500'}`} />
               </div>
 
@@ -115,7 +122,15 @@ export const PartnerProfileDrawer: React.FC<PartnerProfileDrawerProps> = ({
               ) : (
                 <div className="grid grid-cols-3 gap-2">
                   {sharedPhotos.map((url, idx) => (
-                    <img key={idx} src={url} className="w-full h-20 rounded-xl object-cover border border-white/10" />
+                    <img
+                      key={idx}
+                      src={url}
+                      alt="Shared media"
+                      className="w-full h-20 rounded-xl object-cover border border-white/10"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="80" viewBox="0 0 100 80"><rect fill="%23110a26" width="100" height="80"/><text fill="%23ff70a6" font-size="12" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">📷 Photo</text></svg>';
+                      }}
+                    />
                   ))}
                 </div>
               )}

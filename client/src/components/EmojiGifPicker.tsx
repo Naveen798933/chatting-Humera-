@@ -73,6 +73,9 @@ export const EmojiGifPicker: React.FC<EmojiGifPickerProps> = ({ onSelectEmoji, o
               alt="Sticker"
               onClick={() => onSelectSticker?.(url)}
               className="w-full h-20 object-cover rounded-xl border border-white/10 hover:border-pink-400 cursor-pointer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="80" viewBox="0 0 100 80"><rect fill="%23110a26" width="100" height="80"/><text fill="%23ff70a6" font-size="12" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">❤️ Sticker</text></svg>';
+              }}
             />
           ))}
         </div>
