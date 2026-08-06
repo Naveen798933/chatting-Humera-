@@ -106,8 +106,6 @@ const AppContent: React.FC = () => {
         {activeTab === 'chat' && <CoreChat />}
         {activeTab === 'memories' && <MemoriesGallery />}
         {activeTab === 'vault' && <LoveVaultCalendar />}
-        {activeTab === 'together' && <TogetherTime />}
-        {activeTab === 'ai' && <LoveAIAssistant />}
       </main>
 
       <AdminBackupModal

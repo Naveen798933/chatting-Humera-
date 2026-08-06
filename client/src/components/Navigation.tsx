@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useShakeLock } from '../hooks/useShakeLock';
 import { toast } from '../lib/toast';
 
-export type TabType = 'home' | 'chat' | 'memories' | 'vault' | 'together' | 'ai';
+export type TabType = 'home' | 'chat' | 'memories' | 'vault';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -36,9 +36,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     { id: 'home',     label: 'Home',     shortLabel: 'Home',    icon: <Home className="w-6 h-6 sm:w-5 sm:h-5" /> },
     { id: 'chat',     label: 'Chat',     shortLabel: 'Chat',    icon: <MessageCircle className="w-6 h-6 sm:w-5 sm:h-5" /> },
     { id: 'memories', label: 'Memories', shortLabel: 'Gallery', icon: <Heart className="w-6 h-6 sm:w-5 sm:h-5" /> },
-    { id: 'vault',    label: 'Vault',    shortLabel: 'Vault',   icon: <Lock className="w-6 h-6 sm:w-5 sm:h-5" /> },
-    { id: 'together', label: 'Together', shortLabel: 'Together', icon: <Video className="w-6 h-6 sm:w-5 sm:h-5" /> },
-    { id: 'ai',       label: 'Love AI',  shortLabel: 'AI',      icon: <Sparkles className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'vault',    label: 'Vault',    shortLabel: 'Vault',   icon: <Lock className="w-6 h-6 sm:w-5 sm:h-5" /> }
   ];
 
   const handleLogout = () => {

@@ -8,7 +8,7 @@ export const AUTHORIZED_USERS = [
     petName: 'Bangaram ❤️',
     role: 'owner' as const,
     photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-    city: 'Vijayawada, India',
+    city: 'Vijayawada, Nidamanuru Village, India',
     pin: '7989'
   },
   {
@@ -19,7 +19,7 @@ export const AUTHORIZED_USERS = [
     petName: 'Jaanu ❤️',
     role: 'partner' as const,
     photoURL: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
-    city: 'Medchal, India',
+    city: 'Medchal, Hyderabad, Rudraram Village, India',
     pin: '1402'
   }
 ];
