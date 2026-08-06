@@ -45,8 +45,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   };
 
   return (
-    <header
-      className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-2 sm:px-6 shadow-xl"
+    <>
+      <header
+        className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-2 sm:px-6 shadow-xl"
       style={{
         paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))',
         paddingBottom: '0.5rem'
@@ -241,47 +242,48 @@ export const Navigation: React.FC<NavigationProps> = ({
           <span>Stealth</span>
         </button>
       </div>
-
-      {/* Mobile Bottom Navigation Bar — 6 Navigation Tabs + Logout */}
-      <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around shadow-2xl px-1"
-        style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))', paddingTop: '6px' }}
-      >
-        {navItems.map((item) => {
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[40px] px-1 py-1 rounded-xl transition-all duration-200 relative ${
-                isActive
-                  ? 'text-pink-300'
-                  : 'text-slate-400 hover:text-slate-200 active:scale-95'
-              }`}
-            >
-              {isActive && (
-                <span className="absolute inset-0 rounded-xl bg-gradient-to-b from-accent-pink/20 to-accent-purple/15 border border-pink-500/30" />
-              )}
-              <div className={`relative z-10 ${isActive ? 'text-pink-400 drop-shadow-[0_0_8px_rgba(255,112,166,0.9)] scale-110' : ''}`}>
-                {item.icon}
-              </div>
-              <span className={`text-[9px] font-semibold tracking-tight truncate max-w-[44px] relative z-10 ${isActive ? 'text-pink-300 font-bold' : ''}`}>
-                {item.shortLabel}
-              </span>
-            </button>
-          );
-        })}
-
-        {/* Mobile Bottom Bar Logout Shortcut */}
-        <button
-          onClick={handleLogout}
-          title="Logout"
-          className="flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[40px] px-1 py-1 rounded-xl text-rose-400 hover:text-rose-300 active:scale-95 transition-all"
-        >
-          <LogOut className="w-6 h-6 sm:w-5 sm:h-5 text-rose-400" />
-          <span className="text-[9px] font-bold tracking-tight text-rose-400">Exit</span>
-        </button>
-      </div>
     </header>
-  );
+
+    {/* Mobile Bottom Navigation Bar — 100% Positioned to Viewport Bottom */}
+    <div
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around shadow-2xl px-1"
+      style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))', paddingTop: '6px' }}
+    >
+      {navItems.map((item) => {
+        const isActive = activeTab === item.id;
+        return (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
+            className={`flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[40px] px-1 py-1 rounded-xl transition-all duration-200 relative ${
+              isActive
+                ? 'text-pink-300'
+                : 'text-slate-400 hover:text-slate-200 active:scale-95'
+            }`}
+          >
+            {isActive && (
+              <span className="absolute inset-0 rounded-xl bg-gradient-to-b from-accent-pink/20 to-accent-purple/15 border border-pink-500/30" />
+            )}
+            <div className={`relative z-10 ${isActive ? 'text-pink-400 drop-shadow-[0_0_8px_rgba(255,112,166,0.9)] scale-110' : ''}`}>
+              {item.icon}
+            </div>
+            <span className={`text-[9px] font-semibold tracking-tight truncate max-w-[44px] relative z-10 ${isActive ? 'text-pink-300 font-bold' : ''}`}>
+              {item.shortLabel}
+            </span>
+          </button>
+        );
+      })}
+
+      {/* Mobile Bottom Bar Logout Shortcut */}
+      <button
+        onClick={handleLogout}
+        title="Logout"
+        className="flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[40px] px-1 py-1 rounded-xl text-rose-400 hover:text-rose-300 active:scale-95 transition-all"
+      >
+        <LogOut className="w-6 h-6 sm:w-5 sm:h-5 text-rose-400" />
+        <span className="text-[9px] font-bold tracking-tight text-rose-400">Exit</span>
+      </button>
+    </div>
+  </>
+);
 };
