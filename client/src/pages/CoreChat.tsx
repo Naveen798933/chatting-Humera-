@@ -745,7 +745,7 @@ export const CoreChat: React.FC = () => {
 
       {/* Emoji Picker */}
       {showEmojiPicker && (
-        <div className="absolute bottom-20 left-4 z-50">
+        <div className="absolute bottom-16 sm:bottom-20 left-2 right-2 sm:left-4 sm:right-auto z-50 flex justify-center sm:block max-w-full">
           <EmojiGifPicker
             onSelectEmoji={(emoji) => setInputContent(prev => prev + emoji)}
             onSelectSticker={(url) => { sendMessage('Sticker', 'image', url); setShowEmojiPicker(false); }}
