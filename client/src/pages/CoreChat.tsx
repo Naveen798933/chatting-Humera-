@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth, formatLastSeen } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { useScreenSize } from '../hooks/useScreenSize';
@@ -9,7 +10,7 @@ import { EmojiGifPicker } from '../components/EmojiGifPicker';
 import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import {
   Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video,
-  Trash2, Star, Search, CornerUpLeft, Clock,
+  Trash2, Star, Search, CornerUpLeft, Clock, Paperclip,
   CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
@@ -44,7 +45,8 @@ export const CoreChat: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -120,7 +122,7 @@ export const CoreChat: React.FC = () => {
     }
   }, [editingMsg]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     setInputContent(text);
     if (text.trim().length > 0) {
@@ -177,6 +179,95 @@ export const CoreChat: React.FC = () => {
   const handleSendLocation = () => {
     sendMessage(`📍 Shared live location: ${currentUser?.city}`, 'location', undefined, replyingTo?.id, isSecretMode, secretTimeout);
     toast.success('Location shared!');
+  };
+
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.75));
+          } else {
+            resolve(e.target?.result as string);
+          }
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('File too large! Max 15MB');
+      return;
+    }
+
+    const isVideo = file.type.startsWith('video');
+
+    if (isVideo) {
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error('Video too large! Max 8MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const mediaUrl = reader.result as string;
+        sendMessage('Shared a video', 'video', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
+        setReplyingTo(null);
+        toast.love('Video sent! 📹');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      toast.info('Sending photo... 📸');
+      try {
+        const mediaUrl = await compressImage(file);
+        if (!mediaUrl) {
+          toast.error('Could not process image.');
+          return;
+        }
+        sendMessage('Shared an image', 'image', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
+        setReplyingTo(null);
+        toast.love('Photo sent! 💕');
+      } catch (err) {
+        console.error('Image compression error:', err);
+        toast.error('Failed to send photo.');
+      }
+    }
   };
 
   const handleStartRecording = async () => {
@@ -254,7 +345,7 @@ export const CoreChat: React.FC = () => {
     <div className="max-w-4xl w-full mx-auto flex flex-col glass-panel rounded-xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative h-full md:h-[82vh] min-h-[380px]">
       
       {/* Chat Header */}
-      <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/90 backdrop-blur-md flex-shrink-0">
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/90 backdrop-blur-md flex-shrink-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="relative flex-shrink-0">
             <img
@@ -726,8 +817,34 @@ export const CoreChat: React.FC = () => {
         </div>
       )}
 
-      {/* Bottom Input Area Container */}
-      <div className="relative flex-shrink-0">
+      {/* File input is portaled to document.body — detached from chat DOM tree
+           This is the ONLY reliable way to prevent Android Chrome from routing
+           tap events on nearby form elements through the file input */}
+      {createPortal(
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept="image/*,video/*"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{
+            display: 'none',
+            position: 'fixed',
+            top: '-9999px',
+            left: '-9999px',
+            width: '0px',
+            height: '0px',
+            opacity: 0,
+            pointerEvents: 'none',
+            zIndex: -9999,
+          }}
+        />,
+        document.body
+      )}
+
+      {/* WhatsApp Style Chat Composer Container */}
+      <div className="relative flex-shrink-0 z-20">
         
         {/* Emoji & Sticker Picker Overlay — floats cleanly directly above input bar */}
         {showEmojiPicker && (
@@ -740,70 +857,103 @@ export const CoreChat: React.FC = () => {
           </div>
         )}
 
-        {/* Input Bar Form */}
-        <form onSubmit={handleSend} className="p-2.5 sm:p-4 bg-space-900/90 border-t border-white/10 flex items-center gap-1.5 sm:gap-2">
+        {/* WhatsApp-Style Form Bar */}
+        <form onSubmit={handleSend} className="p-2 sm:p-3 bg-space-900/95 border-t border-white/10 flex items-end gap-1.5 sm:gap-2">
 
+          {/* Left: 😊 Emoji Button */}
           <button
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-amber-300 transition-colors flex-shrink-0"
+            className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-amber-300 hover:bg-white/10 active:scale-95 transition-all flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Emoji & Stickers"
+            aria-label="Toggle emoji picker"
           >
-            <Smile className="w-5 h-5" />
+            <Smile className="w-6 h-6" />
           </button>
 
-          <button
-            type="button"
-            onClick={handleSendLocation}
-            className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-emerald-300 transition-colors hidden sm:block flex-shrink-0"
-            title="Share Location"
-          >
-            <MapPin className="w-5 h-5" />
-          </button>
+          {/* Middle: Rounded Textarea (Auto-resize & Enter to Send) */}
+          <div className="flex-1 min-w-0 relative">
+            <textarea
+              ref={inputRef}
+              value={inputContent}
+              onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(e);
+                } else if (e.key === 'Escape') {
+                  setActiveReactionMsgId(null);
+                }
+              }}
+              placeholder={isSecretMode ? '🔒 Disappearing message...' : `Message ${partnerUser?.petName ?? ''}...`}
+              rows={1}
+              className="w-full px-4 py-2.5 sm:py-3 rounded-2xl glass-input text-xs sm:text-sm resize-none overflow-y-auto max-h-24 leading-relaxed"
+              style={{ touchAction: 'manipulation', WebkitUserSelect: 'text', userSelect: 'text' }}
+              autoComplete="off"
+              autoCorrect="on"
+              spellCheck={true}
+              enterKeyHint="send"
+              aria-label="Type a message"
+            />
+          </div>
 
-          {!isRecording ? (
+          {/* Right Controls: 📎 Attachment + 🎤 Voice / 🚀 Send Toggle */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* 📎 Attachment / Photo / Video Button */}
             <button
               type="button"
-              onClick={handleStartRecording}
-              className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-purple-300 active:scale-95 transition-all flex-shrink-0"
-              title="Record Voice Note"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
+              className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-pink-300 hover:bg-white/10 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+              title="Attach Photo/Video"
+              aria-label="Attach photo or video"
             >
-              <Mic className="w-5 h-5" />
+              <Paperclip className="w-5 h-5" />
             </button>
-          ) : (
+
+            {/* Location Button (Desktop / Tablet) */}
             <button
               type="button"
-              onClick={handleStopRecording}
-              className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-rose-500 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 animate-pulse flex-shrink-0"
-              title="Stop & Send Voice Note"
+              onClick={handleSendLocation}
+              className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-emerald-300 hover:bg-white/10 transition-all hidden md:flex items-center justify-center min-w-[44px] min-h-[44px]"
+              title="Share Location"
+              aria-label="Share live location"
             >
-              <StopCircle className="w-5 h-5" />
-              <span>{recordingTime}s</span>
+              <MapPin className="w-5 h-5" />
             </button>
-          )}
 
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputContent}
-            onChange={handleInputChange}
-            onKeyDown={(e) => e.key === 'Escape' && setActiveReactionMsgId(null)}
-            placeholder={isSecretMode ? '🔒 Disappearing message...' : `Message ${partnerUser?.petName ?? ''}...`}
-            className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl glass-input text-xs sm:text-sm"
-            style={{ touchAction: 'manipulation', WebkitUserSelect: 'text', userSelect: 'text' }}
-            autoComplete="off"
-            autoCorrect="on"
-            spellCheck={true}
-            enterKeyHint="send"
-          />
-
-          <button
-            type="submit"
-            disabled={!inputContent.trim()}
-            className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all flex-shrink-0 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
-          >
-            <Send className="w-5 h-5" />
-          </button>
+            {/* Voice Record Button (when empty) OR Send Button (when text present) */}
+            {inputContent.trim().length > 0 ? (
+              <button
+                type="submit"
+                className="p-3 sm:p-3.5 rounded-full bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all flex items-center justify-center min-w-[44px] min-h-[44px]"
+                title="Send Message"
+                aria-label="Send message"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            ) : !isRecording ? (
+              <button
+                type="button"
+                onClick={handleStartRecording}
+                className="p-2.5 sm:p-3 rounded-full text-slate-300 hover:text-purple-300 hover:bg-white/10 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+                title="Record Voice Note"
+                aria-label="Record voice note"
+              >
+                <Mic className="w-5 h-5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStopRecording}
+                className="px-3 py-2 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 animate-pulse shadow-lg shadow-rose-500/30 min-h-[44px]"
+                title="Stop & Send Voice Note"
+                aria-label="Stop recording and send voice note"
+              >
+                <StopCircle className="w-5 h-5" />
+                <span>{recordingTime}s</span>
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
