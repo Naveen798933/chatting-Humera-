@@ -33,12 +33,12 @@ export const Navigation: React.FC<NavigationProps> = ({
   });
 
   const navItems: { id: TabType; label: string; shortLabel: string; icon: React.ReactNode }[] = [
-    { id: 'home',     label: 'Home',     shortLabel: 'Home',    icon: <Home className="w-5 h-5" /> },
-    { id: 'chat',     label: 'Chat',     shortLabel: 'Chat',    icon: <MessageCircle className="w-5 h-5" /> },
-    { id: 'memories', label: 'Memories', shortLabel: 'Gallery', icon: <Heart className="w-5 h-5" /> },
-    { id: 'vault',    label: 'Vault',    shortLabel: 'Vault',   icon: <Lock className="w-5 h-5" /> },
-    { id: 'together', label: 'Together', shortLabel: 'Together', icon: <Video className="w-5 h-5" /> },
-    { id: 'ai',       label: 'Love AI',  shortLabel: 'AI',      icon: <Sparkles className="w-5 h-5" /> },
+    { id: 'home',     label: 'Home',     shortLabel: 'Home',    icon: <Home className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'chat',     label: 'Chat',     shortLabel: 'Chat',    icon: <MessageCircle className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'memories', label: 'Memories', shortLabel: 'Gallery', icon: <Heart className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'vault',    label: 'Vault',    shortLabel: 'Vault',   icon: <Lock className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'together', label: 'Together', shortLabel: 'Together', icon: <Video className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'ai',       label: 'Love AI',  shortLabel: 'AI',      icon: <Sparkles className="w-6 h-6 sm:w-5 sm:h-5" /> },
   ];
 
   const handleLogout = () => {
@@ -224,7 +224,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           title="Logout"
           className="flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[40px] px-1 py-1 rounded-xl text-rose-400 hover:text-rose-300 active:scale-95 transition-all"
         >
-          <LogOut className="w-5 h-5 text-rose-400" />
+          <LogOut className="w-6 h-6 sm:w-5 sm:h-5 text-rose-400" />
           <span className="text-[9px] font-bold tracking-tight text-rose-400">Exit</span>
         </button>
       </div>

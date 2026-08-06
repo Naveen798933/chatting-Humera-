@@ -327,7 +327,7 @@ export const CoreChat: React.FC = () => {
             title="Start Voice Call"
             className="p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors"
           >
-            <Phone className="w-4 h-4" />
+            <Phone className="w-5 h-5" />
           </button>
 
           {/* Quick Video Call Button */}
@@ -336,7 +336,7 @@ export const CoreChat: React.FC = () => {
             title="Start Video Call"
             className="p-2 rounded-xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-colors"
           >
-            <Video className="w-4 h-4" />
+            <Video className="w-5 h-5" />
           </button>
 
           <button
@@ -347,29 +347,8 @@ export const CoreChat: React.FC = () => {
                 : 'glass-card text-slate-300 hover:text-white'
             }`}
           >
-            <Lock className="w-3.5 h-3.5" />
+            <Lock className="w-4 h-4" />
             <span className="hidden xs:inline">{isSecretMode ? 'Secret' : 'Secret'}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              const exportTxt = messages.map(m => {
-                const author = m.senderId === currentUser?.uid ? currentUser?.petName : partnerUser?.petName;
-                const time = new Date(m.createdAt).toLocaleString();
-                return `[${time}] ${author}: ${m.content}`;
-              }).join('\n\n');
-              const blob = new Blob([`OUR UNIVERSE CHAT TRANSCRIPT — NAVEEN & HUMERA\n\n${exportTxt}`], { type: 'text/plain;charset=utf-8' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.txt`;
-              a.click();
-              toast.love('Chat exported as TXT transcript! 📄');
-            }}
-            title="Export Chat Transcript"
-            className="p-2 rounded-xl glass-card text-purple-300 hover:text-white"
-          >
-            <Forward className="w-4 h-4 rotate-90" />
           </button>
 
           <button
@@ -377,7 +356,7 @@ export const CoreChat: React.FC = () => {
             className="p-2 rounded-xl glass-card text-slate-300 hover:text-white"
             title="Search in chat"
           >
-            <Search className="w-4 h-4" />
+            <Search className="w-5 h-5" />
           </button>
 
           {/* More Options (3 Dots) Menu */}
@@ -387,7 +366,7 @@ export const CoreChat: React.FC = () => {
               className="p-2 rounded-xl glass-card text-slate-300 hover:text-white"
               title="More options"
             >
-              <MoreVertical className="w-4 h-4" />
+              <MoreVertical className="w-5 h-5" />
             </button>
 
             <AnimatePresence>
@@ -806,7 +785,7 @@ export const CoreChat: React.FC = () => {
           className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-pink-300 transition-colors flex-shrink-0"
           title="Attach Image/Video"
         >
-          <Image className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Image className="w-5 h-5" />
         </button>
 
         <button
@@ -815,7 +794,7 @@ export const CoreChat: React.FC = () => {
           className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-amber-300 transition-colors flex-shrink-0"
           title="Emoji & Stickers"
         >
-          <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Smile className="w-5 h-5" />
         </button>
 
         <button
@@ -824,7 +803,7 @@ export const CoreChat: React.FC = () => {
           className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-emerald-300 transition-colors hidden sm:block flex-shrink-0"
           title="Share Location"
         >
-          <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+          <MapPin className="w-5 h-5" />
         </button>
 
         {!isRecording ? (
@@ -834,7 +813,7 @@ export const CoreChat: React.FC = () => {
             className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-purple-300 active:scale-95 transition-all flex-shrink-0"
             title="Record Voice Note"
           >
-            <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Mic className="w-5 h-5" />
           </button>
         ) : (
           <button
@@ -843,7 +822,7 @@ export const CoreChat: React.FC = () => {
             className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-rose-500 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 animate-pulse flex-shrink-0"
             title="Stop & Send Voice Note"
           >
-            <StopCircle className="w-4 h-4" />
+            <StopCircle className="w-5 h-5" />
             <span>{recordingTime}s</span>
           </button>
         )}
@@ -863,7 +842,7 @@ export const CoreChat: React.FC = () => {
           disabled={!inputContent.trim()}
           className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all flex-shrink-0 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-5 h-5" />
         </button>
       </form>
 
