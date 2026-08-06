@@ -48,7 +48,25 @@ self.addEventListener('fetch', (event) => {
           return caches.match(event.request).then((cached) => {
             return cached || caches.match('/index.html');
           });
-        })
+        }
     );
   }
+});
+
+// Push Notifications Listener for Incoming Messages & Calls
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : { title: 'Our Universe ❤️', body: 'New love message received!' };
+  const options = {
+    body: data.body,
+    icon: '/heart.svg',
+    badge: '/heart.svg',
+    vibrate: [200, 100, 200],
+    data: { url: '/' }
+  };
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(clients.openWindow(event.notification.data.url || '/'));
 });

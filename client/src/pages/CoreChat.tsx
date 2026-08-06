@@ -351,6 +351,27 @@ export const CoreChat: React.FC = () => {
           </button>
 
           <button
+            onClick={() => {
+              const exportTxt = messages.map(m => {
+                const author = m.senderId === currentUser?.uid ? currentUser?.petName : partnerUser?.petName;
+                const time = new Date(m.createdAt).toLocaleString();
+                return `[${time}] ${author}: ${m.content}`;
+              }).join('\n\n');
+              const blob = new Blob([`OUR UNIVERSE CHAT TRANSCRIPT — NAVEEN & HUMERA\n\n${exportTxt}`], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.txt`;
+              a.click();
+              toast.love('Chat exported as TXT transcript! 📄');
+            }}
+            title="Export Chat Transcript"
+            className="p-2 rounded-xl glass-card text-purple-300 hover:text-white"
+          >
+            <Forward className="w-4 h-4 rotate-90" />
+          </button>
+
+          <button
             onClick={() => setShowSearch(!showSearch)}
             className="p-2 rounded-xl glass-card text-slate-300 hover:text-white"
           >
