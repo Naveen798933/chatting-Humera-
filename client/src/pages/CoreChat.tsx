@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth, formatLastSeen } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { useScreenSize } from '../hooks/useScreenSize';
@@ -839,16 +840,31 @@ export const CoreChat: React.FC = () => {
         </div>
       )}
 
-      {/* Hidden file input — OUTSIDE form to prevent Android touch hijacking */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileUpload}
-        accept="image/*,video/*"
-        tabIndex={-1}
-        aria-hidden="true"
-        style={{ display: 'none' }}
-      />
+      {/* File input is portaled to document.body — completely detached from chat DOM tree
+           This is the ONLY reliable way to prevent Android Chrome from routing
+           tap events on nearby form elements through the file input */}
+      {createPortal(
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept="image/*,video/*"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{
+            display: 'none',
+            position: 'fixed',
+            top: '-9999px',
+            left: '-9999px',
+            width: '0px',
+            height: '0px',
+            opacity: 0,
+            pointerEvents: 'none',
+            zIndex: -9999,
+          }}
+        />,
+        document.body
+      )}
 
       {/* Input Bar */}
       <form onSubmit={handleSend} className="p-2.5 sm:p-4 bg-space-900/90 border-t border-white/10 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
@@ -909,6 +925,10 @@ export const CoreChat: React.FC = () => {
           onKeyDown={(e) => e.key === 'Escape' && setActiveReactionMsgId(null)}
           placeholder={isSecretMode ? '🔒 Disappearing message...' : `Message ${partnerUser?.petName ?? ''}...`}
           className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl glass-input text-xs sm:text-sm"
+          style={{ touchAction: 'manipulation', WebkitUserSelect: 'text', userSelect: 'text' }}
+          autoComplete="off"
+          autoCorrect="on"
+          spellCheck={true}
         />
 
         <button
