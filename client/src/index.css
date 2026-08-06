@@ -253,3 +253,25 @@ img {
   -webkit-user-drag: none;
   user-select: none;
 }
+
+/* ─── Mobile Viewport (320px-480px) Enhancements ───────────────────────────── */
+@media (max-width: 640px) {
+  /* Prevent iOS WebKit auto-zoom on input focus */
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Safe area inset support for notched phones */
+  .fixed.bottom-0 {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  /* Compact glass card padding on small screens */
+  .glass-panel {
+    border-radius: 1.25rem;
+  }
+}
+
