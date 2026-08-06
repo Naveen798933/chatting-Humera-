@@ -15,7 +15,7 @@ export const LoveVaultCalendar: React.FC = () => {
     vaultNotes, addVaultNote, deleteVaultNote,
     calendarEvents, addCalendarEvent,
     todoItems, addTodoItem, toggleTodoItem, deleteTodoItem,
-    mapPins, addMapPin 
+    mapPins, addMapPin, deleteMapPin
   } = useUniverse();
 
   const [activeSection, setActiveSection] = useState<'calendar' | 'vault' | 'todos' | 'map'>('calendar');
@@ -428,10 +428,19 @@ export const LoveVaultCalendar: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {mapPins.map((pin) => (
-              <div key={pin.id} className="glass-card p-5 rounded-2xl border border-white/10 space-y-2">
-                <div className="flex items-center gap-2 text-pink-300">
-                  <MapPin className="w-4 h-4" />
-                  <h4 className="font-bold text-xs text-white">{pin.title}</h4>
+              <div key={pin.id} className="glass-card p-5 rounded-2xl border border-white/10 space-y-2 relative group">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-pink-300">
+                    <MapPin className="w-4 h-4" />
+                    <h4 className="font-bold text-xs text-white">{pin.title}</h4>
+                  </div>
+                  <button
+                    onClick={() => { deleteMapPin(pin.id); toast.info('Map pin removed'); }}
+                    className="text-slate-400 hover:text-rose-400 p-1 rounded-lg"
+                    title="Delete Map Pin"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 <p className="text-xs text-slate-300">{pin.locationName}</p>
                 {pin.isBucketList && (

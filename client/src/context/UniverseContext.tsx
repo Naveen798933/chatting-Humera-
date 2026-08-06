@@ -135,6 +135,7 @@ interface UniverseContextType {
 
   mapPins: LoveMapPin[];
   addMapPin: (pin: Omit<LoveMapPin, 'id'>) => void;
+  deleteMapPin: (id: string) => void;
 
   recentNotification: QuickActionNotification | null;
   sendQuickAction: (type: QuickActionNotification['type']) => void;
@@ -634,6 +635,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleTodoItem = (id: string) => setTodos(p => p.map(t => t.id === id ? { ...t, completed: !t.completed, completedAt: !t.completed ? new Date().toISOString() : undefined } : t));
   const deleteTodoItem = (id: string) => setTodos(p => p.filter(t => t.id !== id));
   const addMapPin = (pin: Omit<LoveMapPin, 'id'>) => setMapPins(p => [...p, { ...pin, id: `pin_${Date.now()}` }]);
+  const deleteMapPin = (id: string) => setMapPins(p => p.filter(pin => pin.id !== id));
 
   const sendQuickAction = (type: QuickActionNotification['type']) => {
     if (!currentUser) return;
@@ -740,7 +742,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       vaultNotes, addVaultNote, deleteVaultNote,
       calendarEvents, addCalendarEvent,
       todoItems, addTodoItem, toggleTodoItem, deleteTodoItem,
-      mapPins, addMapPin,
+      mapPins, addMapPin, deleteMapPin,
       recentNotification, sendQuickAction,
       isCallActive, callType, callRole, incomingCall, startCall, acceptCall, declineCall, endCall,
       syncedMediaUrl, setSyncedMediaUrl, isPlayingMedia, setIsPlayingMedia,
