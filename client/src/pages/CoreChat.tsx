@@ -104,6 +104,30 @@ export const CoreChat: React.FC = () => {
     markMessagesAsSeen();
   }, [messages.length, isPartnerTyping]);
 
+  // Mobile virtual keyboard scrollIntoView handler
+  const handleInputFocus = () => {
+    setTimeout(() => {
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      scrollToBottom(true);
+    }, 120);
+    setTimeout(() => {
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      scrollToBottom(true);
+    }, 320);
+  };
+
+  // Visual Viewport resize listener for mobile keyboards
+  useEffect(() => {
+    const handleViewportResize = () => {
+      if (document.activeElement === inputRef.current) {
+        inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        scrollToBottom(true);
+      }
+    };
+    window.visualViewport?.addEventListener('resize', handleViewportResize);
+    return () => window.visualViewport?.removeEventListener('resize', handleViewportResize);
+  }, []);
+
   // Panic Hotkey Listener (Alt + L -> Stealth Decoy)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -877,6 +901,7 @@ export const CoreChat: React.FC = () => {
               ref={inputRef}
               value={inputContent}
               onChange={handleInputChange}
+              onFocus={handleInputFocus}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();

@@ -154,7 +154,7 @@ const AppContent: React.FC = () => {
 
       <main className={`flex-1 w-full overflow-x-hidden ${
         activeTab === 'chat'
-          ? 'max-w-7xl mx-auto px-1 sm:px-4 md:px-8 pt-1 sm:pt-4 md:pt-6 pb-[72px] md:pb-6 flex flex-col min-h-0 h-[calc(100dvh-175px)] md:h-auto'
+          ? 'max-w-7xl mx-auto px-1 sm:px-4 md:px-8 pt-1 sm:pt-4 md:pt-6 pb-2 md:pb-6 flex flex-col min-h-0 h-[calc(100dvh-120px)] md:h-auto'
           : 'max-w-7xl mx-auto px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 pb-28 md:pb-10'
       }`}>
         {activeTab === 'home' && <HomeDashboard />}

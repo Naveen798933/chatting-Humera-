@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut, ShieldAlert, Palette, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShakeLock } from '../hooks/useShakeLock';
@@ -25,6 +26,22 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenDailyQuestion
 }) => {
   const { currentUser, logout, toggleDecoyMode } = useAuth();
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  // Auto-hide mobile bottom bar when virtual keyboard opens
+  useEffect(() => {
+    const handleFocusChange = () => {
+      const active = document.activeElement;
+      const isInputFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+      setIsKeyboardOpen(Boolean(isInputFocused));
+    };
+    document.addEventListener('focusin', handleFocusChange);
+    document.addEventListener('focusout', handleFocusChange);
+    return () => {
+      document.removeEventListener('focusin', handleFocusChange);
+      document.removeEventListener('focusout', handleFocusChange);
+    };
+  }, []);
 
   // Mobile Shake-to-Lock: Shaking phone triggers stealth decoy calculator
   useShakeLock(() => {
@@ -244,9 +261,11 @@ export const Navigation: React.FC<NavigationProps> = ({
       </div>
     </header>
 
-    {/* Mobile Bottom Navigation Bar — 100% Positioned to Viewport Bottom */}
+    {/* Mobile Bottom Navigation Bar — Auto hides when virtual keyboard is active */}
     <div
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around shadow-2xl px-1"
+      className={`md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around shadow-2xl px-1 transition-transform duration-300 ${
+        isKeyboardOpen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+      }`}
       style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))', paddingTop: '6px' }}
     >
       {navItems.map((item) => {
