@@ -602,10 +602,11 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!currentUser) return;
     const msg = messages.find(m => m.id === id);
     if (!msg) return;
-    const cur = msg.reactions[emoji] ?? [];
+    const reactions = msg.reactions || {};
+    const cur = reactions[emoji] ?? [];
     const has = cur.includes(currentUser.uid);
     const uids = has ? cur.filter(u => u !== currentUser.uid) : [...cur, currentUser.uid];
-    const next = { ...msg.reactions };
+    const next = { ...reactions };
     if (uids.length) next[emoji] = uids; else delete next[emoji];
     if (isSupabaseConfigured()) {
       try {

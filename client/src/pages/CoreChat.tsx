@@ -728,9 +728,9 @@ export const CoreChat: React.FC = () => {
                       </div>
 
                       {/* Reactions */}
-                      {Object.keys(msg.reactions).length > 0 && (
+                      {Object.keys(msg.reactions || {}).length > 0 && (
                         <div className="absolute -bottom-3 right-2 flex items-center gap-0.5 bg-space-950 border border-white/10 px-1.5 py-0.5 rounded-full shadow-md text-xs">
-                          {Object.entries(msg.reactions).map(([emoji, uids]) => (
+                          {Object.entries(msg.reactions || {}).map(([emoji, uids]) => (
                             <span key={emoji}>{emoji}{uids.length > 1 ? <sup className="text-[8px]">{uids.length}</sup> : ''}</span>
                           ))}
                         </div>
