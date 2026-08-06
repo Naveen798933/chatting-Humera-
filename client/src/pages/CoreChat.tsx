@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuth, formatLastSeen } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { useScreenSize } from '../hooks/useScreenSize';
@@ -9,7 +8,7 @@ import { Message } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
 import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import {
-  Send, Image, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video,
+  Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video,
   Trash2, Star, Search, CornerUpLeft, Clock,
   CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical
 } from 'lucide-react';
@@ -45,7 +44,6 @@ export const CoreChat: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -185,94 +183,7 @@ export const CoreChat: React.FC = () => {
     sendMessage(`👤 Shared Contact: ${currentUser?.realName} (${currentUser?.petName})`, 'contact', undefined, replyingTo?.id, isSecretMode, secretTimeout);
   };
 
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      if (!file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(file);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new window.Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const maxDim = 1200;
 
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.75));
-          } else {
-            resolve(e.target?.result as string);
-          }
-        };
-        img.onerror = () => resolve(e.target?.result as string);
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = () => resolve('');
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error('File too large! Max 15MB');
-      return;
-    }
-
-    const isVideo = file.type.startsWith('video');
-
-    if (isVideo) {
-      if (file.size > 8 * 1024 * 1024) {
-        toast.error('Video too large! Max 8MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const mediaUrl = reader.result as string;
-        sendMessage('Shared a video', 'video', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
-        setReplyingTo(null);
-        toast.love('Video sent! 📹');
-      };
-      reader.readAsDataURL(file);
-    } else {
-      toast.info('Sending photo... 📸');
-      try {
-        const mediaUrl = await compressImage(file);
-        if (!mediaUrl) {
-          toast.error('Could not process image.');
-          return;
-        }
-        sendMessage('Shared an image', 'image', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
-        setReplyingTo(null);
-        toast.love('Photo sent! 💕');
-      } catch (err) {
-        console.error('Image compression error:', err);
-        toast.error('Failed to send photo.');
-      }
-    }
-  };
 
   const handleStartRecording = async () => {
     try {
@@ -840,43 +751,8 @@ export const CoreChat: React.FC = () => {
         </div>
       )}
 
-      {/* File input is portaled to document.body — completely detached from chat DOM tree
-           This is the ONLY reliable way to prevent Android Chrome from routing
-           tap events on nearby form elements through the file input */}
-      {createPortal(
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          accept="image/*,video/*"
-          tabIndex={-1}
-          aria-hidden="true"
-          style={{
-            display: 'none',
-            position: 'fixed',
-            top: '-9999px',
-            left: '-9999px',
-            width: '0px',
-            height: '0px',
-            opacity: 0,
-            pointerEvents: 'none',
-            zIndex: -9999,
-          }}
-        />,
-        document.body
-      )}
-
       {/* Input Bar */}
       <form onSubmit={handleSend} className="p-2.5 sm:p-4 bg-space-900/90 border-t border-white/10 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-
-        <button
-          type="button"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
-          className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-pink-300 transition-colors flex-shrink-0"
-          title="Attach Image/Video"
-        >
-          <Image className="w-5 h-5" />
-        </button>
 
         <button
           type="button"

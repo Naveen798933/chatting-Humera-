@@ -37,7 +37,6 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
   const [storyText, setStoryText] = useState('');
   const [storyImage, setStoryImage] = useState('');
   const [selectedGradient, setSelectedGradient] = useState('from-pink-600 to-purple-800');
-  const statusFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const gradients = [
     'from-pink-600 to-purple-800',
@@ -72,50 +71,7 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
     setShowCreateModal(false);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        const maxDim = 1200;
-
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          setStoryImage(canvas.toDataURL('image/jpeg', 0.75));
-        } else {
-          setStoryImage(event.target?.result as string);
-        }
-      };
-      img.onerror = () => setStoryImage(event.target?.result as string);
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
 
   return (
     <AnimatePresence>
@@ -285,21 +241,6 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3 pt-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}>
-                  <button
-                    type="button"
-                    onClick={() => statusFileInputRef.current?.click()}
-                    className="p-3.5 rounded-2xl glass-card text-white hover:border-pink-400 shrink-0"
-                    title="Upload Photo for Status"
-                  >
-                    <Image className="w-5 h-5" />
-                  </button>
-                  <input
-                    type="file"
-                    ref={statusFileInputRef}
-                    onChange={handleFileSelect}
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                  />
                   <button
                     type="submit"
                     className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-accent-pink via-accent-purple to-indigo-600 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"

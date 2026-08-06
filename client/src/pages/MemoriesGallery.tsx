@@ -24,8 +24,6 @@ export const MemoriesGallery: React.FC = () => {
   const [description, setDescription] = useState('');
   const [album, setAlbum] = useState<Memory['album']>('Random');
   const [mediaUrl, setMediaUrl] = useState('');
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
-  const filePickerRef = useRef<HTMLInputElement | null>(null);
 
   const albumsList: (Memory['album'] | 'All')[] = [
     'All', 'Favorites', 'Vacations', 'Birthdays', 'Random', 'Hidden'
@@ -51,62 +49,11 @@ export const MemoriesGallery: React.FC = () => {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error('Image too large! Max 15MB');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        const maxDim = 1200;
-
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL('image/jpeg', 0.75);
-          setUploadPreview(compressed);
-          setMediaUrl(compressed);
-        } else {
-          const raw = event.target?.result as string;
-          setUploadPreview(raw);
-          setMediaUrl(raw);
-        }
-      };
-      img.onerror = () => {
-        const raw = event.target?.result as string;
-        setUploadPreview(raw);
-        setMediaUrl(raw);
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleCreateMemory = (e: React.FormEvent) => {
     e.preventDefault();
-    const url = uploadPreview || mediaUrl.trim();
+    const url = mediaUrl.trim();
     if (!title.trim() || !url) {
       toast.error('Title and image are required');
       return;
@@ -127,7 +74,6 @@ export const MemoriesGallery: React.FC = () => {
     setTitle('');
     setDescription('');
     setMediaUrl('');
-    setUploadPreview(null);
     setShowAddModal(false);
   };
 
@@ -249,7 +195,7 @@ export const MemoriesGallery: React.FC = () => {
                   <Sparkles className="w-5 h-5 text-accent-pink" />
                   <span>Add New Memory</span>
                 </h3>
-                <button onClick={() => { setShowAddModal(false); setUploadPreview(null); }} className="text-slate-400 hover:text-white">
+                <button onClick={() => { setShowAddModal(false); }} className="text-slate-400 hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -267,40 +213,16 @@ export const MemoriesGallery: React.FC = () => {
                   />
                 </div>
 
-                {/* File Upload Section */}
+                {/* Photo URL Section */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-2">Photo / Image:</label>
-                  <input ref={filePickerRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelect} />
-                  {uploadPreview ? (
-                    <div className="relative rounded-xl overflow-hidden border border-pink-400/30">
-                      <img src={uploadPreview} alt="Preview" className="w-full h-40 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => { setUploadPreview(null); setMediaUrl(''); }}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-rose-500/80"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => filePickerRef.current?.click()}
-                      className="w-full py-6 rounded-xl border-2 border-dashed border-pink-500/30 hover:border-pink-500/60 transition-colors flex flex-col items-center gap-2 text-slate-400 hover:text-pink-300"
-                    >
-                      <Upload className="w-6 h-6" />
-                      <span className="text-xs font-semibold">Upload from device</span>
-                      <span className="text-[10px]">JPG, PNG, WEBP — max 8MB</span>
-                    </button>
-                  )}
-                  <p className="text-[10px] text-slate-500 mt-1.5 text-center">— or paste a URL —</p>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Photo / Image URL:</label>
                   <input
                     type="url"
-                    value={uploadPreview ? '' : mediaUrl}
-                    onChange={(e) => { setMediaUrl(e.target.value); setUploadPreview(null); }}
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
                     placeholder="https://images.unsplash.com/..."
-                    className="w-full px-4 py-2 rounded-xl glass-input text-xs mt-1"
-                    disabled={Boolean(uploadPreview)}
+                    className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
+                    required
                   />
                 </div>
 
