@@ -37,6 +37,7 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
   const [storyText, setStoryText] = useState('');
   const [storyImage, setStoryImage] = useState('');
   const [selectedGradient, setSelectedGradient] = useState('from-pink-600 to-purple-800');
+  const statusFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const gradients = [
     'from-pink-600 to-purple-800',
@@ -249,10 +250,21 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3 pt-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}>
-                  <label className="p-3.5 rounded-2xl glass-card text-white cursor-pointer hover:border-pink-400 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => statusFileInputRef.current?.click()}
+                    className="p-3.5 rounded-2xl glass-card text-white hover:border-pink-400 shrink-0"
+                    title="Upload Photo for Status"
+                  >
                     <Image className="w-5 h-5" />
-                    <input type="file" onChange={handleFileSelect} accept="image/*" className="hidden" />
-                  </label>
+                  </button>
+                  <input
+                    type="file"
+                    ref={statusFileInputRef}
+                    onChange={handleFileSelect}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
                   <button
                     type="submit"
                     className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-accent-pink via-accent-purple to-indigo-600 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"

@@ -197,7 +197,7 @@ export const AdminBackupModal: React.FC<AdminBackupModalProps> = ({ isOpen, onCl
               ref={fileInputRef}
               onChange={handleRestoreFile}
               accept=".json"
-              className="hidden"
+              style={{ display: 'none' }}
             />
 
             <button

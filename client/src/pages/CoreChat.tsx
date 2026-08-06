@@ -438,7 +438,7 @@ export const CoreChat: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
-                <label className="text-[10px] uppercase font-bold text-rose-300 hidden sm:inline">Burn Timer:</label>
+                <span className="text-[10px] uppercase font-bold text-rose-300 hidden sm:inline">Burn Timer:</span>
                 <select
                   value={secretTimeout}
                   onChange={(e) => setSecretTimeout(Number(e.target.value))}
@@ -778,7 +778,7 @@ export const CoreChat: React.FC = () => {
         accept="image/*,video/*"
         tabIndex={-1}
         aria-hidden="true"
-        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}
+        style={{ display: 'none' }}
       />
 
       {/* Input Bar */}

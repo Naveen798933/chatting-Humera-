@@ -234,7 +234,7 @@ export const MemoriesGallery: React.FC = () => {
                 {/* File Upload Section */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-2">Photo / Image:</label>
-                  <input ref={filePickerRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                  <input ref={filePickerRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelect} />
                   {uploadPreview ? (
                     <div className="relative rounded-xl overflow-hidden border border-pink-400/30">
                       <img src={uploadPreview} alt="Preview" className="w-full h-40 object-cover" />
