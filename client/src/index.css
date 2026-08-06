@@ -17,7 +17,7 @@ body {
   background-attachment: fixed;
 }
 
-/* ─── Glassmorphism Panels ───────────────────────────────────────────────── */
+/* ─── Glassmorphism Panels & Cards ───────────────────────────────────────── */
 .glass-panel {
   background: rgba(22, 12, 46, 0.65);
   backdrop-filter: blur(16px);
@@ -27,14 +27,14 @@ body {
 }
 
 .glass-panel-glow {
-  background: rgba(31, 18, 61, 0.72);
+  background: rgba(31, 18, 61, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 112, 166, 0.25);
+  border: 1px solid rgba(255, 112, 166, 0.3);
   box-shadow:
-    0 0 25px rgba(255, 112, 166, 0.15),
-    inset 0 0 15px rgba(168, 85, 247, 0.1),
-    0 8px 32px rgba(0,0,0,0.4);
+    0 0 30px rgba(255, 112, 166, 0.18),
+    inset 0 0 15px rgba(168, 85, 247, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 .glass-card {
@@ -47,14 +47,34 @@ body {
 
 .glass-card:hover {
   background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 112, 166, 0.3);
+  border-color: rgba(255, 112, 166, 0.35);
   transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(255, 112, 166, 0.15);
+}
+
+/* ─── Chat Message Bubbles ────────────────────────────────────────────────── */
+.chat-bubble-sender {
+  background: linear-gradient(135deg, rgba(255, 112, 166, 0.85) 0%, rgba(168, 85, 247, 0.85) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 15px rgba(255, 112, 166, 0.25);
+  color: #ffffff;
+}
+
+.chat-bubble-receiver {
+  background: rgba(26, 17, 54, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  color: #f1f5f9;
 }
 
 /* ─── Inputs ─────────────────────────────────────────────────────────────── */
 .glass-input {
-  background: rgba(11, 7, 26, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(11, 7, 26, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   backdrop-filter: blur(10px);
   color: white;
   transition: all 0.2s ease;
@@ -63,11 +83,11 @@ body {
 .glass-input:focus {
   outline: none;
   border-color: #ff70a6;
-  box-shadow: 0 0 0 3px rgba(255, 112, 166, 0.15), 0 0 15px rgba(255, 112, 166, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 112, 166, 0.2), 0 0 20px rgba(255, 112, 166, 0.25);
 }
 
 .glass-input::placeholder {
-  color: rgba(148, 163, 184, 0.5);
+  color: rgba(148, 163, 184, 0.55);
 }
 
 .glass-input:disabled {
@@ -85,11 +105,11 @@ body {
 }
 
 .text-glow-pink {
-  filter: drop-shadow(0 0 8px rgba(255, 112, 166, 0.7));
+  filter: drop-shadow(0 0 8px rgba(255, 112, 166, 0.75));
 }
 
 .text-glow-purple {
-  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.7));
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.75));
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
@@ -103,12 +123,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.4);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 112, 166, 0.5);
+  background: rgba(255, 112, 166, 0.6);
 }
 
 .scrollbar-none::-webkit-scrollbar { display: none; }
@@ -178,6 +198,16 @@ body {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
+@keyframes ringPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 112, 166, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 112, 166, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 112, 166, 0); }
+}
+
+.animate-ring-pulse {
+  animation: ringPulse 2s infinite;
+}
+
 /* ─── Ambient canvas ─────────────────────────────────────────────────────── */
 #ambient-canvas {
   position: fixed;
@@ -205,3 +235,4 @@ img {
   -webkit-user-drag: none;
   user-select: none;
 }
+

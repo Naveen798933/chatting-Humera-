@@ -10,9 +10,17 @@ interface NavigationProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   onOpenAdmin: () => void;
+  onOpenStatus?: () => void;
+  onOpenCallHistory?: () => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, onOpenAdmin }) => {
+export const Navigation: React.FC<NavigationProps> = ({
+  activeTab,
+  setActiveTab,
+  onOpenAdmin,
+  onOpenStatus,
+  onOpenCallHistory
+}) => {
   const { currentUser, logout, toggleDecoyMode } = useAuth();
 
   // Mobile Shake-to-Lock: Shaking phone triggers stealth decoy calculator
@@ -99,6 +107,29 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                 {currentUser.petName}
               </span>
             </div>
+          )}
+
+          {/* WhatsApp Status Button */}
+          {onOpenStatus && (
+            <button
+              onClick={onOpenStatus}
+              title="WhatsApp Status Stories"
+              className="p-1.5 sm:p-2 rounded-xl glass-card border border-pink-500/30 text-pink-300 hover:text-white transition-all flex-shrink-0 relative"
+            >
+              <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping absolute top-1 right-1" />
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          )}
+
+          {/* Call History Button */}
+          {onOpenCallHistory && (
+            <button
+              onClick={onOpenCallHistory}
+              title="Call History Logs"
+              className="p-1.5 sm:p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 transition-colors flex-shrink-0"
+            >
+              <Video className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
           )}
 
           {/* Stealth / Panic Calculator Lock Button */}

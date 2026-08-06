@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, RefreshCw, Maximize2, Minimize2, MonitorUp, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from './motion';
 import { UserProfile } from '../types';
 
@@ -12,9 +12,11 @@ interface ActiveCallOverlayProps {
   remoteStream: MediaStream | null;
   isMicMuted: boolean;
   isCameraOff: boolean;
+  isScreenSharing?: boolean;
   onToggleMic: () => void;
   onToggleCamera: () => void;
   onSwitchCamera?: () => void;
+  onToggleScreenShare?: () => void;
   onEndCall: () => void;
 }
 
@@ -27,9 +29,11 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
   remoteStream,
   isMicMuted,
   isCameraOff,
+  isScreenSharing,
   onToggleMic,
   onToggleCamera,
   onSwitchCamera,
+  onToggleScreenShare,
   onEndCall
 }) => {
   const localMainVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -55,16 +59,28 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
   // Bind local stream to both main and PiP refs
   useEffect(() => {
     if (localStream) {
-      if (localMainVideoRef.current) localMainVideoRef.current.srcObject = localStream;
-      if (localPipVideoRef.current)  localPipVideoRef.current.srcObject  = localStream;
+      if (localMainVideoRef.current) {
+        localMainVideoRef.current.srcObject = localStream;
+        localMainVideoRef.current.play().catch(() => {});
+      }
+      if (localPipVideoRef.current) {
+        localPipVideoRef.current.srcObject = localStream;
+        localPipVideoRef.current.play().catch(() => {});
+      }
     }
   }, [localStream, isOpen, isCameraOff, remoteStream]);
 
   // Bind remote stream to video and audio elements
   useEffect(() => {
     if (remoteStream) {
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.play().catch(() => {});
+      }
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = remoteStream;
+        remoteAudioRef.current.play().catch(() => {});
+      }
     }
   }, [remoteStream, isOpen]);
 
@@ -241,6 +257,19 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                 title="Switch Camera"
               >
                 <RefreshCw className="w-6 h-6" />
+              </button>
+            )}
+
+            {/* Screen Share Toggle */}
+            {callType === 'video' && onToggleScreenShare && (
+              <button
+                onClick={onToggleScreenShare}
+                className={`p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
+                  isScreenSharing ? 'bg-sky-500/40 text-sky-200 border border-sky-400/50 animate-pulse' : 'glass-panel text-slate-200 hover:text-white'
+                }`}
+                title={isScreenSharing ? 'Stop Screen Share' : 'Share Screen'}
+              >
+                <MonitorUp className="w-6 h-6" />
               </button>
             )}
 

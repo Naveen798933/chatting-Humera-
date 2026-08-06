@@ -184,6 +184,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [incomingCall, setIncomingCall] = useState<{ callerId: string; callerName: string; callerPhoto: string; callType: 'voice' | 'video' } | null>(null);
   const [syncedMediaUrl, setSyncedMediaUrl] = useState('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   const [isPlayingMedia, setIsPlayingMedia] = useState(false);
+  const callRingtoneTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Supabase Realtime Listener ─────────────────────────────────────────────
   useEffect(() => {
@@ -334,11 +335,15 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const { callerId, callerName, callerPhoto, callType: cType } = payload.payload || {};
           if (callerId && callerId !== currentUser.uid) {
             setIncomingCall({ callerId, callerName, callerPhoto, callType: cType || 'voice' });
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              try { navigator.vibrate([300, 150, 300, 150, 300]); } catch (_) {}
+            }
           }
         })
         .on('broadcast', { event: 'ACCEPT_CALL' }, (payload) => {
           const { responderId } = payload.payload || {};
           if (responderId && responderId !== currentUser.uid) {
+            if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
             setIncomingCall(null);
             setCallActive(true);
             toast.love('Call Connected! 📞');
@@ -347,6 +352,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .on('broadcast', { event: 'DECLINE_CALL' }, (payload) => {
           const { responderId } = payload.payload || {};
           if (responderId && responderId !== currentUser.uid) {
+            if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
             setIncomingCall(null);
             setCallActive(false);
             setCallType(null);
@@ -355,6 +361,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           }
         })
         .on('broadcast', { event: 'END_CALL' }, () => {
+          if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
           setIncomingCall(null);
           setCallActive(false);
           setCallType(null);
@@ -638,6 +645,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const startCall = (type: 'voice' | 'video') => {
     if (!currentUser) return;
+    if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
     setCallActive(true);
     setCallType(type);
     setCallRole('caller');
@@ -654,6 +662,13 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       });
     } catch {}
+
+    // Auto-cancel after 30 seconds if unanswered
+    callRingtoneTimeoutRef.current = setTimeout(() => {
+      endCall();
+      toast.info('No answer from partner');
+      sendMessage(`📞 Missed ${type === 'video' ? 'Video' : 'Voice'} Call`, 'text');
+    }, 30000);
   };
 
   const acceptCall = () => {

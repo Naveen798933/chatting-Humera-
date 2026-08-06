@@ -20,20 +20,42 @@ import { AdminBackupModal } from './components/AdminBackupModal';
 import { DecoyCalculator } from './components/DecoyCalculator';
 import { ToastContainer } from './components/Toast';
 
+import { WhatsAppStatusModal, StoryItem } from './components/WhatsAppStatusModal';
+import { PartnerProfileDrawer } from './components/PartnerProfileDrawer';
+import { CallHistoryModal } from './components/CallHistoryModal';
+
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
-  const { isCallActive, callType, callRole, incomingCall, acceptCall, declineCall, endCall } = useUniverse();
+  const { isCallActive, callType, callRole, incomingCall, acceptCall, declineCall, endCall, startCall, messages, memories } = useUniverse();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
+  const [isCallHistoryOpen, setIsCallHistoryOpen] = useState(false);
+
+  const [stories, setStories] = useState<StoryItem[]>([
+    {
+      id: 'story_seed_1',
+      authorId: partnerUser?.uid || 'humera_uid_140299',
+      authorName: partnerUser?.petName || 'Humera',
+      authorPhoto: partnerUser?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+      text: 'Stargazing tonight thinking of you Bangaram! 💕',
+      bgGradient: 'from-pink-600 to-purple-800',
+      createdAt: new Date().toISOString()
+    }
+  ]);
 
   const {
     localStream,
     remoteStream,
     isMicMuted,
     isCameraOff,
+    isScreenSharing,
     initializeCall,
     toggleMic,
     toggleCamera,
+    switchCamera,
+    toggleScreenShare,
     endCall: webrtcEndCall
   } = useWebRTC();
 
@@ -53,6 +75,8 @@ const AppContent: React.FC = () => {
     return <AuthPage />;
   }
 
+  const starredCount = messages.filter(m => m.isStarred).length;
+
   return (
     <div className="min-h-screen flex flex-col relative z-10">
       <ScreenshotBanner />
@@ -62,6 +86,8 @@ const AppContent: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenStatus={() => setIsStatusOpen(true)}
+        onOpenCallHistory={() => setIsCallHistoryOpen(true)}
       />
 
       <main className={`flex-1 px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 max-w-7xl mx-auto w-full overflow-x-hidden ${activeTab === 'chat' ? 'pb-20 md:pb-6' : 'pb-28 md:pb-10'}`}>
@@ -77,6 +103,30 @@ const AppContent: React.FC = () => {
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
       />
+      <WhatsAppStatusModal
+        isOpen={isStatusOpen}
+        onClose={() => setIsStatusOpen(false)}
+        currentUser={currentUser}
+        partnerUser={partnerUser}
+        stories={stories}
+        onAddStory={(st) => setStories(p => [ { ...st, id: `story_${Date.now()}`, createdAt: new Date().toISOString() }, ...p ])}
+      />
+      <PartnerProfileDrawer
+        isOpen={isProfileDrawerOpen}
+        onClose={() => setIsProfileDrawerOpen(false)}
+        partnerUser={partnerUser}
+        memories={memories}
+        starredCount={starredCount}
+        onStartVoiceCall={() => { setIsProfileDrawerOpen(false); startCall('voice'); }}
+        onStartVideoCall={() => { setIsProfileDrawerOpen(false); startCall('video'); }}
+      />
+      <CallHistoryModal
+        isOpen={isCallHistoryOpen}
+        onClose={() => setIsCallHistoryOpen(false)}
+        messages={messages}
+        partnerUser={partnerUser}
+        onStartCall={(type) => { setIsCallHistoryOpen(false); startCall(type); }}
+      />
       <IncomingCallModal
         incomingCall={incomingCall}
         onAccept={acceptCall}
@@ -91,8 +141,11 @@ const AppContent: React.FC = () => {
         remoteStream={remoteStream}
         isMicMuted={isMicMuted}
         isCameraOff={isCameraOff}
+        isScreenSharing={isScreenSharing}
         onToggleMic={toggleMic}
         onToggleCamera={toggleCamera}
+        onSwitchCamera={switchCamera}
+        onToggleScreenShare={toggleScreenShare}
         onEndCall={() => {
           endCall();
           webrtcEndCall();

@@ -491,11 +491,11 @@ export const CoreChat: React.FC = () => {
                   <div className="flex flex-col gap-1">
                     {/* Message bubble — tap for actions, double-tap for ❤️ */}
                     <div
-                      className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer transition-transform active:scale-[0.98] ${
+                      className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer transition-all active:scale-[0.98] ${
                         isMe
-                          ? 'bg-gradient-to-r from-accent-purple to-accent-pink text-white rounded-br-sm'
-                          : 'glass-panel text-slate-100 rounded-bl-sm border border-white/10'
-                      } ${msg.isSecret ? 'border-2 border-dashed border-rose-400/60' : ''}`}
+                          ? 'chat-bubble-sender rounded-tr-sm'
+                          : 'chat-bubble-receiver rounded-tl-sm'
+                      } ${msg.isSecret ? 'border-2 border-dashed border-rose-400/80 shadow-rose-500/20' : ''}`}
                       onClick={() => handleBubbleClick(msg)}
                     >
                       {msg.isSecret && (
@@ -526,7 +526,25 @@ export const CoreChat: React.FC = () => {
                         </div>
                       )}
 
-                      <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                      {msg.content.includes('Missed') && msg.content.includes('Call') ? (
+                        <div className="flex items-center justify-between gap-3 p-1 text-rose-200">
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-rose-400 animate-bounce" />
+                            <span className="font-bold text-xs">{msg.content}</span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startCall(msg.content.includes('Video') ? 'video' : 'voice');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-rose-500/30 hover:bg-rose-500/50 text-[10px] font-extrabold text-white border border-rose-400/40 transition-colors"
+                          >
+                            Call Back
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                      )}
 
                       {/* Timestamp & Read Receipts */}
                       <div className={`flex items-center gap-1.5 mt-1.5 text-[9px] opacity-70 ${isMe ? 'justify-end' : 'justify-start'}`}>
