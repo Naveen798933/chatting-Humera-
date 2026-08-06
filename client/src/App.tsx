@@ -23,6 +23,8 @@ import { ToastContainer } from './components/Toast';
 import { WhatsAppStatusModal, StoryItem } from './components/WhatsAppStatusModal';
 import { PartnerProfileDrawer } from './components/PartnerProfileDrawer';
 import { CallHistoryModal } from './components/CallHistoryModal';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { toast } from './lib/toast';
 import { ThemeSelectorModal, AppTheme } from './components/ThemeSelectorModal';
 import { DailyQuestionModal } from './components/DailyQuestionModal';
 
@@ -38,17 +40,70 @@ const AppContent: React.FC = () => {
   const [isDailyQuestionOpen, setIsDailyQuestionOpen] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<AppTheme>('cosmic');
 
-  const [stories, setStories] = useState<StoryItem[]>([
-    {
-      id: 'story_seed_1',
-      authorId: partnerUser?.uid || 'humera_uid_140299',
-      authorName: partnerUser?.petName || 'Humera',
-      authorPhoto: partnerUser?.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-      text: 'Stargazing tonight thinking of you Bangaram! 💕',
-      bgGradient: 'from-pink-600 to-purple-800',
+  const [stories, setStories] = useState<StoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('ou_shared_stories');
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return [
+      {
+        id: 'story_seed_1',
+        authorId: partnerUser?.uid || 'humera_uid_140299',
+        authorName: partnerUser?.petName || 'Humera (Jaanu ❤️)',
+        authorPhoto: partnerUser?.photoURL || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
+        text: 'Stargazing tonight thinking of you Bangaram! 💕',
+        bgGradient: 'from-pink-600 to-purple-800',
+        createdAt: new Date().toISOString()
+      }
+    ];
+  });
+
+  const handleAddStory = (st: Omit<StoryItem, 'id' | 'createdAt'>) => {
+    const newStory: StoryItem = {
+      ...st,
+      id: `story_${Date.now()}`,
       createdAt: new Date().toISOString()
+    };
+    setStories(prev => {
+      const updated = [newStory, ...prev];
+      try { localStorage.setItem('ou_shared_stories', JSON.stringify(updated)); } catch (_) {}
+      return updated;
+    });
+
+    // Supabase Realtime broadcast for live partner story sync
+    if (isSupabaseConfigured()) {
+      try {
+        const channel = supabase.channel('ou_chat_broadcast');
+        channel.send({
+          type: 'broadcast',
+          event: 'NEW_STORY',
+          payload: { story: newStory }
+        }).catch(() => {});
+      } catch (_) {}
     }
-  ]);
+  };
+
+  // Subscribe to real-time partner stories broadcast
+  React.useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const channel = supabase.channel('ou_chat_broadcast');
+    channel.on('broadcast', { event: 'NEW_STORY' }, (payload: any) => {
+      const { story } = payload.payload || {};
+      if (story && story.authorId !== currentUser?.uid) {
+        setStories(prev => {
+          if (prev.some(s => s.id === story.id)) return prev;
+          const updated = [story, ...prev];
+          try { localStorage.setItem('ou_shared_stories', JSON.stringify(updated)); } catch (_) {}
+          return updated;
+        });
+        toast.love(`New status update from ${story.authorName}! 🌸`);
+      }
+    }).subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
 
   const {
     localStream,
@@ -130,7 +185,7 @@ const AppContent: React.FC = () => {
         currentUser={currentUser}
         partnerUser={partnerUser}
         stories={stories}
-        onAddStory={(st) => setStories(p => [ { ...st, id: `story_${Date.now()}`, createdAt: new Date().toISOString() }, ...p ])}
+        onAddStory={handleAddStory}
       />
       <PartnerProfileDrawer
         isOpen={isProfileDrawerOpen}

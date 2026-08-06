@@ -19,6 +19,17 @@ export interface UserProfile {
   lastSeen: string;
 }
 
+export interface StoryItem {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorPhoto: string;
+  mediaUrl?: string;
+  text?: string;
+  bgGradient?: string;
+  createdAt: string;
+}
+
 export type AmbientEffect = 'hearts' | 'stars' | 'galaxy' | 'rain' | 'snow' | 'none';
 
 export interface RelationshipConfig {

@@ -83,16 +83,16 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-6 relative overflow-hidden flex flex-col max-h-[85vh]"
+          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-4 sm:p-6 relative overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh]"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
-            <h3 className="font-extrabold text-white text-lg flex items-center gap-2">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3 shrink-0">
+            <h3 className="font-extrabold text-white text-base sm:text-lg flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-accent-pink" />
               <span>WhatsApp Status</span>
             </h3>
@@ -102,11 +102,11 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
           </div>
 
           {/* Stories List */}
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-3.5 pr-1 pb-2">
             {/* My Status Card */}
             <div className="flex items-center justify-between p-3 rounded-2xl glass-card border border-pink-500/20">
               <div className="flex items-center gap-3">
-                <div className="relative w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-accent-pink to-accent-purple">
+                <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full p-0.5 bg-gradient-to-tr from-accent-pink to-accent-purple shrink-0">
                   <img src={currentUser?.photoURL} alt="Me" className="w-full h-full rounded-full object-cover border border-space-950" />
                   <button
                     onClick={() => setShowCreateModal(true)}
@@ -115,25 +115,25 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
                     +
                   </button>
                 </div>
-                <div>
-                  <p className="font-bold text-sm text-white">My Status</p>
-                  <p className="text-[10px] text-pink-300">Tap + to add status update</p>
+                <div className="min-w-0">
+                  <p className="font-bold text-xs sm:text-sm text-white truncate">My Status</p>
+                  <p className="text-[10px] text-pink-300 truncate">Tap + to add status update</p>
                 </div>
               </div>
 
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-md"
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-md shrink-0 active:scale-95 transition-all"
               >
-                Add Status
+                + Add
               </button>
             </div>
 
             {/* Recent Updates Title */}
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider pt-2">Recent Updates</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pt-1">Recent Updates</p>
 
             {stories.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-xs italic">
+              <div className="text-center py-6 text-slate-400 text-xs italic glass-card rounded-2xl p-4">
                 No recent status updates from {partnerUser?.petName || 'partner'} yet 💕
               </div>
             ) : (
@@ -141,28 +141,28 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
                 <div
                   key={story.id}
                   onClick={() => setActiveStoryIdx(idx)}
-                  className="flex items-center gap-3 p-3 rounded-2xl glass-card hover:border-pink-500/40 cursor-pointer transition-all"
+                  className="flex items-center gap-3 p-3 rounded-2xl glass-card hover:border-pink-500/40 cursor-pointer transition-all active:scale-[0.98]"
                 >
-                  <div className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-emerald-400 via-pink-500 to-purple-500 animate-pulse">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full p-0.5 bg-gradient-to-tr from-emerald-400 via-pink-500 to-purple-500 animate-pulse shrink-0">
                     <img src={story.authorPhoto} alt={story.authorName} className="w-full h-full rounded-full object-cover border border-space-950" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm text-white truncate">{story.authorName}</p>
+                    <p className="font-bold text-xs sm:text-sm text-white truncate">{story.authorName}</p>
                     <p className="text-[10px] text-slate-400">
                       {new Date(story.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <Eye className="w-4 h-4 text-pink-300" />
+                  <Eye className="w-4 h-4 text-pink-300 shrink-0" />
                 </div>
               ))
             )}
           </div>
 
-          {/* Floating Action Button: Post Status */}
-          <div className="pt-3 border-t border-white/10">
+          {/* Post Status Action Button — 100% Visible & Tap-Friendly on Mobile */}
+          <div className="pt-3 border-t border-white/10 shrink-0" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-xl shadow-pink-500/25 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform"
+              className="w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-accent-pink via-accent-purple to-indigo-600 text-white font-bold text-xs shadow-xl shadow-pink-500/25 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-95 transition-all"
             >
               <Plus className="w-5 h-5" />
               <span>Post New Status Story</span>
@@ -171,16 +171,16 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
 
           {/* Fullscreen Story Viewer Modal */}
           {activeStoryIdx !== null && stories[activeStoryIdx] && (
-            <div className="fixed inset-0 z-50 bg-black flex flex-col justify-between p-6">
+            <div className="fixed inset-0 z-50 bg-black flex flex-col justify-between p-4 sm:p-6 overflow-y-auto">
               {/* Progress bar line */}
-              <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden mb-4">
+              <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden mb-4 shrink-0">
                 <div className="h-full bg-pink-500 animate-pulse w-full" />
               </div>
 
               {/* Story Header */}
-              <div className="flex items-center justify-between z-10">
+              <div className="flex items-center justify-between z-10 shrink-0">
                 <div className="flex items-center gap-3">
-                  <img src={stories[activeStoryIdx].authorPhoto} className="w-10 h-10 rounded-full border border-pink-400" />
+                  <img src={stories[activeStoryIdx].authorPhoto} className="w-10 h-10 rounded-full border border-pink-400 object-cover" />
                   <div>
                     <p className="font-bold text-sm text-white">{stories[activeStoryIdx].authorName}</p>
                     <p className="text-[10px] text-slate-300">{new Date(stories[activeStoryIdx].createdAt).toLocaleTimeString()}</p>
@@ -192,12 +192,12 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
               </div>
 
               {/* Story Body Content */}
-              <div className={`flex-1 my-6 rounded-3xl flex items-center justify-center p-8 bg-gradient-to-br ${stories[activeStoryIdx].bgGradient || 'from-pink-600 to-purple-900'} relative overflow-hidden shadow-2xl`}>
+              <div className={`flex-1 my-4 sm:my-6 rounded-3xl flex items-center justify-center p-6 sm:p-8 bg-gradient-to-br ${stories[activeStoryIdx].bgGradient || 'from-pink-600 to-purple-900'} relative overflow-hidden shadow-2xl min-h-[300px]`}>
                 {stories[activeStoryIdx].mediaUrl && (
-                  <img src={stories[activeStoryIdx].mediaUrl} className="max-h-full max-w-full object-contain rounded-2xl shadow-2xl" />
+                  <img src={stories[activeStoryIdx].mediaUrl} className="max-h-[60vh] max-w-full object-contain rounded-2xl shadow-2xl" />
                 )}
                 {stories[activeStoryIdx].text && (
-                  <p className="text-xl sm:text-2xl font-extrabold text-white text-center drop-shadow-lg leading-relaxed">
+                  <p className="text-lg sm:text-2xl font-extrabold text-white text-center drop-shadow-lg leading-relaxed">
                     "{stories[activeStoryIdx].text}"
                   </p>
                 )}
@@ -205,39 +205,39 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
 
               <button
                 onClick={() => setActiveStoryIdx(null)}
-                className="w-full py-3 rounded-2xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs"
+                className="w-full py-3 rounded-2xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs shrink-0"
               >
                 Close Viewer
               </button>
             </div>
           )}
 
-          {/* Create Status Modal */}
+          {/* Create Status Modal — Mobile Responsive Form */}
           {showCreateModal && (
-            <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-6">
-              <div className="flex items-center justify-between">
+            <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 overflow-y-auto">
+              <div className="flex items-center justify-between shrink-0 mb-3">
                 <h4 className="font-extrabold text-white text-base">New Status Update</h4>
                 <button onClick={() => setShowCreateModal(false)} className="p-2 rounded-full glass-card text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handlePostStory} className="space-y-4 my-auto">
-                <div className={`p-8 rounded-3xl bg-gradient-to-br ${selectedGradient} flex flex-col items-center justify-center gap-4 border border-white/20 min-h-[220px]`}>
+              <form onSubmit={handlePostStory} className="space-y-4 my-auto w-full max-w-md mx-auto">
+                <div className={`p-6 sm:p-8 rounded-3xl bg-gradient-to-br ${selectedGradient} flex flex-col items-center justify-center gap-4 border border-white/20 min-h-[180px] sm:min-h-[220px]`}>
                   {storyImage && (
-                    <img src={storyImage} className="w-32 h-32 object-cover rounded-2xl border-2 border-white/40 shadow-xl" />
+                    <img src={storyImage} className="w-28 h-28 sm:w-32 sm:h-32 object-cover rounded-2xl border-2 border-white/40 shadow-xl" />
                   )}
                   <textarea
                     value={storyText}
                     onChange={(e) => setStoryText(e.target.value)}
                     placeholder="Type your status thought..."
-                    className="w-full bg-transparent text-center text-lg font-bold text-white placeholder-white/60 focus:outline-none resize-none"
+                    className="w-full bg-transparent text-center text-base sm:text-lg font-bold text-white placeholder-white/60 focus:outline-none resize-none"
                     rows={3}
                   />
                 </div>
 
                 {/* Gradient Selector */}
-                <div className="flex items-center justify-center gap-2 pt-2">
+                <div className="flex items-center justify-center gap-2 pt-1">
                   {gradients.map((g) => (
                     <button
                       key={g}
@@ -248,14 +248,14 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
                   ))}
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <label className="p-3 rounded-2xl glass-card text-white cursor-pointer hover:border-pink-400">
+                <div className="flex items-center gap-3 pt-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}>
+                  <label className="p-3.5 rounded-2xl glass-card text-white cursor-pointer hover:border-pink-400 shrink-0">
                     <Image className="w-5 h-5" />
                     <input type="file" onChange={handleFileSelect} accept="image/*" className="hidden" />
                   </label>
                   <button
                     type="submit"
-                    className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2"
+                    className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-accent-pink via-accent-purple to-indigo-600 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
                   >
                     <Send className="w-4 h-4" />
                     <span>Share Status</span>
