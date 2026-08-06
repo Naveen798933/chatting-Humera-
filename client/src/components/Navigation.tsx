@@ -110,69 +110,67 @@ export const Navigation: React.FC<NavigationProps> = ({
             </div>
           )}
 
-          {/* Palette Theme Selector Button */}
-          {onOpenTheme && (
-            <button
-              onClick={onOpenTheme}
-              title="Change Color Theme"
-              className="p-1.5 sm:p-2 rounded-xl glass-card text-purple-300 hover:text-white transition-colors flex-shrink-0"
-            >
-              <Palette className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          )}
+          {/* Desktop Only Action Buttons */}
+          <div className="hidden md:flex items-center gap-2">
+            {onOpenTheme && (
+              <button
+                onClick={onOpenTheme}
+                title="Change Color Theme"
+                className="p-2 rounded-xl glass-card text-purple-300 hover:text-white transition-colors"
+              >
+                <Palette className="w-5 h-5" />
+              </button>
+            )}
 
-          {/* Daily Love Question Button */}
-          {onOpenDailyQuestion && (
-            <button
-              onClick={onOpenDailyQuestion}
-              title="Daily Love Question"
-              className="p-1.5 sm:p-2 rounded-xl glass-card text-amber-300 hover:text-white transition-colors flex-shrink-0"
-            >
-              <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          )}
+            {onOpenDailyQuestion && (
+              <button
+                onClick={onOpenDailyQuestion}
+                title="Daily Love Question"
+                className="p-2 rounded-xl glass-card text-amber-300 hover:text-white transition-colors"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
+            )}
 
-          {/* WhatsApp Status Button */}
-          {onOpenStatus && (
-            <button
-              onClick={onOpenStatus}
-              title="WhatsApp Status Stories"
-              className="p-1.5 sm:p-2 rounded-xl glass-card border border-pink-500/30 text-pink-300 hover:text-white transition-all flex-shrink-0 relative"
-            >
-              <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping absolute top-1 right-1" />
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          )}
+            {onOpenStatus && (
+              <button
+                onClick={onOpenStatus}
+                title="WhatsApp Status Stories"
+                className="p-2 rounded-xl glass-card border border-pink-500/30 text-pink-300 hover:text-white transition-all relative"
+              >
+                <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping absolute top-1 right-1" />
+                <Sparkles className="w-5 h-5" />
+              </button>
+            )}
 
-          {/* Call History Button */}
-          {onOpenCallHistory && (
-            <button
-              onClick={onOpenCallHistory}
-              title="Call History Logs"
-              className="p-1.5 sm:p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 transition-colors flex-shrink-0"
-            >
-              <Video className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          )}
+            {onOpenCallHistory && (
+              <button
+                onClick={onOpenCallHistory}
+                title="Call History Logs"
+                className="p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 transition-colors"
+              >
+                <Video className="w-5 h-5" />
+              </button>
+            )}
 
-          {/* Stealth / Panic Calculator Lock Button */}
-          <button
-            onClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}
-            title="Panic / Stealth Mode (Alt + L)"
-            className="p-1.5 sm:p-2 rounded-xl glass-card hover:border-rose-400/40 text-rose-300 hover:text-rose-200 transition-colors flex-shrink-0"
-          >
-            <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-
-          {currentUser?.role === 'owner' && (
             <button
-              onClick={onOpenAdmin}
-              title="Admin Panel"
-              className="p-1.5 sm:p-2 rounded-xl glass-card hover:border-pink-400/40 text-slate-300 hover:text-pink-300 transition-colors flex-shrink-0"
+              onClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}
+              title="Panic / Stealth Mode (Alt + L)"
+              className="p-2 rounded-xl glass-card hover:border-rose-400/40 text-rose-300 hover:text-rose-200 transition-colors"
             >
-              <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+              <ShieldAlert className="w-5 h-5" />
             </button>
-          )}
+
+            {currentUser?.role === 'owner' && (
+              <button
+                onClick={onOpenAdmin}
+                title="Admin Panel"
+                className="p-2 rounded-xl glass-card hover:border-pink-400/40 text-slate-300 hover:text-pink-300 transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
+          </div>
 
           {/* Prominent Header Logout Button — ALWAYS visible on all screen sizes */}
           <button
