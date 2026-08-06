@@ -279,7 +279,7 @@ export const TogetherTime: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-4">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
                 <button
                   onClick={toggleMic}
                   className={`p-4 rounded-full ${isMicMuted ? 'bg-rose-500 text-white' : 'glass-card text-slate-200'}`}
@@ -500,7 +500,7 @@ export const TogetherTime: React.FC = () => {
                 <p className="text-xs text-slate-300">Next turn: {isXNext ? 'Naveen ❤️' : 'Humera 💖'}</p>
               )}
 
-              <div className="grid grid-cols-3 gap-3 w-64 h-64 mx-auto">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full max-w-[256px] aspect-square mx-auto">
                 {board.map((cell, idx) => (
                   <button
                     key={idx}

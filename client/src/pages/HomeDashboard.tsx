@@ -241,7 +241,7 @@ export const HomeDashboard: React.FC = () => {
               </div>
             </div>
           </div>
-          <p className="text-[10px] text-pink-300/70 italic text-center">Vijayawada, Nidamanuru Village ↔ Medchal, Hyderabad, Rudraram Village • 0 km apart in heart ❤️</p>
+          <p className="text-[10px] text-pink-300/70 italic text-center truncate" title="Vijayawada ↔ Medchal • 0 km apart in heart ❤️">Vijayawada ↔ Medchal • 0 km apart in heart ❤️</p>
         </div>
       </div>
 
@@ -338,7 +338,7 @@ export const HomeDashboard: React.FC = () => {
             <span>One-Tap Love Express</span>
           </h4>
 
-          <div className="grid grid-cols-1 xs:grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             <button
               onClick={() => sendQuickAction('miss_you')}
               className="p-3 rounded-2xl glass-card border border-pink-500/20 hover:border-pink-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"

@@ -348,7 +348,7 @@ export const CoreChat: React.FC = () => {
 
   return (
     <div className={`max-w-4xl mx-auto flex flex-col glass-panel rounded-xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative ${
-      isMobile ? 'h-[calc(100dvh-220px)]' : 'h-[82vh]'
+      isMobile ? 'h-[calc(100dvh-220px)] min-h-[350px]' : 'h-[82vh]'
     }`}>
       {/* Chat Header */}
       <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/10 flex items-center justify-between bg-space-900/80 backdrop-blur-md flex-shrink-0">
@@ -716,7 +716,7 @@ export const CoreChat: React.FC = () => {
                     {/* Quick reaction / action bar — shows on click */}
                     <AnimatePresence>
                       {activeReactionMsgId === msg.id && (
-                        <motion.div className={`flex items-center gap-1 bg-space-900/95 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl backdrop-blur-md ${isMe ? 'self-end' : 'self-start'}`}>
+                        <motion.div className={`flex items-center gap-1 bg-space-900/95 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl backdrop-blur-md flex-wrap max-w-[min(280px,85vw)] ${isMe ? 'self-end' : 'self-start'}`}>
                           {QUICK_REACTIONS.map(emoji => (
                             <button
                               key={emoji}

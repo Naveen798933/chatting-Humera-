@@ -192,7 +192,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       </div>
 
       {/* Mobile Quick Action Toolbar Strip — 100% visible on all mobile screens */}
-      <div className="md:hidden flex items-center justify-around pt-2 border-t border-white/10 mt-2 gap-1 overflow-x-auto scrollbar-none">
+      <div className="md:hidden flex items-center justify-start overflow-x-auto scrollbar-none pt-2 border-t border-white/10 mt-2 gap-1.5 px-1">
         {onOpenStatus && (
           <button
             onClick={onOpenStatus}
