@@ -158,6 +158,17 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
             )}
           </div>
 
+          {/* Floating Action Button: Post Status */}
+          <div className="pt-3 border-t border-white/10">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-xl shadow-pink-500/25 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Post New Status Story</span>
+            </button>
+          </div>
+
           {/* Fullscreen Story Viewer Modal */}
           {activeStoryIdx !== null && stories[activeStoryIdx] && (
             <div className="fixed inset-0 z-50 bg-black flex flex-col justify-between p-6">

@@ -10,7 +10,7 @@ import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import {
   Send, Image, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video,
   Trash2, Star, Search, CornerUpLeft, Clock,
-  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle
+  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -28,6 +28,7 @@ export const CoreChat: React.FC = () => {
   const [secretTimeout, setSecretTimeout] = useState<number>(60);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [forwardingMsg, setForwardingMsg] = useState<Message | null>(null);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [editingMsg, setEditingMsg] = useState<Message | null>(null);
   const [pinnedMsg, setPinnedMsg] = useState<Message | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -374,9 +375,71 @@ export const CoreChat: React.FC = () => {
           <button
             onClick={() => setShowSearch(!showSearch)}
             className="p-2 rounded-xl glass-card text-slate-300 hover:text-white"
+            title="Search in chat"
           >
             <Search className="w-4 h-4" />
           </button>
+
+          {/* More Options (3 Dots) Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className="p-2 rounded-xl glass-card text-slate-300 hover:text-white"
+              title="More options"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+            <AnimatePresence>
+              {showMoreMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  className="absolute right-0 top-11 z-50 w-48 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1"
+                >
+                  <button
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      const exportTxt = messages.map(m => {
+                        const author = m.senderId === currentUser?.uid ? currentUser?.petName : partnerUser?.petName;
+                        const time = new Date(m.createdAt).toLocaleString();
+                        return `[${time}] ${author}: ${m.content}`;
+                      }).join('\n\n');
+                      const blob = new Blob([`OUR UNIVERSE CHAT TRANSCRIPT — NAVEEN & HUMERA\n\n${exportTxt}`], { type: 'text/plain;charset=utf-8' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.txt`;
+                      a.click();
+                      toast.love('Chat exported as TXT transcript! 📄');
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <span>📄</span> Export Chat TXT
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      setIsSecretMode(!isSecretMode);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs text-white hover:bg-white/10 flex items-center gap-2"
+                  >
+                    <span>🔒</span> {isSecretMode ? 'Turn Off Secret Mode' : 'Secret Mode (Burn Timer)'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMoreMenu(false);
+                      toggleDecoyMode();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs text-rose-300 hover:bg-rose-500/20 flex items-center gap-2"
+                  >
+                    <span>🛡️</span> Panic Disguise Mode
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
