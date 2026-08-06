@@ -366,7 +366,7 @@ export const CoreChat: React.FC = () => {
   });
 
   return (
-    <div className="max-w-4xl w-full mx-auto flex flex-col glass-panel rounded-xl sm:rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative h-full md:h-[82vh] min-h-[380px]">
+    <div className="max-w-4xl w-full mx-auto flex flex-col glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full md:h-[82vh] min-h-[350px]">
       
       {/* Chat Header */}
       <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/90 backdrop-blur-md flex-shrink-0 z-20">
@@ -748,31 +748,31 @@ export const CoreChat: React.FC = () => {
                             <button
                               key={emoji}
                               onClick={(e) => { e.stopPropagation(); addReaction(msg.id, emoji); setActiveReactionMsgId(null); }}
-                              className="text-base hover:scale-125 transition-transform active:scale-95 p-1"
+                              className="text-base hover:scale-125 transition-transform active:scale-95 p-1 min-w-[34px] min-h-[34px] flex items-center justify-center"
                             >
                               {emoji}
                             </button>
                           ))}
                           <div className="w-px h-4 bg-white/10 mx-0.5" />
-                          <button onClick={(e) => { e.stopPropagation(); setPinnedMsg(pinnedMsg?.id === msg.id ? null : msg); setActiveReactionMsgId(null); toast.love(pinnedMsg?.id === msg.id ? 'Message unpinned' : 'Message pinned! 📌'); }} className="p-1.5 text-slate-300 hover:text-amber-300" title="Pin message">
-                            <Pin className="w-3.5 h-3.5" />
+                          <button onClick={(e) => { e.stopPropagation(); setPinnedMsg(pinnedMsg?.id === msg.id ? null : msg); setActiveReactionMsgId(null); toast.love(pinnedMsg?.id === msg.id ? 'Message unpinned' : 'Message pinned! 📌'); }} className="p-1.5 text-slate-300 hover:text-amber-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Pin message">
+                            <Pin className="w-4 h-4" />
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setActiveReactionMsgId(null); inputRef.current?.focus(); }} className="p-1.5 text-slate-300 hover:text-pink-300" title="Reply">
-                            <CornerUpLeft className="w-3.5 h-3.5" />
+                          <button onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setActiveReactionMsgId(null); inputRef.current?.focus(); }} className="p-1.5 text-slate-300 hover:text-pink-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Reply">
+                            <CornerUpLeft className="w-4 h-4" />
                           </button>
                           {isMe && (
-                            <button onClick={(e) => { e.stopPropagation(); handleStartEdit(msg); }} className="p-1.5 text-slate-300 hover:text-sky-300" title="Edit">
-                              <Edit3 className="w-3.5 h-3.5" />
+                            <button onClick={(e) => { e.stopPropagation(); handleStartEdit(msg); }} className="p-1.5 text-slate-300 hover:text-sky-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Edit">
+                              <Edit3 className="w-4 h-4" />
                             </button>
                           )}
-                          <button onClick={(e) => { e.stopPropagation(); setForwardingMsg(msg); setActiveReactionMsgId(null); }} className="p-1.5 text-slate-300 hover:text-purple-300" title="Forward">
-                            <Forward className="w-3.5 h-3.5" />
+                          <button onClick={(e) => { e.stopPropagation(); setForwardingMsg(msg); setActiveReactionMsgId(null); }} className="p-1.5 text-slate-300 hover:text-purple-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Forward">
+                            <Forward className="w-4 h-4" />
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); toggleStarMessage(msg.id); setActiveReactionMsgId(null); }} className="p-1.5 text-slate-300 hover:text-amber-300" title="Star">
-                            <Star className="w-3.5 h-3.5" />
+                          <button onClick={(e) => { e.stopPropagation(); toggleStarMessage(msg.id); setActiveReactionMsgId(null); }} className="p-1.5 text-slate-300 hover:text-amber-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Star">
+                            <Star className="w-4 h-4" />
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); handleDelete(msg); }} className="p-1.5 text-slate-300 hover:text-rose-400" title="Delete">
-                            <Trash2 className="w-3.5 h-3.5" />
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete(msg); }} className="p-1.5 text-slate-300 hover:text-rose-400 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Delete">
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </motion.div>
                       )}
