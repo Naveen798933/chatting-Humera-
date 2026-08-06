@@ -74,33 +74,48 @@ export const CoreChat: React.FC = () => {
     }
   };
 
+  const isInitialLoadRef = useRef(true);
+
   const scrollToBottom = (instant = false) => {
     const container = chatContainerRef.current;
     if (container) {
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: instant ? 'auto' : 'smooth'
-      });
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
+      if (instant) {
+        container.scrollTop = container.scrollHeight;
+      } else {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    } else if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
     }
   };
 
-  // Instant scroll to latest messages on mount & load
+  // Instant scroll to bottom on mount & initial load
   useEffect(() => {
     scrollToBottom(true);
-    const t1 = setTimeout(() => scrollToBottom(true), 60);
-    const t2 = setTimeout(() => scrollToBottom(true), 250);
+    const t1 = setTimeout(() => scrollToBottom(true), 30);
+    const t2 = setTimeout(() => scrollToBottom(true), 120);
+    const t3 = setTimeout(() => {
+      scrollToBottom(true);
+      isInitialLoadRef.current = false;
+    }, 300);
     markMessagesAsSeen();
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
     };
   }, []);
 
-  // Smooth scroll on new message or partner typing
+  // Scroll on new message or partner typing
   useEffect(() => {
-    scrollToBottom(false);
+    if (isInitialLoadRef.current) {
+      scrollToBottom(true);
+    } else {
+      scrollToBottom(false);
+    }
     markMessagesAsSeen();
   }, [messages.length, isPartnerTyping]);
 
