@@ -23,6 +23,8 @@ import { ToastContainer } from './components/Toast';
 import { WhatsAppStatusModal, StoryItem } from './components/WhatsAppStatusModal';
 import { PartnerProfileDrawer } from './components/PartnerProfileDrawer';
 import { CallHistoryModal } from './components/CallHistoryModal';
+import { ThemeSelectorModal, AppTheme } from './components/ThemeSelectorModal';
+import { DailyQuestionModal } from './components/DailyQuestionModal';
 
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
@@ -32,6 +34,9 @@ const AppContent: React.FC = () => {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
   const [isCallHistoryOpen, setIsCallHistoryOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
+  const [isDailyQuestionOpen, setIsDailyQuestionOpen] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<AppTheme>('cosmic');
 
   const [stories, setStories] = useState<StoryItem[]>([
     {
@@ -88,6 +93,8 @@ const AppContent: React.FC = () => {
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenStatus={() => setIsStatusOpen(true)}
         onOpenCallHistory={() => setIsCallHistoryOpen(true)}
+        onOpenTheme={() => setIsThemeOpen(true)}
+        onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
       />
 
       <main className={`flex-1 max-w-7xl mx-auto w-full overflow-x-hidden ${
@@ -106,6 +113,18 @@ const AppContent: React.FC = () => {
       <AdminBackupModal
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
+      />
+      <ThemeSelectorModal
+        isOpen={isThemeOpen}
+        onClose={() => setIsThemeOpen(false)}
+        currentTheme={currentTheme}
+        onSelectTheme={(t) => { setCurrentTheme(t); setIsThemeOpen(false); }}
+      />
+      <DailyQuestionModal
+        isOpen={isDailyQuestionOpen}
+        onClose={() => setIsDailyQuestionOpen(false)}
+        currentPetName={currentUser?.petName || 'Naveen'}
+        partnerPetName={partnerUser?.petName || 'Humera'}
       />
       <WhatsAppStatusModal
         isOpen={isStatusOpen}

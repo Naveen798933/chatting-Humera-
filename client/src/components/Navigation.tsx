@@ -1,5 +1,4 @@
-import React from 'react';
-import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut, ShieldAlert } from 'lucide-react';
+import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut, ShieldAlert, Palette, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShakeLock } from '../hooks/useShakeLock';
 import { toast } from '../lib/toast';
@@ -12,6 +11,8 @@ interface NavigationProps {
   onOpenAdmin: () => void;
   onOpenStatus?: () => void;
   onOpenCallHistory?: () => void;
+  onOpenTheme?: () => void;
+  onOpenDailyQuestion?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -19,7 +20,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   setActiveTab,
   onOpenAdmin,
   onOpenStatus,
-  onOpenCallHistory
+  onOpenCallHistory,
+  onOpenTheme,
+  onOpenDailyQuestion
 }) => {
   const { currentUser, logout, toggleDecoyMode } = useAuth();
 
@@ -107,6 +110,28 @@ export const Navigation: React.FC<NavigationProps> = ({
                 {currentUser.petName}
               </span>
             </div>
+          )}
+
+          {/* Palette Theme Selector Button */}
+          {onOpenTheme && (
+            <button
+              onClick={onOpenTheme}
+              title="Change Color Theme"
+              className="p-1.5 sm:p-2 rounded-xl glass-card text-purple-300 hover:text-white transition-colors flex-shrink-0"
+            >
+              <Palette className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          )}
+
+          {/* Daily Love Question Button */}
+          {onOpenDailyQuestion && (
+            <button
+              onClick={onOpenDailyQuestion}
+              title="Daily Love Question"
+              className="p-1.5 sm:p-2 rounded-xl glass-card text-amber-300 hover:text-white transition-colors flex-shrink-0"
+            >
+              <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
           )}
 
           {/* WhatsApp Status Button */}
