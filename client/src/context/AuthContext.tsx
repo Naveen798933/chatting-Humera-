@@ -187,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastSeen: new Date().toISOString()
     };
 
+    localStorage.setItem('our_universe_active_user', JSON.stringify(newUser));
     setCurrentUser(newUser);
     setIsAuthenticated(true);
     setIsDecoyActive(false);
@@ -220,12 +221,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...currentUser,
       mood: { emoji, text, updatedAt: new Date().toISOString() }
     };
+    localStorage.setItem('our_universe_active_user', JSON.stringify(updated));
     setCurrentUser(updated);
   };
 
   const updatePetName = (newPetName: string) => {
     if (!currentUser) return;
     const updated = { ...currentUser, petName: newPetName };
+    localStorage.setItem('our_universe_active_user', JSON.stringify(updated));
     setCurrentUser(updated);
   };
 
