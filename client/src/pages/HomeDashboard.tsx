@@ -18,10 +18,12 @@ const DAILY_QUOTES = [
 
 export const HomeDashboard: React.FC = () => {
   const { currentUser, partnerUser, updateMood } = useAuth();
-  const { anniversaryDate, sendQuickAction, memories, recentNotification } = useUniverse();
+  const { anniversaryDate, setAnniversaryDate, sendQuickAction, memories, recentNotification } = useUniverse();
 
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [editingMood, setEditingMood] = useState(false);
+  const [showDateEditor, setShowDateEditor] = useState(false);
+  const [tempDate, setTempDate] = useState(anniversaryDate);
   const [moodEmoji, setMoodEmoji] = useState('💖');
   const [moodText, setMoodText] = useState('');
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -134,9 +136,42 @@ export const HomeDashboard: React.FC = () => {
         </div>
 
         <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-white/10 text-center">
-          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-pink-300 mb-2.5 sm:mb-3">
-            Together For
-          </p>
+          <div className="flex items-center justify-center gap-2 mb-2.5 sm:mb-3">
+            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-pink-300">
+              Together For
+            </p>
+            <button
+              onClick={() => setShowDateEditor(!showDateEditor)}
+              className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded-full bg-white/5 border border-white/10"
+              title="Edit Anniversary Date"
+            >
+              ✏️ {showDateEditor ? 'Close' : 'Edit Date'}
+            </button>
+          </div>
+
+          {showDateEditor && (
+            <div className="max-w-xs mx-auto mb-4 p-3 rounded-2xl glass-card border border-pink-500/30 flex items-center gap-2">
+              <input
+                type="date"
+                value={tempDate}
+                onChange={(e) => setTempDate(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-xl glass-input text-xs"
+              />
+              <button
+                onClick={() => {
+                  if (tempDate) {
+                    setAnniversaryDate(tempDate);
+                    setShowDateEditor(false);
+                    toast.love('Anniversary date updated! ❤️');
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-md"
+              >
+                Save
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-4 gap-2 sm:gap-4 max-w-xl mx-auto">
             <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
               <p className="text-xl sm:text-4xl font-extrabold text-white tracking-tight">{timeTogether.days}</p>

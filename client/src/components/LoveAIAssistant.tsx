@@ -255,22 +255,48 @@ export const LoveAIAssistant: React.FC = () => {
         )}
 
         {/* Custom Query */}
-        <form onSubmit={handleCustomQuery} className="flex gap-2 pt-2 border-t border-white/10">
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={`Ask Love AI e.g. "How to make ${h} feel extra special this week?"`}
-            className="flex-1 px-4 py-3 rounded-2xl glass-input text-xs"
-          />
-          <button
-            type="submit"
-            disabled={!prompt.trim() || loading}
-            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/25 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
+        <div className="space-y-2 pt-2 border-t border-white/10">
+          <form onSubmit={handleCustomQuery} className="flex gap-2">
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={`Ask Love AI e.g. "How to make ${h} feel extra special this week?"`}
+              className="flex-1 px-4 py-3 rounded-2xl glass-input text-xs"
+            />
+            <button
+              type="submit"
+              disabled={!prompt.trim() || loading}
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/25 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+
+          {/* Quick Suggestion Chips */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              `How to make ${h} feel extra loved today?`,
+              `Plan a weekend getaway for ${n} & ${h}`,
+              `Write a sweet bedtime text for Jaanu`,
+              `How to handle long distance relationship?`
+            ].map((chip, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setPrompt(chip);
+                  const randomIdx = Math.floor(Math.random() * CUSTOM_RESPONSES.length);
+                  respond(`🤖 **Love AI Insight for "${chip}"**\n\n${CUSTOM_RESPONSES[randomIdx]}`, 'custom');
+                  toast.love('Insight generated! ✨');
+                }}
+                className="px-3 py-1 rounded-full glass-card text-[10px] text-pink-300 hover:text-white border border-pink-500/20 whitespace-nowrap hover:bg-white/10"
+              >
+                ✨ {chip}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
