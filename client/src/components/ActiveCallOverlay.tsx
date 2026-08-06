@@ -139,9 +139,12 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
               />
               <div>
                 <h3 className="font-extrabold text-white text-sm sm:text-base">{partnerUser?.petName || partnerUser?.realName}</h3>
-                <p className="text-xs text-pink-300 font-mono flex items-center gap-1.5">
+                <p className="text-xs text-pink-300 font-mono flex items-center gap-1.5 flex-wrap">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                   <span>{formatDuration(callDuration)}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold">
+                    Full HD 1080p • 48kHz Stereo
+                  </span>
                 </p>
               </div>
             </div>

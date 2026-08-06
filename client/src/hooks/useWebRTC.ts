@@ -34,43 +34,91 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     ],
   };
 
-  // ── Acquire Local Camera Stream ──────────────────────────────────────────────
+  // ── Optimize SDP for 510kbps Opus Stereo & HD Video Codec ─────────────────
+  const optimizeSDP = (sdp: string): string => {
+    return sdp.replace(
+      /a=fmtp:(\d+) (.*opus.*)/gi,
+      'a=fmtp:$1 $2;maxaveragebitrate=510000;stereo=1;sprop-stereo=1;useinbandfec=1;usedtx=0;cbr=1'
+    );
+  };
+
+  // ── Apply High Bitrate Senders (3.5Mbps Video, 510kbps Audio) ───────────────
+  const applyHighQualityBitrates = (pc: RTCPeerConnection) => {
+    pc.getSenders().forEach((sender) => {
+      if (sender.track?.kind === 'video') {
+        const params = sender.getParameters();
+        if (!params.encodings || params.encodings.length === 0) {
+          params.encodings = [{}];
+        }
+        params.encodings[0].maxBitrate = 3500000; // 3.5 Mbps HD 1080p 60fps
+        params.encodings[0].maxFramerate = 60;
+        params.encodings[0].priority = 'high';
+        params.encodings[0].networkPriority = 'high';
+        sender.setParameters(params).catch(() => {});
+      } else if (sender.track?.kind === 'audio') {
+        const params = sender.getParameters();
+        if (!params.encodings || params.encodings.length === 0) {
+          params.encodings = [{}];
+        }
+        params.encodings[0].maxBitrate = 510000; // 510 kbps Studio Audio
+        params.encodings[0].priority = 'high';
+        sender.setParameters(params).catch(() => {});
+      }
+    });
+  };
+
+  // ── Acquire Studio Audio & Ultra-HD Video Stream ───────────────────────────
   const acquireStream = async (video: boolean, mode: 'user' | 'environment' = 'user'): Promise<MediaStream | null> => {
-    const audioConstraints: MediaTrackConstraints = {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl:  true,
-    };
-    const videoConstraints: MediaTrackConstraints = {
-      width:     { ideal: 1280 },
-      height:    { ideal: 720 },
-      frameRate: { ideal: 30 },
-      facingMode: mode,
+    const studioAudioConstraints: MediaTrackConstraints = {
+      echoCancellation: { ideal: true },
+      noiseSuppression: { ideal: true },
+      autoGainControl:  { ideal: true },
+      sampleRate:       { ideal: 48000 },
+      sampleSize:       { ideal: 16 },
+      channelCount:     { ideal: 2 },
     };
 
-    // Attempt 1: HD video + audio
+    const hdVideoConstraints: MediaTrackConstraints = {
+      width:       { ideal: 1920, min: 1280 },
+      height:      { ideal: 1080, min: 720 },
+      frameRate:   { ideal: 60, min: 30 },
+      facingMode:  mode,
+      aspectRatio: { ideal: 1.777777778 },
+    };
+
+    // Attempt 1: 1080p Full HD 60fps Video + Studio Stereo Audio
     try {
       if (video) {
         return await navigator.mediaDevices.getUserMedia({
-          audio: audioConstraints,
-          video: videoConstraints,
+          audio: studioAudioConstraints,
+          video: hdVideoConstraints,
         });
       }
     } catch (_) {}
 
-    // Attempt 2: Basic video + audio
+    // Attempt 2: 720p HD Video + Studio Audio
+    try {
+      if (video) {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: studioAudioConstraints,
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 }, facingMode: mode },
+        });
+      }
+    } catch (_) {}
+
+    // Attempt 3: Basic Video + Audio
     try {
       if (video) {
         return await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
       }
     } catch (_) {}
 
-    // Attempt 3: Audio only fallback
+    // Attempt 4: Studio Audio only fallback
     try {
-      return await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+      return await navigator.mediaDevices.getUserMedia({ audio: studioAudioConstraints });
     } catch (_) {}
 
-    console.error('[WebRTC] Could not acquire any media stream');
+    console.error('[WebRTC] Could not acquire high quality stream');
     return null;
   };
 
@@ -84,7 +132,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     remoteStreamRef.current = rStream;
     setRemoteStream(rStream);
 
-    stream.getTracks().forEach(track => {
+    stream.getTracks().forEach((track) => {
       pc.addTrack(track, stream);
     });
 
@@ -96,7 +144,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
         options?.onRemoteStream?.(event.streams[0]);
       } else {
         if (remoteStreamRef.current) {
-          if (!remoteStreamRef.current.getTracks().some(t => t.id === event.track.id)) {
+          if (!remoteStreamRef.current.getTracks().some((t) => t.id === event.track.id)) {
             remoteStreamRef.current.addTrack(event.track);
           }
           const updated = new MediaStream(remoteStreamRef.current.getTracks());
@@ -119,6 +167,9 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     pc.onconnectionstatechange = () => {
       console.log('[WebRTC] Connection state:', pc.connectionState);
       setConnectionState(pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        applyHighQualityBitrates(pc);
+      }
     };
 
     return pc;
@@ -137,16 +188,22 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   // ── Send Offer Helper ──────────────────────────────────────────────────────
   const createAndSendOffer = async (pc: RTCPeerConnection, channel: any, video: boolean) => {
     try {
-      console.log('[WebRTC] Creating & Sending Offer...');
+      console.log('[WebRTC] Creating & Sending HD Offer...');
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: video,
       });
-      await pc.setLocalDescription(offer);
+      
+      const optimizedSDP = optimizeSDP(offer.sdp || '');
+      const optimizedOffer = new RTCSessionDescription({ type: offer.type, sdp: optimizedSDP });
+
+      await pc.setLocalDescription(optimizedOffer);
+      applyHighQualityBitrates(pc);
+
       await channel.send({
         type: 'broadcast',
         event: 'SIGNAL_OFFER',
-        payload: { offer },
+        payload: { offer: optimizedOffer },
       });
     } catch (err) {
       console.error('[WebRTC] createOffer error:', err);
@@ -175,7 +232,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     channel
       .on('broadcast', { event: 'SIGNAL_READY' }, async () => {
         if (roleRef.current === 'caller' && pc.signalingState !== 'closed') {
-          console.log('[WebRTC] Received SIGNAL_READY from Answerer -> Sending Offer');
+          console.log('[WebRTC] Received SIGNAL_READY from Answerer -> Sending HD Offer');
           await createAndSendOffer(pc, channel, isVideoRef.current);
         }
       })
@@ -188,11 +245,16 @@ export function useWebRTC(options?: UseWebRTCOptions) {
           await pc.setRemoteDescription(new RTCSessionDescription(offer));
           await drainIceQueue(pc);
           const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
+          const optimizedSDP = optimizeSDP(answer.sdp || '');
+          const optimizedAnswer = new RTCSessionDescription({ type: answer.type, sdp: optimizedSDP });
+
+          await pc.setLocalDescription(optimizedAnswer);
+          applyHighQualityBitrates(pc);
+
           await channel.send({
             type: 'broadcast',
             event: 'SIGNAL_ANSWER',
-            payload: { answer },
+            payload: { answer: optimizedAnswer },
           });
         } catch (err) {
           console.error('[WebRTC] Offer handling error:', err);
@@ -206,6 +268,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
           console.log('[WebRTC] Caller received SIGNAL_ANSWER');
           await pc.setRemoteDescription(new RTCSessionDescription(answer));
           await drainIceQueue(pc);
+          applyHighQualityBitrates(pc);
         } catch (err) {
           console.error('[WebRTC] Answer handling error:', err);
         }
