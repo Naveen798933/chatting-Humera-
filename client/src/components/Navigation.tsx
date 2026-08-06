@@ -45,7 +45,13 @@ export const Navigation: React.FC<NavigationProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-2 sm:px-6 py-2 sm:py-3">
+    <header
+      className="sticky top-0 z-40 w-full glass-panel border-b border-white/10 px-2 sm:px-6 shadow-xl"
+      style={{
+        paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))',
+        paddingBottom: '0.5rem'
+      }}
+    >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
 
         {/* Brand Logo */}
