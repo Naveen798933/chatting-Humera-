@@ -31,7 +31,7 @@ const NEVER_HAVE_I_EVER = [
 ];
 
 const COUPLE_TRIVIA = [
-  { question: 'Where was our official first date spot?', options: ['Coffee Shop in Hyderabad', 'Park in Bengaluru', 'Beach Restaurant', 'Movie Theater'], answer: 0 },
+  { question: 'Where was our official first date spot?', options: ['Vijayawada Lake ☕', 'Medchal Park 🌸', 'Beach Resort 🏖️', 'Movie Theater 🍿'], answer: 0 },
   { question: 'What is Naveen\'s favorite pet name for Humera?', options: ['Jaanu ❤️', 'Sweetheart', 'Angel', 'Honey'], answer: 0 },
   { question: 'What is Humera\'s favorite pet name for Naveen?', options: ['Bangaram ❤️', 'Prince', 'Babe', 'Sunshine'], answer: 0 }
 ];

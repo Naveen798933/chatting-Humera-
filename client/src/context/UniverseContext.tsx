@@ -91,8 +91,8 @@ const SEED_TODOS: SharedListItem[] = [
   { id: 't4', title: 'Visit Paris and see the Eiffel Tower', category: 'travel', completed: false, addedBy: NAVEEN_UID }
 ];
 const SEED_MAP: LoveMapPin[] = [
-  { id: 'p1', title: 'First Date Spot ☕', latitude: 17.3850, longitude: 78.4867, locationName: 'Hyderabad, India', dateVisited: '2024-02-14' },
-  { id: 'p2', title: 'Bengaluru Botanical Gardens 🌸', latitude: 12.9716, longitude: 77.5946, locationName: 'Bengaluru, India', dateVisited: '2024-06-10' },
+  { id: 'p1', title: 'First Date Spot ☕', latitude: 16.5062, longitude: 80.6480, locationName: 'Vijayawada, India', dateVisited: '2024-02-14' },
+  { id: 'p2', title: 'Medchal Park 🌸', latitude: 17.6293, longitude: 78.4814, locationName: 'Medchal, India', dateVisited: '2024-06-10' },
   { id: 'p3', title: 'Dream Honeymoon Destination 🗼', latitude: 48.8566, longitude: 2.3522, locationName: 'Paris, France', isBucketList: true }
 ];
 

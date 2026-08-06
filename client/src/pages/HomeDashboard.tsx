@@ -206,7 +206,7 @@ export const HomeDashboard: React.FC = () => {
               </div>
             </div>
           </div>
-          <p className="text-[10px] text-pink-300/70 italic text-center">~280 km apart in distance, 0 km apart in heart ❤️</p>
+          <p className="text-[10px] text-pink-300/70 italic text-center">Vijayawada ↔ Medchal • 0 km apart in heart ❤️</p>
         </div>
       </div>
 
