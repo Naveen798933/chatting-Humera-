@@ -477,8 +477,13 @@ export const CoreChat: React.FC = () => {
         </div>
       )}
 
-      {/* Messages Scroll Area */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-5 space-y-3" id="chat-messages">
+      {/* Messages Scroll Area — tap empty background to dismiss open action menus */}
+      <div
+        ref={chatContainerRef}
+        onClick={() => setActiveReactionMsgId(null)}
+        className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-5 space-y-3"
+        id="chat-messages"
+      >
 
         {/* Empty state */}
         {filteredMessages.length === 0 && !searchQuery && (
@@ -620,7 +625,10 @@ export const CoreChat: React.FC = () => {
                     {/* Quick reaction / action bar — shows on click */}
                     <AnimatePresence>
                       {activeReactionMsgId === msg.id && (
-                        <motion.div className={`flex items-center gap-1 bg-space-900/95 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl backdrop-blur-md flex-wrap max-w-[min(280px,85vw)] ${isMe ? 'self-end' : 'self-start'}`}>
+                        <motion.div
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                          className={`flex items-center gap-1 bg-space-900/95 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl backdrop-blur-md flex-wrap max-w-[min(280px,85vw)] ${isMe ? 'self-end' : 'self-start'}`}
+                        >
                           {QUICK_REACTIONS.map(emoji => (
                             <button
                               key={emoji}

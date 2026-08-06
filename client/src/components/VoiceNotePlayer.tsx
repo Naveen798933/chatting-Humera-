@@ -96,9 +96,12 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ src, isMe = fa
   };
 
   return (
-    <div className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col gap-2 max-w-xs sm:max-w-sm ${
-      isMe ? 'bg-black/20 border-white/20 text-white' : 'glass-panel border-white/10 text-white'
-    }`}>
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col gap-2 max-w-xs sm:max-w-sm ${
+        isMe ? 'bg-black/20 border-white/20 text-white' : 'glass-panel border-white/10 text-white'
+      }`}
+    >
       <audio ref={audioRef} src={src} preload="metadata" />
 
       <div className="flex items-center gap-3">
