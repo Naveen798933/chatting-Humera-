@@ -254,24 +254,71 @@ img {
   user-select: none;
 }
 
-/* ─── Mobile Viewport (320px-480px) Enhancements ───────────────────────────── */
-@media (max-width: 640px) {
-  /* Prevent iOS WebKit auto-zoom on input focus */
+/* ─── Universal Box-Sizing & Mobile Responsiveness Engine ───────────────── */
+*, *::before, *::after {
+  box-sizing: border-box !important;
+}
+
+html, body {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  margin: 0;
+  padding: 0;
+}
+
+img, video {
+  max-width: 100% !important;
+  height: auto;
+}
+
+p, span, h1, h2, h3, h4, h5, h6, button, a {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ─── Comprehensive Mobile Viewport Breakpoints (320px - 768px) ────────────── */
+@media (max-width: 768px) {
+  .glass-panel, .glass-card {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
   input[type="text"],
   input[type="password"],
   input[type="number"],
   textarea {
     font-size: 16px !important;
   }
-
-  /* Safe area inset support for notched phones */
   .fixed.bottom-0 {
     padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
-
-  /* Compact glass card padding on small screens */
   .glass-panel {
     border-radius: 1.25rem;
+    padding: 0.85rem !important;
   }
+}
+
+@media (max-width: 412px) {
+  .glass-panel {
+    padding: 0.75rem !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .text-base { font-size: 0.925rem !important; }
+  .text-sm   { font-size: 0.825rem !important; }
+}
+
+@media (max-width: 360px) {
+  .px-4 { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
+  .py-3 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+}
+
+@media (max-width: 320px) {
+  body { font-size: 12px; }
+  .glass-panel { border-radius: 1rem; padding: 0.5rem !important; }
 }
 
