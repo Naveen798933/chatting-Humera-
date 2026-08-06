@@ -186,6 +186,58 @@ export const Navigation: React.FC<NavigationProps> = ({
         </div>
       </div>
 
+      {/* Mobile Quick Action Toolbar Strip — 100% visible on all mobile screens */}
+      <div className="md:hidden flex items-center justify-around pt-2 border-t border-white/10 mt-2 gap-1 overflow-x-auto scrollbar-none">
+        {onOpenStatus && (
+          <button
+            onClick={onOpenStatus}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card border border-pink-500/30 text-pink-300 text-[10px] font-bold shrink-0 relative"
+          >
+            <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping" />
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Status</span>
+          </button>
+        )}
+
+        {onOpenCallHistory && (
+          <button
+            onClick={onOpenCallHistory}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card text-emerald-300 text-[10px] font-bold shrink-0"
+          >
+            <Video className="w-3.5 h-3.5" />
+            <span>Call Logs</span>
+          </button>
+        )}
+
+        {onOpenTheme && (
+          <button
+            onClick={onOpenTheme}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card text-purple-300 text-[10px] font-bold shrink-0"
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span>Theme</span>
+          </button>
+        )}
+
+        {onOpenDailyQuestion && (
+          <button
+            onClick={onOpenDailyQuestion}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card text-amber-300 text-[10px] font-bold shrink-0"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Question</span>
+          </button>
+        )}
+
+        <button
+          onClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card text-rose-300 text-[10px] font-bold shrink-0"
+        >
+          <ShieldAlert className="w-3.5 h-3.5" />
+          <span>Stealth</span>
+        </button>
+      </div>
+
       {/* Mobile Bottom Navigation Bar — 6 Navigation Tabs + Logout */}
       <div
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around shadow-2xl px-1"
