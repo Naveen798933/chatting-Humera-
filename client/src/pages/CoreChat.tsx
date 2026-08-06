@@ -184,24 +184,93 @@ export const CoreChat: React.FC = () => {
     sendMessage(`👤 Shared Contact: ${currentUser?.realName} (${currentUser?.petName})`, 'contact', undefined, replyingTo?.id, isSecretMode, secretTimeout);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.75));
+          } else {
+            resolve(e.target?.result as string);
+          }
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // Reset input value immediately so the same file can be re-selected
     e.target.value = '';
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File too large! Max 5MB');
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('File too large! Max 15MB');
       return;
     }
+
     const isVideo = file.type.startsWith('video');
-    const reader = new FileReader();
-    reader.onload = () => {
-      const mediaUrl = reader.result as string;
-      sendMessage(`Shared ${isVideo ? 'a video' : 'an image'}`, isVideo ? 'video' : 'image', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
-      setReplyingTo(null);
-      toast.love(`${isVideo ? 'Video' : 'Image'} sent! 💕`);
-    };
-    reader.readAsDataURL(file);
+
+    if (isVideo) {
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error('Video too large! Max 8MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const mediaUrl = reader.result as string;
+        sendMessage('Shared a video', 'video', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
+        setReplyingTo(null);
+        toast.love('Video sent! 📹');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      toast.info('Sending photo... 📸');
+      try {
+        const mediaUrl = await compressImage(file);
+        if (!mediaUrl) {
+          toast.error('Could not process image.');
+          return;
+        }
+        sendMessage('Shared an image', 'image', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
+        setReplyingTo(null);
+        toast.love('Photo sent! 💕');
+      } catch (err) {
+        console.error('Image compression error:', err);
+        toast.error('Failed to send photo.');
+      }
+    }
   };
 
   const handleStartRecording = async () => {

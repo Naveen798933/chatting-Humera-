@@ -74,10 +74,45 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = () => {
-      setStoryImage(reader.result as string);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1200;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          setStoryImage(canvas.toDataURL('image/jpeg', 0.75));
+        } else {
+          setStoryImage(event.target?.result as string);
+        }
+      };
+      img.onerror = () => setStoryImage(event.target?.result as string);
+      img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
   };

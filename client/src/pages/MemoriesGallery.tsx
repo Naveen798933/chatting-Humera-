@@ -53,19 +53,55 @@ export const MemoriesGallery: React.FC = () => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error('Image too large! Max 8MB');
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Image too large! Max 15MB');
       return;
     }
+
     const reader = new FileReader();
-    reader.onload = () => {
-      const url = reader.result as string;
-      setUploadPreview(url);
-      setMediaUrl(url);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1200;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.75);
+          setUploadPreview(compressed);
+          setMediaUrl(compressed);
+        } else {
+          const raw = event.target?.result as string;
+          setUploadPreview(raw);
+          setMediaUrl(raw);
+        }
+      };
+      img.onerror = () => {
+        const raw = event.target?.result as string;
+        setUploadPreview(raw);
+        setMediaUrl(raw);
+      };
+      img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   const handleCreateMemory = (e: React.FormEvent) => {
