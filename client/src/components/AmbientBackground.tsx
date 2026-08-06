@@ -38,7 +38,7 @@ export const AmbientBackground: React.FC = () => {
 
     const particles: Particle[] = [];
     const isMobile = window.innerWidth < 768;
-    const count = ambientEffect === 'galaxy' ? (isMobile ? 60 : 120) : ambientEffect === 'rain' ? (isMobile ? 50 : 100) : ambientEffect === 'snow' ? (isMobile ? 40 : 80) : (isMobile ? 24 : 45);
+    const count = ambientEffect === 'galaxy' ? (isMobile ? 25 : 80) : ambientEffect === 'rain' ? (isMobile ? 20 : 60) : ambientEffect === 'snow' ? (isMobile ? 18 : 50) : (isMobile ? 12 : 35);
 
     const colors = {
       hearts: ['#ff70a6', '#f43f5e', '#a855f7', '#ec4899', '#ffffff'],
