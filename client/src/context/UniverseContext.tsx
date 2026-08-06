@@ -118,6 +118,7 @@ interface UniverseContextType {
 
   memories: Memory[];
   addMemory: (mem: Omit<Memory, 'id' | 'createdAt'>) => void;
+  deleteMemory: (id: string) => void;
   toggleFavoriteMemory: (id: string) => void;
 
   vaultNotes: VaultNote[];
@@ -618,6 +619,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const n: Memory = { ...mem, id: `mem_${Date.now()}`, createdAt: new Date().toISOString() };
     setMemories(p => [n, ...p]);
   };
+  const deleteMemory = (id: string) => setMemories(p => p.filter(m => m.id !== id));
   const toggleFavoriteMemory = (id: string) => setMemories(p => p.map(m => m.id === id ? { ...m, isFavorite: !m.isFavorite } : m));
   const addVaultNote = (note: Omit<VaultNote, 'id' | 'createdAt'>) => {
     const n: VaultNote = { ...note, id: `vault_${Date.now()}`, createdAt: new Date().toISOString() };
@@ -734,7 +736,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       ambientEffect, setAmbientEffect, anniversaryDate, setAnniversaryDate,
       messages, sendMessage, deleteMessage, editMessage, markMessagesAsSeen, toggleStarMessage, addReaction,
       isPartnerTyping, setTypingStatus,
-      memories, addMemory, toggleFavoriteMemory,
+      memories, addMemory, deleteMemory, toggleFavoriteMemory,
       vaultNotes, addVaultNote, deleteVaultNote,
       calendarEvents, addCalendarEvent,
       todoItems, addTodoItem, toggleTodoItem, deleteTodoItem,

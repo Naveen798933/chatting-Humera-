@@ -74,6 +74,8 @@ export const TogetherTime: React.FC = () => {
 
   const [board, setBoard] = useState<Array<string | null>>(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState(true);
+  const [xWins, setXWins] = useState(0);
+  const [oWins, setOWins] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -82,9 +84,14 @@ export const TogetherTime: React.FC = () => {
   const handleCellClick = (idx: number) => {
     if (board[idx] || calculateWinner(board)) return;
     const newBoard = [...board];
-    newBoard[idx] = isXNext ? '❤️' : '💖';
+    const symbol = isXNext ? '❤️' : '💖';
+    newBoard[idx] = symbol;
     setBoard(newBoard);
     setIsXNext(!isXNext);
+
+    const win = calculateWinner(newBoard);
+    if (win === '❤️') setXWins(p => p + 1);
+    if (win === '💖') setOWins(p => p + 1);
   };
 
   const resetTicTacToe = () => {
@@ -455,6 +462,13 @@ export const TogetherTime: React.FC = () => {
           {activeGame === 'tictactoe' && (
             <div className="glass-panel p-8 rounded-3xl border border-white/10 text-center space-y-4 max-w-md mx-auto">
               <h3 className="font-extrabold text-base text-white">Couple Tic-Tac-Toe</h3>
+
+              <div className="flex items-center justify-around bg-white/5 p-3 rounded-2xl border border-white/10 text-xs font-bold">
+                <span className="text-pink-300">Naveen ❤️: {xWins}</span>
+                <span className="text-slate-500">|</span>
+                <span className="text-purple-300">Humera 💖: {oWins}</span>
+              </div>
+
               {winner ? (
                 <p className="text-sm font-bold text-emerald-400">Winner: {winner} 🎉</p>
               ) : (
@@ -473,9 +487,17 @@ export const TogetherTime: React.FC = () => {
                 ))}
               </div>
 
-              <button onClick={resetTicTacToe} className="px-4 py-2 rounded-xl bg-white/10 text-xs font-bold text-white">
-                Reset Board
-              </button>
+              <div className="flex items-center justify-center gap-2">
+                <button onClick={resetTicTacToe} className="px-4 py-2 rounded-xl bg-white/10 text-xs font-bold text-white hover:bg-white/20">
+                  Reset Board
+                </button>
+                <button
+                  onClick={() => { resetTicTacToe(); setXWins(0); setOWins(0); toast.info('Scoreboard reset 🔄'); }}
+                  className="px-4 py-2 rounded-xl bg-rose-500/20 text-xs font-bold text-rose-300 border border-rose-500/30 hover:bg-rose-500/30"
+                >
+                  Reset Scoreboard
+                </button>
+              </div>
             </div>
           )}
 

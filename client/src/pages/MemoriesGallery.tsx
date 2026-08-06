@@ -5,13 +5,13 @@ import { Memory } from '../types';
 import { toast } from '../lib/toast';
 import {
   Heart, Image, FolderHeart, Lock, Plus, Star,
-  Calendar, MapPin, Sparkles, X, Upload, ZoomIn
+  Calendar, MapPin, Sparkles, X, Upload, ZoomIn, Trash2, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
 export const MemoriesGallery: React.FC = () => {
   const { currentUser, isVaultUnlocked, unlockVaultWithPin } = useAuth();
-  const { memories, addMemory, toggleFavoriteMemory } = useUniverse();
+  const { memories, addMemory, deleteMemory, toggleFavoriteMemory } = useUniverse();
 
   const [activeAlbum, setActiveAlbum] = useState<Memory['album'] | 'All'>('All');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -362,10 +362,35 @@ export const MemoriesGallery: React.FC = () => {
                 alt={lightboxMem.title}
                 className="w-full max-h-[70vh] object-contain rounded-2xl"
               />
-              <div className="mt-3 text-center">
+              <div className="mt-3 text-center space-y-2">
                 <p className="font-bold text-sm text-white">{lightboxMem.title}</p>
-                {lightboxMem.description && <p className="text-xs text-slate-400 mt-1 italic">"{lightboxMem.description}"</p>}
-                <p className="text-[10px] text-slate-500 mt-1">{lightboxMem.date}</p>
+                {lightboxMem.description && <p className="text-xs text-slate-400 italic">"{lightboxMem.description}"</p>}
+                <p className="text-[10px] text-slate-500">{lightboxMem.date}</p>
+
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <a
+                    href={lightboxMem.mediaUrls[0]}
+                    download={`memory_${lightboxMem.title}.jpg`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 rounded-xl glass-card text-xs font-bold text-slate-200 hover:text-white flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5 text-pink-400" />
+                    <span>Save Photo</span>
+                  </a>
+
+                  <button
+                    onClick={() => {
+                      deleteMemory(lightboxMem.id);
+                      setLightboxMem(null);
+                      toast.info('Memory deleted 🗑️');
+                    }}
+                    className="px-3 py-1.5 rounded-xl glass-card text-xs font-bold text-rose-300 hover:text-rose-200 hover:border-rose-500/40 flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
