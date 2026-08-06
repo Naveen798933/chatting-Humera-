@@ -315,11 +315,36 @@ export const TogetherTime: React.FC = () => {
             </h3>
           </div>
 
+          {/* YouTube Video URL Input */}
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={syncedMediaUrl}
+              onChange={(e) => setSyncedMediaUrl(e.target.value)}
+              placeholder="Paste YouTube Video URL e.g. https://www.youtube.com/watch?v=..."
+              className="flex-1 px-4 py-2.5 rounded-xl glass-input text-xs"
+            />
+            <button
+              onClick={() => toast.love('Video synced for both of you! 🍿')}
+              className="px-4 py-2.5 rounded-xl bg-accent-pink text-white text-xs font-bold shadow-md"
+            >
+              Sync Video
+            </button>
+          </div>
+
           <div className="relative w-full h-[45vh] bg-black rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center">
             <iframe
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0"
+              src={
+                syncedMediaUrl.includes('youtube.com/watch?v=')
+                  ? `https://www.youtube.com/embed/${syncedMediaUrl.split('v=')[1]?.split('&')[0]}?autoplay=1`
+                  : syncedMediaUrl.includes('youtu.be/')
+                  ? `https://www.youtube.com/embed/${syncedMediaUrl.split('youtu.be/')[1]?.split('?')[0]}?autoplay=1`
+                  : "https://www.youtube.com/embed/5qap5aO4i9A?autoplay=0"
+              }
               title="Watch Together Video"
               className="w-full h-full"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
             />
           </div>
 
