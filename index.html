@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/heart.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#06030d" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content="Our Universe — Private space exclusively for Naveen & Humera" />
+    <title>Our Universe ❤️ Naveen & Humera</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CDN for robust instant rendering -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            screens: {
+              'xs': '380px',
+            },
+            colors: {
+              space: {
+                950: '#06030d',
+                900: '#0b071a',
+                850: '#110a26',
+                800: '#160c2e',
+                750: '#1f123d',
+                700: '#28174f',
+                600: '#3d2478',
+              },
+              accent: {
+                pink: '#ff70a6',
+                purple: '#a855f7',
+                violet: '#8b5cf6',
+                rose: '#f43f5e',
+                cyan: '#38bdf8',
+                gold: '#fbbf24',
+              }
+            },
+            fontFamily: {
+              sans: ['Outfit', 'Inter', 'sans-serif'],
+              serif: ['Playfair Display', 'serif'],
+            },
+            animation: {
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 6s ease-in-out infinite',
+              'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
+              'spin-slow': 'spin 15s linear infinite',
+              'shimmer': 'shimmer 2.5s infinite linear',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0px)' },
+                '50%': { transform: 'translateY(-10px)' },
+              },
+              heartbeat: {
+                '0%, 100%': { transform: 'scale(1)' },
+                '14%': { transform: 'scale(1.2)' },
+                '28%': { transform: 'scale(1)' },
+                '42%': { transform: 'scale(1.15)' },
+                '70%': { transform: 'scale(1)' },
+              },
+              shimmer: {
+                '0%': { backgroundPosition: '-200% 0' },
+                '100%': { backgroundPosition: '200% 0' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-Cj7FVqDP.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-3lY1xiz1.css">
+  </head>
+  <body class="bg-space-950 text-slate-100 overflow-x-hidden antialiased selection:bg-accent-pink selection:text-white min-h-screen">
+    <div id="root"></div>
+  </body>
+</html>
