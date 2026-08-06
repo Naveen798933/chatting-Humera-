@@ -186,6 +186,8 @@ export const CoreChat: React.FC = () => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset input value immediately so the same file can be re-selected
+    e.target.value = '';
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
       toast.error('File too large! Max 5MB');
@@ -200,7 +202,6 @@ export const CoreChat: React.FC = () => {
       toast.love(`${isVideo ? 'Video' : 'Image'} sent! 💕`);
     };
     reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   const handleStartRecording = async () => {
@@ -769,19 +770,23 @@ export const CoreChat: React.FC = () => {
         </div>
       )}
 
+      {/* Hidden file input — OUTSIDE form to prevent Android touch hijacking */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept="image/*,video/*"
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}
+      />
+
       {/* Input Bar */}
       <form onSubmit={handleSend} className="p-2.5 sm:p-4 bg-space-900/90 border-t border-white/10 flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          accept="image/*,video/*"
-          className="hidden"
-        />
 
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
           className="p-2 sm:p-2.5 rounded-xl glass-card text-slate-300 hover:text-pink-300 transition-colors flex-shrink-0"
           title="Attach Image/Video"
         >
