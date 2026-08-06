@@ -42,8 +42,10 @@ export const LoveVaultCalendar: React.FC = () => {
     if (unlockVaultWithPin(pinInput)) {
       setPinInput('');
       setPinErr(false);
+      toast.love('Vault unlocked! 🔑');
     } else {
       setPinErr(true);
+      toast.error('Incorrect secret vault PIN 🔒');
     }
   };
 

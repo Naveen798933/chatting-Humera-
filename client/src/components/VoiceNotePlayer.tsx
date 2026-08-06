@@ -85,6 +85,16 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ src, isMe = fa
   // Generate 16 decorative waveform frequency height bars
   const barHeights = [40, 75, 55, 90, 60, 100, 45, 80, 65, 95, 50, 70, 85, 40, 60, 90];
 
+  const handleBarClick = (barIndex: number) => {
+    if (!duration) return;
+    const targetTime = (barIndex / barHeights.length) * duration;
+    const audio = audioRef.current;
+    if (audio) {
+      audio.currentTime = targetTime;
+      setCurrentTime(targetTime);
+    }
+  };
+
   return (
     <div className={`p-2.5 sm:p-3 rounded-2xl border flex flex-col gap-2 max-w-xs sm:max-w-sm ${
       isMe ? 'bg-black/20 border-white/20 text-white' : 'glass-panel border-white/10 text-white'
@@ -115,7 +125,8 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ src, isMe = fa
             return (
               <span
                 key={idx}
-                className={`w-1 rounded-full transition-all duration-200 ${
+                onClick={() => handleBarClick(idx)}
+                className={`w-1 rounded-full cursor-pointer hover:opacity-80 transition-all duration-200 ${
                   isPassed
                     ? isMe ? 'bg-pink-200' : 'bg-pink-400'
                     : 'bg-white/25'

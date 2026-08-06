@@ -37,6 +37,7 @@ export const CoreChat: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [activeReactionMsgId, setActiveReactionMsgId] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const { isMobile } = useScreenSize();
 
@@ -509,7 +510,11 @@ export const CoreChat: React.FC = () => {
                         <img
                           src={msg.mediaUrl}
                           alt="Shared image"
-                          className="w-full max-h-56 object-cover rounded-xl mb-2 border border-white/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLightboxImage(msg.mediaUrl!);
+                          }}
+                          className="w-full max-h-56 object-cover rounded-xl mb-2 border border-white/10 cursor-zoom-in hover:opacity-95 transition-opacity"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
@@ -777,6 +782,32 @@ export const CoreChat: React.FC = () => {
           <Send className="w-4 h-4" />
         </button>
       </form>
+
+      {/* Full-Screen Image Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxImage && (
+          <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center"
+            >
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="absolute top-2 right-2 p-2 rounded-full glass-card text-white hover:bg-white/20 z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={lightboxImage}
+                alt="Full screen view"
+                className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-white/10"
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
