@@ -233,12 +233,6 @@ const AppContent: React.FC = () => {
           webrtcEndCall();
         }}
       />
-      {/* App Footer */}
-      <footer className="py-2 text-center select-none z-10 shrink-0">
-        <p className="text-[11px] sm:text-xs font-semibold tracking-wide bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent opacity-90 drop-shadow-[0_0_8px_rgba(168,85,247,0.35)]">
-          Developed by HUMERA FAARIYA ❤️
-        </p>
-      </footer>
       <ToastContainer />
     </div>
   );
