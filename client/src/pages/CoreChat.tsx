@@ -11,7 +11,7 @@ import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import {
   Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video, Camera,
   Trash2, Star, Search, CornerUpLeft, Clock, Paperclip,
-  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical
+  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical, ArrowDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -74,6 +74,7 @@ export const CoreChat: React.FC = () => {
     }
   };
 
+  const [hasUnreadBelow, setHasUnreadBelow] = useState<boolean>(false);
   const isNearBottomRef = useRef<boolean>(true);
   const isInitialScrolledRef = useRef<boolean>(false);
   const prevMessagesLengthRef = useRef<number>(messages.length);
@@ -95,7 +96,11 @@ export const CoreChat: React.FC = () => {
     if (!container) return;
     const threshold = 180;
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    isNearBottomRef.current = distanceFromBottom <= threshold;
+    const nearBottom = distanceFromBottom <= threshold;
+    isNearBottomRef.current = nearBottom;
+    if (nearBottom) {
+      setHasUnreadBelow(false);
+    }
   };
 
   // Lock mobile body/window scrolling when interacting with chat
@@ -113,6 +118,7 @@ export const CoreChat: React.FC = () => {
   useEffect(() => {
     isInitialScrolledRef.current = false;
     isNearBottomRef.current = true;
+    setHasUnreadBelow(false);
   }, []);
 
   // ResizeObserver to handle mobile font paint, image load, and message container height calculations
@@ -169,6 +175,10 @@ export const CoreChat: React.FC = () => {
 
       if (isMyMessage || isNearBottomRef.current) {
         requestAnimationFrame(() => scrollToBottom(true));
+        setHasUnreadBelow(false);
+      } else {
+        // User is scrolled up reading old messages -> show floating "↓ New Messages" button!
+        setHasUnreadBelow(true);
       }
     } else if (isPartnerTyping && isNearBottomRef.current) {
       scrollToBottom(true);
@@ -937,6 +947,26 @@ export const CoreChat: React.FC = () => {
 
       {/* Pro WhatsApp-Style Chat Composer Container */}
       <div className="relative flex-shrink-0 z-20">
+
+        {/* Floating "↓ New Messages" Indicator Button (WhatsApp-like UX) */}
+        <AnimatePresence>
+          {hasUnreadBelow && (
+            <motion.button
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.9 }}
+              onClick={() => {
+                scrollToBottom(true);
+                setHasUnreadBelow(false);
+              }}
+              className="absolute bottom-full right-4 mb-3 z-40 px-3.5 py-2 rounded-full bg-gradient-to-r from-accent-pink via-accent-purple to-indigo-600 text-white text-xs font-extrabold shadow-2xl border border-white/20 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+              title="Scroll to latest messages"
+            >
+              <ArrowDown className="w-4 h-4 animate-bounce" />
+              <span>New Messages</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
         
         {/* Emoji & Sticker Picker Overlay */}
         <AnimatePresence>

@@ -7,6 +7,11 @@ export const motion = {
       {children}
     </div>
   )),
+  button: React.forwardRef<HTMLButtonElement, any>(({ children, className = '', initial, animate, exit, transition, ...props }, ref) => (
+    <button ref={ref} className={`transition-all duration-300 ${className}`} {...props}>
+      {children}
+    </button>
+  )),
 };
 
 export const AnimatePresence: React.FC<{ children: React.ReactNode }> = ({ children }) => {
