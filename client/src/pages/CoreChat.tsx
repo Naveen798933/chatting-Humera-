@@ -820,7 +820,7 @@ export const CoreChat: React.FC = () => {
                       {activeReactionMsgId === msg.id && (
                         <motion.div
                           onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                          className={`flex items-center gap-1 bg-space-900/95 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl backdrop-blur-md flex-wrap max-w-[min(280px,85vw)] ${isMe ? 'self-end' : 'self-start'}`}
+                          className={`flex items-center gap-1 bg-space-900/95 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl backdrop-blur-md flex-wrap max-w-[min(280px,82vw)] overflow-hidden ${isMe ? 'self-end' : 'self-start'}`}
                         >
                           {QUICK_REACTIONS.map(emoji => (
                             <button

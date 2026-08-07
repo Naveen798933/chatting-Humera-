@@ -25,7 +25,7 @@ export const EmojiGifPicker: React.FC<EmojiGifPickerProps> = ({ onSelectEmoji, o
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="bg-space-900 border border-white/10 p-3 sm:p-4 rounded-2xl shadow-2xl space-y-3 w-[min(18rem,90vw)] max-w-full"
+      className="bg-space-900 border border-white/10 p-3 sm:p-4 rounded-2xl shadow-2xl space-y-3 w-[min(18rem,88vw)] max-w-[calc(100vw-24px)]"
     >
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <div className="flex items-center gap-2">
