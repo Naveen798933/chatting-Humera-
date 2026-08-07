@@ -74,55 +74,84 @@ export const CoreChat: React.FC = () => {
     }
   };
 
-  const scrollToBottom = (instant = false) => {
+  const isNearBottomRef = useRef<boolean>(true);
+  const isInitialScrolledRef = useRef<boolean>(false);
+  const prevMessagesLengthRef = useRef<number>(messages.length);
+
+  // Helper to scroll messages container strictly to bottom
+  const scrollToBottom = (smooth = true) => {
     const container = chatContainerRef.current;
     if (container) {
       container.scrollTo({
         top: container.scrollHeight,
-        behavior: instant ? 'auto' : 'smooth'
+        behavior: smooth ? 'smooth' : 'auto'
       });
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
     }
   };
 
-  // Instant scroll to latest messages on mount & load
-  useEffect(() => {
-    scrollToBottom(true);
-    const t1 = setTimeout(() => scrollToBottom(true), 60);
-    const t2 = setTimeout(() => scrollToBottom(true), 250);
-    markMessagesAsSeen();
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  // Run only on mount — markMessagesAsSeen is a stable context function
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Smooth scroll on new message or partner typing
-  useEffect(() => {
-    scrollToBottom(false);
-    markMessagesAsSeen();
-  }, [messages.length, isPartnerTyping]);
-
-  // Mobile virtual keyboard scrollIntoView handler
-  const handleInputFocus = () => {
-    setTimeout(() => {
-      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      scrollToBottom(true);
-    }, 120);
-    setTimeout(() => {
-      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      scrollToBottom(true);
-    }, 320);
+  // Track if user is scrolled near bottom
+  const handleScroll = () => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+    const threshold = 150; // px threshold from bottom
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    isNearBottomRef.current = distanceFromBottom <= threshold;
   };
 
-  // Visual Viewport resize listener for mobile keyboards
+  // 1. Initial Load Scroll: Wait until messages exist and layout settles before auto-scrolling
+  useEffect(() => {
+    if (messages.length > 0 && !isInitialScrolledRef.current) {
+      const timer = setTimeout(() => {
+        scrollToBottom(true);
+        isInitialScrolledRef.current = true;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length]);
+
+  // Reset initial scroll flag on mount
+  useEffect(() => {
+    isInitialScrolledRef.current = false;
+    isNearBottomRef.current = true;
+  }, []);
+
+  // 2. Auto-scroll on new message or partner typing ONLY if user is near bottom or sent the message
+  useEffect(() => {
+    if (!isInitialScrolledRef.current || messages.length === 0) {
+      prevMessagesLengthRef.current = messages.length;
+      return;
+    }
+
+    const hasNewMessage = messages.length > prevMessagesLengthRef.current;
+    prevMessagesLengthRef.current = messages.length;
+
+    if (hasNewMessage) {
+      const lastMsg = messages[messages.length - 1];
+      const isMyMessage = lastMsg?.senderId === currentUser?.uid;
+
+      if (isMyMessage || isNearBottomRef.current) {
+        setTimeout(() => {
+          scrollToBottom(true);
+        }, 50);
+      }
+    } else if (isPartnerTyping && isNearBottomRef.current) {
+      scrollToBottom(true);
+    }
+
+    markMessagesAsSeen();
+  }, [messages, isPartnerTyping, currentUser?.uid]);
+
+  // Handle focus without calling element.scrollIntoView (which scrolls window/body)
+  const handleInputFocus = () => {
+    if (isNearBottomRef.current) {
+      setTimeout(() => scrollToBottom(true), 150);
+    }
+  };
+
+  // Visual Viewport resize listener for mobile keyboards (scrolls only chat container, never page)
   useEffect(() => {
     const handleViewportResize = () => {
-      if (document.activeElement === inputRef.current) {
-        inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (document.activeElement === inputRef.current && isNearBottomRef.current) {
         scrollToBottom(true);
       }
     };
@@ -597,6 +626,7 @@ export const CoreChat: React.FC = () => {
       {/* Messages Scroll Area — tap empty background to dismiss open action menus */}
       <div
         ref={chatContainerRef}
+        onScroll={handleScroll}
         onClick={() => setActiveReactionMsgId(null)}
         className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-5 space-y-3"
         id="chat-messages"
