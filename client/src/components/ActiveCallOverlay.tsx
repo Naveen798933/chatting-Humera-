@@ -244,7 +244,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
           >
             <button
               onClick={onToggleMic}
-              className={`p-3 sm:p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
+              className={`p-3 sm:p-4 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full shadow-xl transition-transform active:scale-95 ${
                 isMicMuted ? 'bg-rose-500/30 text-rose-300 border border-rose-500/50' : 'glass-panel text-white hover:bg-white/20'
               }`}
               title={isMicMuted ? 'Unmute Mic' : 'Mute Mic'}
@@ -255,7 +255,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             {/* End Call Button */}
             <button
               onClick={onEndCall}
-              className="p-4 sm:p-5 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-2xl shadow-rose-600/50 hover:scale-110 active:scale-95 transition-transform"
+              className="p-4 sm:p-5 min-w-[56px] min-h-[56px] flex items-center justify-center rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-2xl shadow-rose-600/50 hover:scale-110 active:scale-95 transition-transform"
               title="End Call"
             >
               <PhoneOff className="w-6 h-6 sm:w-8 sm:h-8 fill-current" />
@@ -265,7 +265,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             {callType === 'video' && (
               <button
                 onClick={onToggleCamera}
-                className={`p-3 sm:p-4 rounded-full shadow-xl transition-transform active:scale-95 ${
+                className={`p-3 sm:p-4 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full shadow-xl transition-transform active:scale-95 ${
                   isCameraOff ? 'bg-rose-500/30 text-rose-300 border border-rose-500/50' : 'glass-panel text-white hover:bg-white/20'
                 }`}
                 title={isCameraOff ? 'Turn Camera On' : 'Turn Camera Off'}
@@ -278,7 +278,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             {callType === 'video' && onSwitchCamera && (
               <button
                 onClick={onSwitchCamera}
-                className="p-3 sm:p-4 rounded-full glass-panel text-slate-200 hover:text-white shadow-xl transition-transform active:scale-95"
+                className="p-3 sm:p-4 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full glass-panel text-slate-200 hover:text-white shadow-xl transition-transform active:scale-95"
                 title="Switch Camera"
               >
                 <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6" />

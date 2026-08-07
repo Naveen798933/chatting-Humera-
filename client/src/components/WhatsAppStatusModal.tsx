@@ -197,7 +197,7 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
 
           {/* Create Status Modal — Mobile Responsive Form */}
           {showCreateModal && (
-            <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 overflow-y-auto">
+            <div className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 pt-[max(1rem,env(safe-area-inset-top,1rem))] overflow-y-auto">
               <div className="flex items-center justify-between shrink-0 mb-3">
                 <h4 className="font-extrabold text-white text-base">New Status Update</h4>
                 <button onClick={() => setShowCreateModal(false)} className="p-2 rounded-full glass-card text-white">
