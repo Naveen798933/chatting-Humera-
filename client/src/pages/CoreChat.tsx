@@ -96,6 +96,8 @@ export const CoreChat: React.FC = () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
+  // Run only on mount — markMessagesAsSeen is a stable context function
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Smooth scroll on new message or partner typing

@@ -20,7 +20,8 @@ import { AdminBackupModal } from './components/AdminBackupModal';
 import { DecoyCalculator } from './components/DecoyCalculator';
 import { ToastContainer } from './components/Toast';
 
-import { WhatsAppStatusModal, StoryItem } from './components/WhatsAppStatusModal';
+import { WhatsAppStatusModal } from './components/WhatsAppStatusModal';
+import { StoryItem } from './types';
 import { PartnerProfileDrawer } from './components/PartnerProfileDrawer';
 import { CallHistoryModal } from './components/CallHistoryModal';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
@@ -58,6 +59,9 @@ const AppContent: React.FC = () => {
     ];
   });
 
+  // Ref to the subscribed story broadcast channel (must be subscribed before send)
+  const storyChannelRef = React.useRef<any>(null);
+
   const handleAddStory = (st: Omit<StoryItem, 'id' | 'createdAt'>) => {
     const newStory: StoryItem = {
       ...st,
@@ -70,11 +74,10 @@ const AppContent: React.FC = () => {
       return updated;
     });
 
-    // Supabase Realtime broadcast for live partner story sync
-    if (isSupabaseConfigured()) {
+    // Broadcast to partner via the already-subscribed storyChannelRef
+    if (isSupabaseConfigured() && storyChannelRef.current) {
       try {
-        const channel = supabase.channel('ou_chat_broadcast');
-        channel.send({
+        storyChannelRef.current.send({
           type: 'broadcast',
           event: 'NEW_STORY',
           payload: { story: newStory }
@@ -86,7 +89,8 @@ const AppContent: React.FC = () => {
   // Subscribe to real-time partner stories broadcast
   React.useEffect(() => {
     if (!isSupabaseConfigured()) return;
-    const channel = supabase.channel('ou_chat_broadcast');
+    const channel = supabase.channel('ou_story_broadcast');
+    storyChannelRef.current = channel;
     channel.on('broadcast', { event: 'NEW_STORY' }, (payload: any) => {
       const { story } = payload.payload || {};
       if (story && story.authorId !== currentUser?.uid) {
@@ -102,6 +106,7 @@ const AppContent: React.FC = () => {
 
     return () => {
       supabase.removeChannel(channel);
+      storyChannelRef.current = null;
     };
   }, [currentUser]);
 
@@ -159,6 +164,7 @@ const AppContent: React.FC = () => {
       }`}>
         {activeTab === 'home' && <HomeDashboard />}
         {activeTab === 'chat' && <CoreChat />}
+        {activeTab === 'together' && <TogetherTime />}
         {activeTab === 'memories' && <MemoriesGallery />}
         {activeTab === 'vault' && <LoveVaultCalendar />}
       </main>

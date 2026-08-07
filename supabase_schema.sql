@@ -17,9 +17,17 @@ CREATE TABLE IF NOT EXISTS messages (
   delivered BOOLEAN DEFAULT true,
   is_secret BOOLEAN DEFAULT false,
   is_starred BOOLEAN DEFAULT false,
+  is_edited BOOLEAN DEFAULT false,
+  seen BOOLEAN DEFAULT false,
+  seen_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 1b. If table already exists, add missing columns (safe to run multiple times)
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_edited BOOLEAN DEFAULT false;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS seen BOOLEAN DEFAULT false;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS seen_at TIMESTAMPTZ;
 
 -- 2. Create Typing & Presence Table
 CREATE TABLE IF NOT EXISTS presence (

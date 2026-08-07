@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut, ShieldAlert, Palette, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShakeLock } from '../hooks/useShakeLock';
 import { toast } from '../lib/toast';
 
-export type TabType = 'home' | 'chat' | 'memories' | 'vault';
+export type TabType = 'home' | 'chat' | 'together' | 'memories' | 'vault';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -44,16 +44,19 @@ export const Navigation: React.FC<NavigationProps> = ({
   }, []);
 
   // Mobile Shake-to-Lock: Shaking phone triggers stealth decoy calculator
-  useShakeLock(() => {
+  const handleShake = useCallback(() => {
     toast.info('Mobile Shake Panic triggered!');
     toggleDecoyMode();
-  });
+  }, [toggleDecoyMode]);
+
+  useShakeLock(handleShake);
 
   const navItems: { id: TabType; label: string; shortLabel: string; icon: React.ReactNode }[] = [
-    { id: 'home',     label: 'Home',     shortLabel: 'Home',    icon: <Home className="w-6 h-6 sm:w-5 sm:h-5" /> },
-    { id: 'chat',     label: 'Chat',     shortLabel: 'Chat',    icon: <MessageCircle className="w-6 h-6 sm:w-5 sm:h-5" /> },
-    { id: 'memories', label: 'Memories', shortLabel: 'Gallery', icon: <Heart className="w-6 h-6 sm:w-5 sm:h-5" /> },
-    { id: 'vault',    label: 'Vault',    shortLabel: 'Vault',   icon: <Lock className="w-6 h-6 sm:w-5 sm:h-5" /> }
+    { id: 'home',     label: 'Home',     shortLabel: 'Home',     icon: <Home className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'chat',     label: 'Chat',     shortLabel: 'Chat',     icon: <MessageCircle className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'together', label: 'Together', shortLabel: 'Together', icon: <Sparkles className="w-6 h-6 sm:w-5 sm:h-5 text-pink-400" /> },
+    { id: 'memories', label: 'Memories', shortLabel: 'Gallery',  icon: <Heart className="w-6 h-6 sm:w-5 sm:h-5" /> },
+    { id: 'vault',    label: 'Vault',    shortLabel: 'Vault',    icon: <Lock className="w-6 h-6 sm:w-5 sm:h-5" /> }
   ];
 
   const handleLogout = () => {

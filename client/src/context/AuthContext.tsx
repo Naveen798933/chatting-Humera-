@@ -191,6 +191,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(newUser);
     setIsAuthenticated(true);
     setIsDecoyActive(false);
+
+    // Immediately derive and set partnerUser so it's available right after login
+    const partnerMatch = AUTHORIZED_USERS.find(u => u.uid !== match.uid);
+    if (partnerMatch) {
+      setPartnerUser({
+        uid: partnerMatch.uid,
+        email: partnerMatch.email,
+        realName: partnerMatch.realName,
+        nickname: partnerMatch.nickname,
+        petName: partnerMatch.petName,
+        role: partnerMatch.role,
+        photoURL: partnerMatch.photoURL,
+        city: partnerMatch.city,
+        mood: { emoji: '🥹', text: "Can't wait to see you soon", updatedAt: new Date().toISOString() },
+        online: true,
+        lastSeen: new Date().toISOString()
+      });
+    }
+
     return true;
   };
 
@@ -249,12 +268,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         };
         await navigator.credentials.get(options);
+        // Only unlock if the credential.get() resolved successfully (no throw)
         setIsVaultUnlocked(true);
         return true;
       }
-    } catch (e) {
-      setIsVaultUnlocked(true);
-      return true;
+    } catch (e: any) {
+      // User cancelled (NotAllowedError) or no credential available — do NOT unlock
+      console.warn('[Biometric] Auth failed or cancelled:', e?.name || e);
+      return false;
     }
     return false;
   };

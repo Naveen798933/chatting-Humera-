@@ -1,19 +1,10 @@
 import React, { useState } from 'react';
-import { X, Plus, Image, Sparkles, Send, Eye } from 'lucide-react';
+import { X, Plus, Sparkles, Send, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from './motion';
-import { UserProfile } from '../types';
+import { UserProfile, StoryItem } from '../types';
 import { toast } from '../lib/toast';
 
-export interface StoryItem {
-  id: string;
-  authorId: string;
-  authorName: string;
-  authorPhoto: string;
-  mediaUrl?: string;
-  text?: string;
-  bgGradient?: string;
-  createdAt: string;
-}
+// StoryItem is now imported from '../types' — no duplicate definition here
 
 interface WhatsAppStatusModalProps {
   isOpen: boolean;

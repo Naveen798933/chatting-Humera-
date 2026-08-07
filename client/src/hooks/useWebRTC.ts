@@ -53,7 +53,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
         params.encodings[0].maxBitrate = 3500000; // 3.5 Mbps HD 1080p 60fps
         params.encodings[0].maxFramerate = 60;
         params.encodings[0].priority = 'high';
-        params.encodings[0].networkPriority = 'high';
+        // networkPriority is non-standard — removed for cross-browser compatibility
         sender.setParameters(params).catch(() => {});
       } else if (sender.track?.kind === 'audio') {
         const params = sender.getParameters();

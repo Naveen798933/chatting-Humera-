@@ -174,6 +174,9 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return raw.map(m => ({ ...m, reactions: m.reactions || {} }));
   });
   const msgSyncChannelRef = useRef<BroadcastChannel | null>(null);
+  // Stable ref so the burn interval always reads the latest messages
+  // without needing to re-create the interval on every message change
+  const messagesRef = useRef<Message[]>(messages);
 
   // ── Non-message data — localStorage with BroadcastChannel ─────────────────
   const [memories, setMemories]         = useState<Memory[]>(() => readLS(LS_MEMS, SEED_MEMORIES));
@@ -407,7 +410,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const interval = setInterval(async () => {
       const now = Date.now();
-      const toDelete = messages.filter(m =>
+      const toDelete = messagesRef.current.filter(m =>
         m.isSecret && m.expiresAt && new Date(m.expiresAt).getTime() <= now
       );
       for (const m of toDelete) {
@@ -419,10 +422,12 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (toDelete.length) sounds.playSecretBurnSound();
     }, 2000);
     return () => clearInterval(interval);
-  }, [messages]);
+  // Stable interval — reads latest messages via messagesRef, no [messages] dep needed
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Persist all state to LocalStorage ─────────────────────────────────────
-  useEffect(() => { writeLS(LS_MSGS,  messages);  }, [messages]);
+  useEffect(() => { messagesRef.current = messages; writeLS(LS_MSGS,  messages);  }, [messages]);
   useEffect(() => { writeLS(LS_MEMS,  memories);  }, [memories]);
   useEffect(() => { writeLS(LS_VAULT, vaultNotes); }, [vaultNotes]);
   useEffect(() => { writeLS(LS_CAL,   calendarEvents); }, [calendarEvents]);
