@@ -89,33 +89,71 @@ export const CoreChat: React.FC = () => {
     }
   };
 
-  // Track if user is scrolled near bottom
+  // Track if user is scrolled near bottom (mobile touch threshold: 180px)
   const handleScroll = () => {
     const container = chatContainerRef.current;
     if (!container) return;
-    const threshold = 150; // px threshold from bottom
+    const threshold = 180;
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     isNearBottomRef.current = distanceFromBottom <= threshold;
   };
 
-  // 1. Initial Load Scroll: Wait until messages exist and layout settles before auto-scrolling
+  // Lock mobile body/window scrolling when interacting with chat
   useEffect(() => {
-    if (messages.length > 0 && !isInitialScrolledRef.current) {
-      const timer = setTimeout(() => {
-        scrollToBottom(true);
-        isInitialScrolledRef.current = true;
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [messages.length]);
+    const lockWindowScroll = () => {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener('scroll', lockWindowScroll, { passive: true });
+    return () => window.removeEventListener('scroll', lockWindowScroll);
+  }, []);
 
-  // Reset initial scroll flag on mount
+  // Reset initial scroll state when mounting or switching conversation
   useEffect(() => {
     isInitialScrolledRef.current = false;
     isNearBottomRef.current = true;
   }, []);
 
-  // 2. Auto-scroll on new message or partner typing ONLY if user is near bottom or sent the message
+  // ResizeObserver to handle mobile font paint, image load, and message container height calculations
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    const performAutoScroll = () => {
+      if (messages.length === 0) return;
+
+      if (!isInitialScrolledRef.current) {
+        // Double RAF ensures layout paint completes before initial smooth scroll on mobile
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollToBottom(true);
+            isInitialScrolledRef.current = true;
+          });
+        });
+      } else if (isNearBottomRef.current) {
+        scrollToBottom(true);
+      }
+    };
+
+    // Perform initial scroll attempt once messages are available
+    performAutoScroll();
+
+    const resizeObserver = new ResizeObserver(() => {
+      performAutoScroll();
+    });
+
+    resizeObserver.observe(container);
+    if (container.firstElementChild) {
+      resizeObserver.observe(container.firstElementChild);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [messages.length]);
+
+  // Handle new incoming messages / partner typing updates
   useEffect(() => {
     if (!isInitialScrolledRef.current || messages.length === 0) {
       prevMessagesLengthRef.current = messages.length;
@@ -130,9 +168,7 @@ export const CoreChat: React.FC = () => {
       const isMyMessage = lastMsg?.senderId === currentUser?.uid;
 
       if (isMyMessage || isNearBottomRef.current) {
-        setTimeout(() => {
-          scrollToBottom(true);
-        }, 50);
+        requestAnimationFrame(() => scrollToBottom(true));
       }
     } else if (isPartnerTyping && isNearBottomRef.current) {
       scrollToBottom(true);
@@ -141,14 +177,14 @@ export const CoreChat: React.FC = () => {
     markMessagesAsSeen();
   }, [messages, isPartnerTyping, currentUser?.uid]);
 
-  // Handle focus without calling element.scrollIntoView (which scrolls window/body)
+  // Handle focus on mobile keyboard open (scrolls ONLY chat container, never page)
   const handleInputFocus = () => {
     if (isNearBottomRef.current) {
-      setTimeout(() => scrollToBottom(true), 150);
+      setTimeout(() => scrollToBottom(true), 120);
     }
   };
 
-  // Visual Viewport resize listener for mobile keyboards (scrolls only chat container, never page)
+  // Visual Viewport resize listener for mobile virtual keyboard
   useEffect(() => {
     const handleViewportResize = () => {
       if (document.activeElement === inputRef.current && isNearBottomRef.current) {
