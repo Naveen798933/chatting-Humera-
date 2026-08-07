@@ -172,7 +172,7 @@ export const HomeDashboard: React.FC = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-4 gap-2 sm:gap-4 max-w-xl mx-auto">
+          <div className="grid grid-cols-2 xs:grid-cols-4 gap-2 sm:gap-4 max-w-xl mx-auto">
             <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
               <p className="text-xl sm:text-4xl font-extrabold text-white tracking-tight">{timeTogether.days}</p>
               <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Days</p>

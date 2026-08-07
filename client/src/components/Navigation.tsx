@@ -266,7 +266,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
     {/* Mobile Bottom Navigation Bar — Auto hides when in Chat mode or virtual keyboard is active */}
     <div
-      className={`md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around shadow-2xl px-1 transition-transform duration-300 ${
+      className={`md:hidden fixed bottom-0 left-0 right-0 z-50 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-center justify-around shadow-2xl px-1 transition-all duration-300 ease-in-out ${
         activeTab === 'chat' || isKeyboardOpen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
       }`}
       style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))', paddingTop: '6px' }}
