@@ -37,7 +37,23 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
     'from-indigo-900 to-slate-900'
   ];
 
-  if (!isOpen) return null;
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image size must be under 10MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const result = evt.target?.result as string;
+      if (result) {
+        setStoryImage(result);
+        toast.love('Photo attached to status!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handlePostStory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,17 +78,16 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
     setShowCreateModal(false);
   };
 
-
-
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-4 sm:p-6 relative overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85dvh]"
-        >
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-4 sm:p-6 relative overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85dvh]"
+          >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3 shrink-0">
             <h3 className="font-extrabold text-white text-base sm:text-lg flex items-center gap-2">
@@ -206,9 +221,18 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
               </div>
 
               <form onSubmit={handlePostStory} className="space-y-4 my-auto w-full max-w-md mx-auto">
-                <div className={`p-6 sm:p-8 rounded-3xl bg-gradient-to-br ${selectedGradient} flex flex-col items-center justify-center gap-4 border border-white/20 min-h-[180px] sm:min-h-[220px]`}>
+                <div className={`p-6 sm:p-8 rounded-3xl bg-gradient-to-br ${selectedGradient} flex flex-col items-center justify-center gap-4 border border-white/20 min-h-[180px] sm:min-h-[220px] relative`}>
                   {storyImage && (
-                    <img src={storyImage} className="w-28 h-28 sm:w-32 sm:h-32 object-cover rounded-2xl border-2 border-white/40 shadow-xl" />
+                    <div className="relative group">
+                      <img src={storyImage} className="w-28 h-28 sm:w-32 sm:h-32 object-cover rounded-2xl border-2 border-white/40 shadow-xl" />
+                      <button
+                        type="button"
+                        onClick={() => setStoryImage('')}
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs shadow-md"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   )}
                   <textarea
                     value={storyText}
@@ -217,6 +241,13 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
                     className="w-full bg-transparent text-center text-base sm:text-lg font-bold text-white placeholder-white/60 focus:outline-none resize-none"
                     rows={3}
                   />
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-1.5 transition-all">
+                      <span>📷 Add Photo</span>
+                      <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                    </label>
+                  </div>
                 </div>
 
                 {/* Gradient Selector */}
@@ -245,6 +276,7 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
           )}
         </motion.div>
       </div>
-    </AnimatePresence>
+    )}
+  </AnimatePresence>
   );
 };

@@ -6,7 +6,7 @@ import {
   ShieldCheck, Download, Upload, HardDrive, Sparkles, X, 
   UserCheck, Heart, LogOut, Check, EyeOff, Lock 
 } from 'lucide-react';
-import { motion } from './motion';
+import { motion, AnimatePresence } from './motion';
 
 interface AdminBackupModalProps {
   isOpen: boolean;
@@ -25,8 +25,6 @@ export const AdminBackupModal: React.FC<AdminBackupModalProps> = ({ isOpen, onCl
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  if (!isOpen) return null;
 
   const handleExportDatabaseJSON = () => {
     const archiveData = {
@@ -87,8 +85,15 @@ export const AdminBackupModal: React.FC<AdminBackupModalProps> = ({ isOpen, onCl
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <motion.div className="glass-panel-glow p-6 sm:p-8 rounded-3xl max-w-lg w-full border border-pink-400/40 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="glass-panel-glow p-6 sm:p-8 rounded-3xl max-w-lg w-full border border-pink-400/40 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto"
+          >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-pink-500/20 text-pink-300">
@@ -223,5 +228,7 @@ export const AdminBackupModal: React.FC<AdminBackupModalProps> = ({ isOpen, onCl
         </div>
       </motion.div>
     </div>
+  )}
+</AnimatePresence>
   );
 };

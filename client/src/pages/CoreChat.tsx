@@ -670,45 +670,52 @@ ${htmlRows}
       </AnimatePresence>
 
       {/* Search & Media Filter Bar */}
-      {showSearch && (
-        <div className="p-2 sm:p-2.5 bg-space-900/95 border-b border-white/10 flex flex-col gap-2 flex-shrink-0 z-20">
-          <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-pink-400 ml-2 shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search chat messages..."
-              className="flex-1 bg-transparent text-xs text-white focus:outline-none placeholder:text-slate-400"
-              autoFocus
-            />
-            <button onClick={() => { setSearchQuery(''); setChatFilter('all'); setShowSearch(false); }} className="p-1 text-slate-400 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-2 overflow-x-auto scrollbar-none">
-            {[
-              { id: 'all', label: 'All Messages' },
-              { id: 'starred', label: '⭐ Starred' },
-              { id: 'media', label: '📷 Media' },
-              { id: 'audio', label: '🎙️ Voice Notes' }
-            ].map(f => (
-              <button
-                key={f.id}
-                onClick={() => setChatFilter(f.id as any)}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all whitespace-nowrap ${
-                  chatFilter === f.id
-                    ? 'bg-accent-pink text-white shadow-md'
-                    : 'glass-card text-slate-300 hover:text-white'
-                }`}
-              >
-                {f.label}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="p-2 sm:p-2.5 bg-space-900/95 border-b border-white/10 flex flex-col gap-2 flex-shrink-0 z-20 overflow-hidden"
+          >
+            <div className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-pink-400 ml-2 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search chat messages..."
+                className="flex-1 bg-transparent text-xs text-white focus:outline-none placeholder:text-slate-400"
+                autoFocus
+              />
+              <button onClick={() => { setSearchQuery(''); setChatFilter('all'); setShowSearch(false); }} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
               </button>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+
+            <div className="flex items-center gap-1.5 px-2 overflow-x-auto scrollbar-none">
+              {[
+                { id: 'all', label: 'All Messages' },
+                { id: 'starred', label: '⭐ Starred' },
+                { id: 'media', label: '📷 Media' },
+                { id: 'audio', label: '🎙️ Voice Notes' }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setChatFilter(f.id as any)}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all whitespace-nowrap ${
+                    chatFilter === f.id
+                      ? 'bg-accent-pink text-white shadow-md'
+                      : 'glass-card text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Messages Scroll Area — tap empty background to dismiss open action menus */}
       <div
