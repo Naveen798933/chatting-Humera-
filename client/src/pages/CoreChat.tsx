@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth, formatLastSeen } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
@@ -103,60 +103,28 @@ export const CoreChat: React.FC = () => {
     }
   };
 
-  // Lock mobile body/window scrolling when interacting with chat
-  useEffect(() => {
-    const lockWindowScroll = () => {
-      if (window.scrollY !== 0) {
-        window.scrollTo(0, 0);
-      }
-    };
-    window.addEventListener('scroll', lockWindowScroll, { passive: true });
-    return () => window.removeEventListener('scroll', lockWindowScroll);
-  }, []);
-
-  // Reset initial scroll state when mounting or switching conversation
-  useEffect(() => {
+  // Initial scroll to bottom — runs synchronously before first paint so the user
+  // ALWAYS sees the latest message when opening the chat (no flicker, no delay).
+  // 'instant' avoids any animated scroll that could cause a visible jump to top.
+  useLayoutEffect(() => {
     isInitialScrolledRef.current = false;
     isNearBottomRef.current = true;
     setHasUnreadBelow(false);
   }, []);
 
-  // ResizeObserver to handle mobile font paint, image load, and message container height calculations
-  useEffect(() => {
+  // Scroll to bottom on initial message load.
+  // useLayoutEffect fires before paint — user sees the bottom immediately.
+  // After first scroll, isInitialScrolledRef guards against repeated firing.
+  useLayoutEffect(() => {
+    if (messages.length === 0) return;
+    if (isInitialScrolledRef.current) return;
+
     const container = chatContainerRef.current;
     if (!container) return;
 
-    const performAutoScroll = () => {
-      if (messages.length === 0) return;
-
-      if (!isInitialScrolledRef.current) {
-        // Double RAF ensures layout paint completes before initial smooth scroll on mobile
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            scrollToBottom(true);
-            isInitialScrolledRef.current = true;
-          });
-        });
-      } else if (isNearBottomRef.current) {
-        scrollToBottom(true);
-      }
-    };
-
-    // Perform initial scroll attempt once messages are available
-    performAutoScroll();
-
-    const resizeObserver = new ResizeObserver(() => {
-      performAutoScroll();
-    });
-
-    resizeObserver.observe(container);
-    if (container.firstElementChild) {
-      resizeObserver.observe(container.firstElementChild);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
+    // Instant scroll (no animation) so mobile never shows the top first
+    container.scrollTop = container.scrollHeight;
+    isInitialScrolledRef.current = true;
   }, [messages.length]);
 
   // Handle new incoming messages / partner typing updates
@@ -443,7 +411,7 @@ export const CoreChat: React.FC = () => {
   });
 
   return (
-    <div className="max-w-4xl w-full mx-auto flex flex-col glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full md:h-[82vh] min-h-[350px]">
+    <div className="max-w-4xl w-full mx-auto flex flex-col glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full md:h-[82vh]">
       
       {/* Chat Header */}
       <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/90 backdrop-blur-md flex-shrink-0 z-20">

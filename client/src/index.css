@@ -8,6 +8,33 @@ html, body, #root {
   -webkit-text-size-adjust: 100%;
 }
 
+/* ─── Mobile: Lock entire page scroll — ONLY the chat message area scrolls ── */
+@media (max-width: 768px) {
+  html {
+    overflow: hidden !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: unset !important;
+  }
+  body {
+    overflow: hidden !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: unset !important;
+  }
+  #root {
+    overflow: hidden !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: unset !important;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
 body {
   background-color: #06030d;
   color: #f1f5f9;
@@ -244,6 +271,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   pointer-events: none;
   z-index: 0;
 }
@@ -292,6 +320,11 @@ p, span, h1, h2, h3, h4, h5, h6, button, a {
   .glass-panel, .glass-card {
     width: 100% !important;
     max-width: 100% !important;
+  }
+  /* App shell must fill the locked viewport exactly — no growing allowed */
+  .min-h-screen {
+    min-height: unset !important;
+    height: 100dvh !important;
   }
 }
 

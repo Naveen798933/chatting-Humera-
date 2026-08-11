@@ -143,7 +143,7 @@ const AppContent: React.FC = () => {
   const starredCount = messages.filter(m => m.isStarred).length;
 
   return (
-    <div className="min-h-screen flex flex-col relative z-10">
+    <div className="min-h-screen h-full flex flex-col relative z-10">
       <ScreenshotBanner />
       <PWAInstallPrompt />
       <AnniversaryOverlay />
@@ -157,10 +157,10 @@ const AppContent: React.FC = () => {
         onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
       />
 
-      <main className={`flex-1 w-full overflow-x-hidden ${
+      <main className={`flex-1 w-full overflow-x-hidden min-h-0 ${
         activeTab === 'chat'
-          ? 'max-w-7xl mx-auto px-0 sm:px-4 md:px-8 pt-0 sm:pt-4 md:pt-6 pb-0 md:pb-6 flex flex-col min-h-0 h-[calc(100dvh-75px)] md:h-[calc(100vh-85px)] overflow-hidden'
-          : 'max-w-7xl mx-auto px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 pb-28 md:pb-10'
+          ? 'max-w-7xl mx-auto px-0 sm:px-4 md:px-8 pt-0 sm:pt-4 md:pt-6 pb-0 md:pb-6 flex flex-col overflow-hidden'
+          : 'max-w-7xl mx-auto px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 pb-28 md:pb-10 overflow-y-auto'
       }`}>
         {activeTab === 'home' && <HomeDashboard />}
         {activeTab === 'chat' && <CoreChat />}
