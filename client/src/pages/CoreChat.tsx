@@ -11,13 +11,17 @@ import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import {
   Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video, Camera,
   Trash2, Star, Search, CornerUpLeft, Clock, Paperclip,
-  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical, ArrowDown
+  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical, ArrowDown, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
 const QUICK_REACTIONS = ['❤️', '🔥', '😂', '😍', '👏', '💋'];
 
-export const CoreChat: React.FC = () => {
+interface CoreChatProps {
+  onBackToHome?: () => void;
+}
+
+export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
   const { currentUser, partnerUser, toggleDecoyMode } = useAuth();
   const {
     messages, sendMessage, deleteMessage, editMessage, markMessagesAsSeen,
@@ -605,6 +609,16 @@ ${htmlRows}
               )}
             </AnimatePresence>
           </div>
+
+          {/* Right-Side Back to Home Arrow Button (→) */}
+          <button
+            onClick={onBackToHome}
+            title="Return to Home Dashboard"
+            aria-label="Back to Home"
+            className="p-1.5 sm:p-2 rounded-xl glass-card border border-pink-500/40 text-pink-300 hover:text-white hover:bg-pink-500/20 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-pink-500/10 ml-0.5"
+          >
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
         </div>
       </div>
 

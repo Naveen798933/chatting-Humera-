@@ -194,7 +194,7 @@ const AppContent: React.FC = () => {
           : 'max-w-7xl mx-auto px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 pb-28 md:pb-10 overflow-y-auto'
       }`}>
         {activeTab === 'home' && <HomeDashboard />}
-        {activeTab === 'chat' && <CoreChat />}
+        {activeTab === 'chat' && <CoreChat onBackToHome={() => setActiveTab('home')} />}
         {activeTab === 'together' && <TogetherTime />}
         {activeTab === 'memories' && <MemoriesGallery />}
         {activeTab === 'vault' && <LoveVaultCalendar />}
