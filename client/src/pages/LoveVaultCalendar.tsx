@@ -449,6 +449,40 @@ export const LoveVaultCalendar: React.FC = () => {
             </div>
           </div>
 
+          {/* Quick Dream Destination Presets */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-300">Quick Add Dream Destinations:</label>
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
+              {[
+                { title: 'Maldives Overwater Villa', loc: 'Maldives', emoji: '🏝️' },
+                { title: 'Eiffel Tower Sunset', loc: 'Paris, France', emoji: '🗼' },
+                { title: 'Bali Beach Resort', loc: 'Bali, Indonesia', emoji: '🌺' },
+                { title: 'Rome Colosseum Walk', loc: 'Rome, Italy', emoji: '🏛️' },
+                { title: 'Swiss Alps Cabin', loc: 'Interlaken, Switzerland', emoji: '🏔️' },
+                { title: 'Tokyo Cherry Blossoms', loc: 'Tokyo, Japan', emoji: '🌸' },
+              ].map(preset => (
+                <button
+                  key={preset.title}
+                  type="button"
+                  onClick={() => {
+                    addMapPin({
+                      title: `${preset.emoji} ${preset.title}`,
+                      latitude: 0,
+                      longitude: 0,
+                      locationName: preset.loc,
+                      isBucketList: true
+                    });
+                    toast.love(`Added ${preset.title} to map! 📍`);
+                  }}
+                  className="px-3 py-1.5 rounded-xl glass-card border border-pink-500/20 text-pink-300 text-[10px] font-bold shrink-0 hover:bg-pink-500/10 flex items-center gap-1 min-h-[36px]"
+                >
+                  <span>{preset.emoji}</span>
+                  <span>{preset.loc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <form onSubmit={handleCreateMapPin} className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
             <input
               type="text"

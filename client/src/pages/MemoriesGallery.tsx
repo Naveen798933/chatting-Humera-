@@ -24,6 +24,61 @@ export const MemoriesGallery: React.FC = () => {
   const [description, setDescription] = useState('');
   const [album, setAlbum] = useState<Memory['album']>('Random');
   const [mediaUrl, setMediaUrl] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const memFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const compressMemoryImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          } else {
+            resolve(e.target?.result as string);
+          }
+        };
+        img.onerror = () => resolve(e.target?.result as string);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleMemFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('Image file too large (max 15MB)');
+      return;
+    }
+    toast.info('Compressing photo... 📸');
+    const compressed = await compressMemoryImage(file);
+    if (compressed) {
+      setMediaUrl(compressed);
+      setImagePreview(compressed);
+      toast.success('Photo ready to save! ✨');
+    }
+  };
 
   const albumsList: (Memory['album'] | 'All')[] = [
     'All', 'Favorites', 'Vacations', 'Birthdays', 'Random', 'Hidden'
@@ -213,17 +268,44 @@ export const MemoriesGallery: React.FC = () => {
                   />
                 </div>
 
-                {/* Photo URL Section */}
+                {/* Photo Upload / URL Section */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Photo / Image URL:</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Upload Photo from Gallery or Enter Image URL:</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="file"
+                      ref={memFileInputRef}
+                      onChange={handleMemFileChange}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => memFileInputRef.current?.click()}
+                      className="flex-1 py-2.5 px-3 rounded-xl glass-card border border-pink-500/30 text-pink-300 text-xs font-bold flex items-center justify-center gap-2 hover:bg-pink-500/10 min-h-[44px]"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Choose from Phone Gallery</span>
+                    </button>
+                  </div>
                   <input
-                    type="url"
+                    type="text"
                     value={mediaUrl}
-                    onChange={(e) => setMediaUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
+                    onChange={(e) => { setMediaUrl(e.target.value); setImagePreview(e.target.value); }}
+                    placeholder="Or paste image URL (https://...)"
                     className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
                     required
                   />
+                  {(imagePreview || mediaUrl) && (
+                    <div className="mt-2 relative w-full h-32 rounded-xl overflow-hidden border border-white/10">
+                      <img
+                        src={imagePreview || mediaUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>

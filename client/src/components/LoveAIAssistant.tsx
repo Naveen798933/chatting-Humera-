@@ -70,13 +70,28 @@ export const LoveAIAssistant: React.FC = () => {
   );
   const healthScore = getHealthScore(messages.length, memories.length);
 
+  const typingIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
   const respond = (text: string, action: string) => {
     setLoading(true);
     setActiveAction(action);
+    setAiResponse('');
+    if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+    
     setTimeout(() => {
-      setAiResponse(text);
       setLoading(false);
-    }, 900);
+      let charIdx = 0;
+      const step = Math.max(1, Math.floor(text.length / 40));
+      typingIntervalRef.current = setInterval(() => {
+        charIdx += step;
+        if (charIdx >= text.length) {
+          setAiResponse(text);
+          if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+        } else {
+          setAiResponse(text.slice(0, charIdx));
+        }
+      }, 20);
+    }, 400);
   };
 
   const handleCustomQuery = (e: React.FormEvent) => {
