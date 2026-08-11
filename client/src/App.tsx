@@ -116,20 +116,27 @@ const AppContent: React.FC = () => {
     isMicMuted,
     isCameraOff,
     isScreenSharing,
+    isSpeakerOn,
+    supportsAudioOutputSelection,
+    connectionState,
     initializeCall,
     toggleMic,
     toggleCamera,
     switchCamera,
+    toggleAudioOutput,
     toggleScreenShare,
     endCall: webrtcEndCall
   } = useWebRTC();
 
   React.useEffect(() => {
     if (isCallActive && callType && callRole) {
+      // Call is connected — initialise WebRTC peer connection
       initializeCall(callType === 'video', callRole);
-    } else {
+    } else if (!isCallActive && !callRole) {
+      // Call fully ended (not just ringing) — tear down WebRTC
       webrtcEndCall();
     }
+    // Don't tear down WebRTC during ringing phase (callRole set, isCallActive false)
   }, [isCallActive, callType, callRole]);
 
   if (isDecoyActive) {
@@ -215,8 +222,10 @@ const AppContent: React.FC = () => {
         onDecline={declineCall}
       />
       <ActiveCallOverlay
-        isOpen={isCallActive}
+        isOpen={isCallActive || callRole === 'caller'}
         callType={callType}
+        callRole={callRole}
+        connectionState={connectionState}
         partnerUser={partnerUser}
         currentUser={currentUser}
         localStream={localStream}
@@ -224,10 +233,13 @@ const AppContent: React.FC = () => {
         isMicMuted={isMicMuted}
         isCameraOff={isCameraOff}
         isScreenSharing={isScreenSharing}
+        isSpeakerOn={isSpeakerOn}
+        supportsAudioOutputSelection={supportsAudioOutputSelection}
         onToggleMic={toggleMic}
         onToggleCamera={toggleCamera}
         onSwitchCamera={switchCamera}
         onToggleScreenShare={toggleScreenShare}
+        onToggleAudioOutput={toggleAudioOutput}
         onEndCall={() => {
           endCall();
           webrtcEndCall();

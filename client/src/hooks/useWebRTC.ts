@@ -15,6 +15,9 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   const [isScreenSharing, setIsScreenSharing]   = useState(false);
   const [facingMode, setFacingMode]             = useState<'user' | 'environment'>('user');
   const [connectionState, setConnectionState]   = useState<RTCPeerConnectionState>('new');
+  const [isSpeakerOn, setIsSpeakerOn]           = useState(true);
+
+  const supportsAudioOutputSelection = typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
 
   const localStreamRef    = useRef<MediaStream | null>(null);
   const remoteStreamRef   = useRef<MediaStream | null>(null);
@@ -411,6 +414,31 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     }
   }, [isScreenSharing]);
 
+  // ── Audio Output Device Switching (Speaker vs Earpiece/Default) ─────────────
+  const toggleAudioOutput = useCallback(async (audioElement?: HTMLAudioElement | HTMLVideoElement | null) => {
+    const nextSpeakerState = !isSpeakerOn;
+    setIsSpeakerOn(nextSpeakerState);
+
+    if (!supportsAudioOutputSelection || !audioElement) {
+      console.log('[WebRTC] setSinkId not supported on this browser platform');
+      return;
+    }
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+        if (audioOutputs.length > 0 && 'setSinkId' in audioElement) {
+          const targetDevice = nextSpeakerState ? audioOutputs[0] : (audioOutputs[1] || audioOutputs[0]);
+          await (audioElement as any).setSinkId(targetDevice.deviceId);
+          console.log('[WebRTC] Audio output switched to:', targetDevice.label || targetDevice.deviceId);
+        }
+      }
+    } catch (err) {
+      console.warn('[WebRTC] Error switching audio output device:', err);
+    }
+  }, [isSpeakerOn, supportsAudioOutputSelection]);
+
   // ── End Call & Cleanup ─────────────────────────────────────────────────────
   const endCall = useCallback(() => {
     console.log('[WebRTC] Ending Call & Cleaning Up');
@@ -440,6 +468,7 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     roleRef.current = null;
     setIsMicMuted(false);
     setIsCameraOff(false);
+    setIsSpeakerOn(true);
     setConnectionState('closed');
   }, []);
 
@@ -451,12 +480,15 @@ export function useWebRTC(options?: UseWebRTCOptions) {
     isMicMuted,
     isCameraOff,
     isScreenSharing,
+    isSpeakerOn,
+    supportsAudioOutputSelection,
     facingMode,
     connectionState,
     initializeCall,
     toggleMic,
     toggleCamera,
     switchCamera,
+    toggleAudioOutput,
     toggleScreenShare,
     endCall,
   };

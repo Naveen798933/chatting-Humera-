@@ -344,7 +344,29 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (callerId && callerId !== currentUser.uid) {
             setIncomingCall({ callerId, callerName, callerPhoto, callType: cType || 'voice' });
             if (typeof navigator !== 'undefined' && navigator.vibrate) {
-              try { navigator.vibrate([300, 150, 300, 150, 300]); } catch (_) {}
+              try { navigator.vibrate([500, 200, 500, 200, 500]); } catch (_) {}
+            }
+
+            // Trigger PWA / Web Notification if tab is hidden / backgrounded
+            if (typeof document !== 'undefined' && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+              try {
+                navigator.serviceWorker?.ready.then((reg) => {
+                  reg.showNotification(`Incoming ${cType === 'video' ? 'Video' : 'Voice'} Call 📞`, {
+                    body: `${callerName || 'Partner'} is calling you...`,
+                    icon: callerPhoto || '/heart.svg',
+                    badge: '/heart.svg',
+                    vibrate: [500, 200, 500, 200, 500],
+                    tag: 'incoming_call',
+                    requireInteraction: true,
+                    data: { url: '/' }
+                  } as NotificationOptions & { vibrate?: number[] });
+                }).catch(() => {
+                  new Notification(`Incoming ${cType === 'video' ? 'Video' : 'Voice'} Call 📞`, {
+                    body: `${callerName || 'Partner'} is calling you...`,
+                    icon: callerPhoto || '/heart.svg',
+                  });
+                });
+              } catch (_) {}
             }
           }
         })
@@ -364,15 +386,25 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             setIncomingCall(null);
             setCallActive(false);
             setCallType(null);
+            setCallRole(null);
             sounds.playSecretBurnSound();
             toast.info('Call declined by partner');
           }
+        })
+        .on('broadcast', { event: 'CANCEL_CALL' }, () => {
+          if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
+          setIncomingCall(null);
+          setCallActive(false);
+          setCallType(null);
+          setCallRole(null);
+          toast.info('Caller cancelled the call');
         })
         .on('broadcast', { event: 'END_CALL' }, () => {
           if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
           setIncomingCall(null);
           setCallActive(false);
           setCallType(null);
+          setCallRole(null);
           toast.info('Call ended');
         })
         .subscribe();
@@ -660,7 +692,8 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const startCall = (type: 'voice' | 'video') => {
     if (!currentUser) return;
     if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
-    setCallActive(true);
+    // Caller is ringing partner — NOT yet connected. callActive stays false until partner accepts.
+    setCallActive(false);
     setCallType(type);
     setCallRole('caller');
     sounds.playCallRingtone();
@@ -677,10 +710,14 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
     } catch {}
 
-    // Auto-cancel after 30 seconds if unanswered
+    // Auto-cancel after 30 seconds if unanswered — send CANCEL_CALL so receiver ringing also stops
     callRingtoneTimeoutRef.current = setTimeout(() => {
-      endCall();
-      toast.info('No answer from partner');
+      setCallType(null);
+      setCallRole(null);
+      try {
+        spChatChannelRef.current?.send({ type: 'broadcast', event: 'CANCEL_CALL', payload: {} });
+      } catch {}
+      toast.info('No answer — call cancelled');
       sendMessage(`📞 Missed ${type === 'video' ? 'Video' : 'Voice'} Call`, 'text');
     }, 30000);
   };
@@ -718,14 +755,21 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const endCall = () => {
+    if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
+
+    // If caller cancels BEFORE the call was answered, send CANCEL_CALL so receiver's
+    // ringing modal closes immediately (instead of waiting 30s unanswered timeout).
+    const isCancellingUnanswered = callRole === 'caller' && !isCallActive;
+
     setIncomingCall(null);
     setCallActive(false);
     setCallType(null);
     setCallRole(null);
+
     try {
       spChatChannelRef.current?.send({
         type: 'broadcast',
-        event: 'END_CALL',
+        event: isCancellingUnanswered ? 'CANCEL_CALL' : 'END_CALL',
         payload: {}
       });
     } catch {}

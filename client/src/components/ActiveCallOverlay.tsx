@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, RefreshCw, Maximize2, Minimize2, MonitorUp, ShieldCheck } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, RefreshCw, Maximize2, Minimize2, MonitorUp, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from './motion';
 import { UserProfile } from '../types';
 
 interface ActiveCallOverlayProps {
   isOpen: boolean;
   callType: 'voice' | 'video' | null;
+  callRole?: 'caller' | 'answerer' | null;
+  connectionState?: RTCPeerConnectionState | 'ringing' | 'calling';
   partnerUser: UserProfile | null;
   currentUser: UserProfile | null;
   localStream: MediaStream | null;
@@ -13,16 +15,21 @@ interface ActiveCallOverlayProps {
   isMicMuted: boolean;
   isCameraOff: boolean;
   isScreenSharing?: boolean;
+  isSpeakerOn?: boolean;
+  supportsAudioOutputSelection?: boolean;
   onToggleMic: () => void;
   onToggleCamera: () => void;
   onSwitchCamera?: () => void;
   onToggleScreenShare?: () => void;
+  onToggleAudioOutput?: (el: HTMLAudioElement | HTMLVideoElement | null) => void;
   onEndCall: () => void;
 }
 
 export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
   isOpen,
   callType,
+  callRole,
+  connectionState,
   partnerUser,
   currentUser,
   localStream,
@@ -30,10 +37,13 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
   isMicMuted,
   isCameraOff,
   isScreenSharing,
+  isSpeakerOn = true,
+  supportsAudioOutputSelection = false,
   onToggleMic,
   onToggleCamera,
   onSwitchCamera,
   onToggleScreenShare,
+  onToggleAudioOutput,
   onEndCall
 }) => {
   const localMainVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -44,17 +54,33 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
   const [callDuration, setCallDuration] = useState(0);
   const [isMinimized, setIsMinimized]   = useState(false);
 
-  // Call duration timer
+  // Derive a user-facing connection status label
+  const connLabel = (() => {
+    if (callRole === 'caller' && connectionState !== 'connected') return 'Calling…';
+    if (connectionState === 'connecting' || connectionState === 'new') return 'Connecting…';
+    if (connectionState === 'disconnected' || connectionState === 'failed') return 'Reconnecting…';
+    if (connectionState === 'connected') return null; // show timer instead
+    return 'Ringing…';
+  })();
+
+  // Connection badge colour
+  const connBadgeClass = (() => {
+    if (connectionState === 'connected') return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+    if (connectionState === 'failed' || connectionState === 'disconnected') return 'bg-rose-500/20 text-rose-300 border-rose-400/40 animate-pulse';
+    return 'bg-amber-500/20 text-amber-300 border-amber-400/40 animate-pulse';
+  })();
+
+  // Call duration timer — only counts once connected
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
-    if (isOpen) {
+    if (isOpen && connectionState === 'connected') {
       setCallDuration(0);
       timer = setInterval(() => setCallDuration(prev => prev + 1), 1000);
     }
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isOpen]);
+  }, [isOpen, connectionState]);
 
   // Bind local stream to both main and PiP refs
   useEffect(() => {
@@ -150,10 +176,12 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
               <div>
                 <h3 className="font-extrabold text-white text-sm sm:text-base">{partnerUser?.petName || partnerUser?.realName}</h3>
                 <p className="text-xs text-pink-300 font-mono flex items-center gap-1.5 flex-wrap">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>{formatDuration(callDuration)}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold">
-                    Full HD 1080p • 48kHz Stereo
+                  {connectionState === 'connected' && (
+                    <><span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>{formatDuration(callDuration)}</span></>
+                  )}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${connBadgeClass}`}>
+                    {connLabel || `Full HD • 48kHz Stereo`}
                   </span>
                 </p>
               </div>
@@ -242,6 +270,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             className="flex items-center justify-center gap-2 sm:gap-4 lg:gap-6 py-2 z-20 flex-wrap"
             style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}
           >
+            {/* Mute / Unmute Mic */}
             <button
               onClick={onToggleMic}
               className={`p-3 sm:p-4 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full shadow-xl transition-transform active:scale-95 ${
@@ -274,7 +303,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
               </button>
             )}
 
-            {/* Switch Camera */}
+            {/* Switch Camera (mobile front/back) */}
             {callType === 'video' && onSwitchCamera && (
               <button
                 onClick={onSwitchCamera}
@@ -285,7 +314,7 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
               </button>
             )}
 
-            {/* Screen Share Toggle */}
+            {/* Screen Share Toggle (desktop only) */}
             {callType === 'video' && onToggleScreenShare && (
               <button
                 onClick={onToggleScreenShare}
@@ -298,7 +327,27 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
               </button>
             )}
 
-            {/* Hidden AutoPlay Remote Audio Stream */}
+            {/* Speaker / Earpiece Toggle */}
+            {onToggleAudioOutput && (
+              <button
+                onClick={() => onToggleAudioOutput(remoteAudioRef.current || remoteVideoRef.current)}
+                className={`p-3 sm:p-4 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full shadow-xl transition-transform active:scale-95 ${
+                  isSpeakerOn ? 'glass-panel text-white hover:bg-white/20' : 'bg-slate-700/50 text-slate-400 border border-slate-600/50'
+                }`}
+                title={
+                  !supportsAudioOutputSelection
+                    ? 'Audio output controlled by system (not supported in this browser)'
+                    : isSpeakerOn ? 'Switch to Earpiece' : 'Switch to Loudspeaker'
+                }
+              >
+                {isSpeakerOn
+                  ? <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                  : <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />
+                }
+              </button>
+            )}
+
+            {/* Hidden AutoPlay Remote Audio Stream (voice calls) */}
             <audio ref={remoteAudioRef} autoPlay controls={false} className="hidden" />
           </div>
         </motion.div>
