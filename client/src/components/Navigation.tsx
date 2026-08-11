@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut, ShieldAlert, Palette, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useUniverse } from '../context/UniverseContext';
 import { useShakeLock } from '../hooks/useShakeLock';
 import { toast } from '../lib/toast';
 
@@ -26,21 +27,37 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenDailyQuestion
 }) => {
   const { currentUser, logout, toggleDecoyMode } = useAuth();
+  const { messages } = useUniverse();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
-  // Auto-hide mobile bottom bar when virtual keyboard opens
+  // Count unread messages (partner messages not yet seen)
+  const unreadCount = messages.filter(m => m.senderId !== currentUser?.uid && !m.seen).length;
+
+  // Use visualViewport API for reliable keyboard detection on iOS Safari
+  // Falls back to focusin/focusout on browsers that don't support it
   useEffect(() => {
-    const handleFocusChange = () => {
-      const active = document.activeElement;
-      const isInputFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
-      setIsKeyboardOpen(Boolean(isInputFocused));
-    };
-    document.addEventListener('focusin', handleFocusChange);
-    document.addEventListener('focusout', handleFocusChange);
-    return () => {
-      document.removeEventListener('focusin', handleFocusChange);
-      document.removeEventListener('focusout', handleFocusChange);
-    };
+    const vv = window.visualViewport;
+    if (vv) {
+      const handleVVResize = () => {
+        // If viewport height shrinks by more than 150px, keyboard is open
+        setIsKeyboardOpen(vv.height < window.innerHeight - 150);
+      };
+      vv.addEventListener('resize', handleVVResize);
+      return () => vv.removeEventListener('resize', handleVVResize);
+    } else {
+      // Fallback for older browsers
+      const handleFocusChange = () => {
+        const active = document.activeElement;
+        const isInputFocused = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+        setIsKeyboardOpen(Boolean(isInputFocused));
+      };
+      document.addEventListener('focusin', handleFocusChange);
+      document.addEventListener('focusout', handleFocusChange);
+      return () => {
+        document.removeEventListener('focusin', handleFocusChange);
+        document.removeEventListener('focusout', handleFocusChange);
+      };
+    }
   }, []);
 
   // Mobile Shake-to-Lock: Shaking phone triggers stealth decoy calculator
@@ -288,6 +305,12 @@ export const Navigation: React.FC<NavigationProps> = ({
             )}
             <div className={`relative z-10 ${isActive ? 'text-pink-400 drop-shadow-[0_0_8px_rgba(255,112,166,0.9)] scale-110' : ''}`}>
               {item.icon}
+              {/* Unread badge on Chat tab */}
+              {item.id === 'chat' && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-rose-500 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center px-0.5 shadow-lg shadow-rose-500/40 border border-space-950 animate-pulse">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </div>
             <span className={`text-[9px] font-semibold tracking-tight truncate max-w-[44px] relative z-10 ${isActive ? 'text-pink-300 font-bold' : ''}`}>
               {item.shortLabel}

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { toast } from '../lib/toast';
+import { Memory } from '../types';
 import {
   Heart, Sun, Moon, CloudSun, Smile, Sparkles,
-  Send, Music, Gift, MapPin, Zap
+  Send, Music, Gift, MapPin, Zap, MessageCircle, Image, Mic
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -18,16 +19,17 @@ const DAILY_QUOTES = [
 
 export const HomeDashboard: React.FC = () => {
   const { currentUser, partnerUser, updateMood } = useAuth();
-  const { anniversaryDate, setAnniversaryDate, sendQuickAction, memories, recentNotification } = useUniverse();
+  const { anniversaryDate, setAnniversaryDate, sendQuickAction, memories, messages, recentNotification } = useUniverse();
 
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [editingMood, setEditingMood] = useState(false);
   const [showDateEditor, setShowDateEditor] = useState(false);
-  const [tempDate, setTempDate] = useState(anniversaryDate);
+  // Slice to YYYY-MM-DD so <input type="date"> works correctly (ISO string has time component that breaks it)
+  const [tempDate, setTempDate] = useState(anniversaryDate.slice(0, 10));
   const [moodEmoji, setMoodEmoji] = useState('💖');
   const [moodText, setMoodText] = useState('');
   const [quoteIndex, setQuoteIndex] = useState(0);
-  const [surpriseMemory, setSurpriseMemory] = useState<any | null>(null);
+  const [surpriseMemory, setSurpriseMemory] = useState<Memory | null>(null);
 
   useEffect(() => {
     const calculateTime = () => {
@@ -432,6 +434,21 @@ export const HomeDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Real-time Relationship Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Messages', value: messages.length, icon: <MessageCircle className="w-4 h-4" />, color: 'text-pink-300', bg: 'bg-pink-500/10 border-pink-500/20' },
+          { label: 'Photos', value: messages.filter(m => m.type === 'image').length, icon: <Image className="w-4 h-4" />, color: 'text-purple-300', bg: 'bg-purple-500/10 border-purple-500/20' },
+          { label: 'Voice Notes', value: messages.filter(m => m.type === 'audio').length, icon: <Mic className="w-4 h-4" />, color: 'text-amber-300', bg: 'bg-amber-500/10 border-amber-500/20' },
+          { label: 'Stars', value: messages.filter(m => m.isStarred).length, icon: <Sparkles className="w-4 h-4" />, color: 'text-emerald-300', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+        ].map(stat => (
+          <div key={stat.label} className={`glass-panel glass-card-tilt p-4 rounded-2xl border ${stat.bg} flex flex-col items-center justify-center gap-1.5 text-center`}>
+            <span className={stat.color}>{stat.icon}</span>
+            <p className={`text-xl sm:text-2xl font-extrabold ${stat.color}`}>{stat.value.toLocaleString()}</p>
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{stat.label}</p>
+          </div>
+        ))}
+      </div>
       <AnimatePresence>
         {surpriseMemory && (
           <motion.div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">

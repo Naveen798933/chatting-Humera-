@@ -70,16 +70,22 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
     return 'bg-amber-500/20 text-amber-300 border-amber-400/40 animate-pulse';
   })();
 
-  // Call duration timer — only counts once connected
+  // Call duration timer — starts when first connected, does NOT reset on reconnect events
+  const timerStartedRef = useRef(false);
+
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
-    if (isOpen && connectionState === 'connected') {
+    if (!isOpen) {
+      // Overlay closed — reset everything
+      timerStartedRef.current = false;
       setCallDuration(0);
-      timer = setInterval(() => setCallDuration(prev => prev + 1), 1000);
+      return;
     }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
+    if (connectionState !== 'connected') return;
+    // Already started — don't reset on reconnect
+    if (timerStartedRef.current) return;
+    timerStartedRef.current = true;
+    const timer = setInterval(() => setCallDuration(prev => prev + 1), 1000);
+    return () => clearInterval(timer);
   }, [isOpen, connectionState]);
 
   // Bind local stream to both main and PiP refs

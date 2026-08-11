@@ -56,6 +56,18 @@ export const CoreChat: React.FC = () => {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cleanup any active media stream on unmount (prevents microphone lock)
+  useEffect(() => {
+    return () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(t => t.stop());
+        mediaStreamRef.current = null;
+      }
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    };
+  }, []);
+
   const handleBubbleClick = (msg: Message) => {
     if (clickTimerRef.current) {
       clearTimeout(clickTimerRef.current);
@@ -152,7 +164,11 @@ export const CoreChat: React.FC = () => {
       scrollToBottom(true);
     }
 
-    markMessagesAsSeen();
+    // Only mark messages as seen when there are actual unread partner messages
+    const hasUnread = messages.some(m => m.senderId !== currentUser?.uid && !m.seen);
+    if (hasUnread) {
+      markMessagesAsSeen();
+    }
   }, [messages, isPartnerTyping, currentUser?.uid]);
 
   // Handle focus on mobile keyboard open (scrolls ONLY chat container, never page)
@@ -173,9 +189,16 @@ export const CoreChat: React.FC = () => {
     return () => window.visualViewport?.removeEventListener('resize', handleViewportResize);
   }, []);
 
-  // Panic Hotkey Listener (Alt + L -> Stealth Decoy)
+  // Escape key: close lightbox, dismiss reaction bar, cancel reply
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (lightboxImage) { setLightboxImage(null); return; }
+        if (activeReactionMsgId) { setActiveReactionMsgId(null); return; }
+        if (replyingTo) { setReplyingTo(null); return; }
+        if (editingMsg) { setEditingMsg(null); setEditContent(''); return; }
+      }
+      // Panic hotkey: Alt+L
       if ((e.key === 'L' || e.key === 'l') && e.altKey) {
         toast.info('Panic mode activated!');
         toggleDecoyMode();
@@ -183,7 +206,7 @@ export const CoreChat: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleDecoyMode]);
+  }, [toggleDecoyMode, lightboxImage, activeReactionMsgId, replyingTo, editingMsg]);
 
   useEffect(() => {
     if (editingMsg) {
@@ -521,18 +544,40 @@ export const CoreChat: React.FC = () => {
                   <button
                     onClick={() => {
                       setShowMoreMenu(false);
-                      const exportTxt = messages.map(m => {
+                      // Enhanced HTML export — styled, readable, with timestamps
+                      const htmlRows = messages.map(m => {
                         const author = m.senderId === currentUser?.uid ? currentUser?.petName : partnerUser?.petName;
                         const time = new Date(m.createdAt).toLocaleString();
-                        return `[${time}] ${author}: ${m.content}`;
-                      }).join('\n\n');
-                      const blob = new Blob([`OUR UNIVERSE CHAT TRANSCRIPT — NAVEEN & HUMERA\n\n${exportTxt}`], { type: 'text/plain;charset=utf-8' });
+                        const isMe = m.senderId === currentUser?.uid;
+                        const bgColor = isMe ? '#ff70a6' : '#2d1b69';
+                        const align = isMe ? 'right' : 'left';
+                        return `<div style="text-align:${align};margin:8px 0;">
+  <span style="display:inline-block;max-width:70%;background:${bgColor};color:white;padding:8px 14px;border-radius:18px;font-size:13px;">
+    <strong>${author}</strong><br/>${m.content}
+    <div style="font-size:10px;opacity:0.7;margin-top:4px;">${time}</div>
+  </span>
+</div>`;
+                      }).join('');
+                      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Our Universe Chat</title>
+<style>body{font-family:system-ui,sans-serif;background:#0b071a;color:#f1f5f9;max-width:700px;margin:auto;padding:24px;}
+h1{text-align:center;background:linear-gradient(135deg,#ff70a6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+p.sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:24px;}
+</style></head><body>
+<h1>💕 Our Universe Chat</h1>
+<p class="sub">Naveen & Humera — exported ${new Date().toLocaleString()}</p>
+${htmlRows}
+</body></html>`;
+                      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement('a');
                       a.href = url;
-                      a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.txt`;
+                      a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.html`;
+                      document.body.appendChild(a);
                       a.click();
-                      toast.love('Chat exported as TXT transcript! 📄');
+                      document.body.removeChild(a);
+                      // Revoke object URL to free memory (was missing before — memory leak fixed)
+                      setTimeout(() => URL.revokeObjectURL(url), 1000);
+                      toast.love('Chat exported as HTML! 📄');
                     }}
                     className="w-full text-left px-3 py-2 rounded-xl text-xs text-white hover:bg-white/10 flex items-center gap-2"
                   >
@@ -724,7 +769,7 @@ export const CoreChat: React.FC = () => {
                   <div className="flex flex-col gap-1">
                     {/* Message bubble */}
                     <div
-                      className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer transition-all active:scale-[0.98] ${
+                      className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer transition-all active:scale-[0.98] animate-bubble-pop ${
                         isMe
                           ? 'chat-bubble-sender rounded-tr-sm'
                           : 'chat-bubble-receiver rounded-tl-sm'
@@ -871,9 +916,9 @@ export const CoreChat: React.FC = () => {
             />
             <span>{partnerUser?.petName || partnerUser?.realName} is typing</span>
             <span className="inline-flex gap-1 items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-pink-400" />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-purple-400" />
+              <span className="typing-dot w-1.5 h-1.5 rounded-full bg-pink-400" />
             </span>
           </div>
         )}

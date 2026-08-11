@@ -1,16 +1,44 @@
-{
+﻿{
   "short_name": "Our Universe",
   "name": "Our Universe — Naveen & Humera Private Space",
+  "description": "Our private couple universe — messages, calls, memories and love vault.",
   "icons": [
     {
       "src": "/heart.svg",
       "type": "image/svg+xml",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
   "background_color": "#0b071a",
-  "theme_color": "#0b071a",
+  "theme_color": "#ff70a6",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "Open Chat",
+      "short_name": "Chat",
+      "description": "Jump directly to our private chat",
+      "url": "/?tab=chat",
+      "icons": [{ "src": "/heart.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Call History",
+      "short_name": "Calls",
+      "description": "View recent call logs",
+      "url": "/?tab=calls",
+      "icons": [{ "src": "/heart.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Memories Gallery",
+      "short_name": "Memories",
+      "description": "Browse our photo memories",
+      "url": "/?tab=memories",
+      "icons": [{ "src": "/heart.svg", "sizes": "96x96" }]
+    }
+  ],
+  "categories": ["social", "lifestyle"],
+  "lang": "en"
 }
