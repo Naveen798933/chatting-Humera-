@@ -24,13 +24,14 @@ export const PartnerProfileDrawer: React.FC<PartnerProfileDrawerProps> = ({
 }) => {
   const [isMuted, setIsMuted] = React.useState(false);
 
-  if (!isOpen || !partnerUser) return null;
+  if (!partnerUser) return null;
 
   const sharedPhotos = memories.flatMap(m => m.mediaUrls || []).slice(0, 6);
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex justify-end">
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex justify-end">
         <motion.div
           initial={{ x: '100%' }}
           animate={{ x: 0 }}
@@ -161,6 +162,7 @@ export const PartnerProfileDrawer: React.FC<PartnerProfileDrawerProps> = ({
           </button>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 };

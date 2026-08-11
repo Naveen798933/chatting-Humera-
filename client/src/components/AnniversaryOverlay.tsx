@@ -36,7 +36,13 @@ export const AnniversaryOverlay: React.FC = () => {
 
   return (
     <AnimatePresence>
-      <motion.div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      {(!dismissed && isAnniversary) && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+        >
         <div className="glass-panel-glow p-8 rounded-3xl max-w-md w-full text-center space-y-4 border border-pink-400/60 shadow-2xl relative overflow-hidden">
           <button
             onClick={() => setDismissed(true)}
@@ -72,7 +78,8 @@ export const AnniversaryOverlay: React.FC = () => {
             <span>Celebrate Our Anniversary ❤️</span>
           </button>
         </div>
-      </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 };

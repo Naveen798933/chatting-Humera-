@@ -20,8 +20,6 @@ export const CallHistoryModal: React.FC<CallHistoryModalProps> = ({
 }) => {
   const [filter, setFilter] = useState<'all' | 'missed'>('all');
 
-  if (!isOpen) return null;
-
   // Filter messages that represent calls or missed calls
   const callLogs = messages.filter(m =>
     m.content.includes('Call') || m.content.includes('Missed')
@@ -34,7 +32,8 @@ export const CallHistoryModal: React.FC<CallHistoryModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -132,6 +131,7 @@ export const CallHistoryModal: React.FC<CallHistoryModalProps> = ({
           </button>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 };

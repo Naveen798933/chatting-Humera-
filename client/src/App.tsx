@@ -39,7 +39,31 @@ const AppContent: React.FC = () => {
   const [isCallHistoryOpen, setIsCallHistoryOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isDailyQuestionOpen, setIsDailyQuestionOpen] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<AppTheme>('cosmic');
+  const [currentTheme, setCurrentTheme] = useState<AppTheme>(() => {
+    return (localStorage.getItem('ou_theme') as AppTheme) || 'cosmic';
+  });
+
+  // Sync theme to document dataset & localStorage
+  React.useEffect(() => {
+    document.documentElement.dataset.theme = currentTheme;
+    try { localStorage.setItem('ou_theme', currentTheme); } catch (_) {}
+  }, [currentTheme]);
+
+  // Global Escape key listener to close active modals
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isAdminOpen) { setIsAdminOpen(false); return; }
+        if (isThemeOpen) { setIsThemeOpen(false); return; }
+        if (isDailyQuestionOpen) { setIsDailyQuestionOpen(false); return; }
+        if (isStatusOpen) { setIsStatusOpen(false); return; }
+        if (isProfileDrawerOpen) { setIsProfileDrawerOpen(false); return; }
+        if (isCallHistoryOpen) { setIsCallHistoryOpen(false); return; }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAdminOpen, isThemeOpen, isDailyQuestionOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen]);
 
   const [stories, setStories] = useState<StoryItem[]>(() => {
     try {

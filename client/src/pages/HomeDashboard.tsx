@@ -174,23 +174,22 @@ export const HomeDashboard: React.FC = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 xs:grid-cols-4 gap-2 sm:gap-4 max-w-xl mx-auto">
-            <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
-              <p className="text-xl sm:text-4xl font-extrabold text-white tracking-tight">{timeTogether.days}</p>
-              <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Days</p>
-            </div>
-            <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
-              <p className="text-xl sm:text-4xl font-extrabold text-pink-300 tracking-tight">{timeTogether.hours}</p>
-              <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Hours</p>
-            </div>
-            <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
-              <p className="text-xl sm:text-4xl font-extrabold text-purple-300 tracking-tight">{timeTogether.minutes}</p>
-              <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Mins</p>
-            </div>
-            <div className="glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl">
-              <p className="text-xl sm:text-4xl font-extrabold text-rose-300 tracking-tight animate-pulse">{timeTogether.seconds}</p>
-              <p className="text-[9px] sm:text-xs text-slate-400 font-medium uppercase mt-0.5 sm:mt-1">Secs</p>
-            </div>
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 max-w-xl mx-auto">
+            {[
+              { value: timeTogether.days, label: 'Days', color: 'text-white', glow: 'shadow-pink-500/30 border-pink-500/30', from: 'from-pink-500', to: 'to-purple-600' },
+              { value: timeTogether.hours, label: 'Hours', color: 'text-pink-300', glow: 'shadow-purple-500/30 border-purple-500/30', from: 'from-purple-500', to: 'to-indigo-600' },
+              { value: timeTogether.minutes, label: 'Mins', color: 'text-purple-300', glow: 'shadow-indigo-500/30 border-indigo-500/30', from: 'from-indigo-500', to: 'to-blue-600' },
+              { value: timeTogether.seconds, label: 'Secs', color: 'text-rose-300', glow: 'shadow-rose-500/30 border-rose-500/30', from: 'from-rose-500', to: 'to-pink-600', pulse: true },
+            ].map(({ value, label, color, glow, from, to, pulse }) => (
+              <div key={label} className={`relative overflow-hidden glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border ${glow} shadow-lg text-center group`}>
+                {/* Gradient bar at top */}
+                <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${from} ${to} opacity-80`} />
+                <p className={`text-xl sm:text-4xl font-extrabold tracking-tight ${color} ${pulse ? 'animate-pulse' : ''} tabular-nums`}>
+                  {String(value).padStart(2, '0')}
+                </p>
+                <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 sm:mt-1">{label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>

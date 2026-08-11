@@ -20,8 +20,6 @@ export const DailyQuestionModal: React.FC<DailyQuestionModalProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [partnerAnswer, setPartnerAnswer] = useState<string | null>(null);
 
-  if (!isOpen) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!myAnswer.trim()) return;
@@ -34,7 +32,8 @@ export const DailyQuestionModal: React.FC<DailyQuestionModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -102,6 +101,7 @@ export const DailyQuestionModal: React.FC<DailyQuestionModalProps> = ({
           </button>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 };
