@@ -39,7 +39,7 @@ export const CallHistoryModal: React.FC<CallHistoryModalProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-6 relative flex flex-col max-h-[85vh]"
+          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-6 relative flex flex-col max-h-[85dvh]"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">

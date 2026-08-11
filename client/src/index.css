@@ -328,10 +328,9 @@ p, span, h1, h2, h3, h4, h5, h6, button, a {
   }
 }
 
-@media (max-width: 480px) {
-  input[type="text"],
-  input[type="password"],
-  input[type="number"],
+@media (max-width: 768px) {
+  input,
+  select,
   textarea {
     font-size: 16px !important;
   }

@@ -71,7 +71,7 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-4 sm:p-6 relative overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh]"
+          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-4 sm:p-6 relative overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85dvh]"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3 shrink-0">

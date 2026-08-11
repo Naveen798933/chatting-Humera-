@@ -189,7 +189,7 @@ export const MemoriesGallery: React.FC = () => {
       <AnimatePresence>
         {showAddModal && (
           <motion.div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div className="glass-panel-glow p-6 rounded-3xl max-w-md w-full border border-pink-400/40 space-y-4 max-h-[90vh] overflow-y-auto">
+            <motion.div className="glass-panel-glow p-6 rounded-3xl max-w-md w-full border border-pink-400/40 space-y-4 max-h-[90dvh] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <h3 className="font-extrabold text-base text-white flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-accent-pink" />
