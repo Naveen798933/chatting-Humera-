@@ -405,7 +405,12 @@ export const CoreChat: React.FC = () => {
     }
   };
 
+  const [chatFilter, setChatFilter] = useState<'all' | 'starred' | 'media' | 'audio'>('all');
+
   const filteredMessages = messages.filter(m => {
+    if (chatFilter === 'starred' && !m.isStarred) return false;
+    if (chatFilter === 'media' && !(m.type === 'image' || m.type === 'video')) return false;
+    if (chatFilter === 'audio' && m.type !== 'audio') return false;
     if (!searchQuery.trim()) return true;
     return m.content.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -619,21 +624,44 @@ export const CoreChat: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Search Bar */}
+      {/* Search & Media Filter Bar */}
       {showSearch && (
-        <div className="p-2.5 bg-space-900/90 border-b border-white/10 flex items-center gap-2 flex-shrink-0">
-          <Search className="w-4 h-4 text-slate-400 ml-2 shrink-0" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search messages..."
-            className="flex-1 bg-transparent text-xs text-white focus:outline-none"
-            autoFocus
-          />
-          <button onClick={() => { setSearchQuery(''); setShowSearch(false); }} className="p-1 text-slate-400">
-            <X className="w-4 h-4" />
-          </button>
+        <div className="p-2 sm:p-2.5 bg-space-900/95 border-b border-white/10 flex flex-col gap-2 flex-shrink-0 z-20">
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4 text-pink-400 ml-2 shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search chat messages..."
+              className="flex-1 bg-transparent text-xs text-white focus:outline-none placeholder:text-slate-400"
+              autoFocus
+            />
+            <button onClick={() => { setSearchQuery(''); setChatFilter('all'); setShowSearch(false); }} className="p-1 text-slate-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-2 overflow-x-auto scrollbar-none">
+            {[
+              { id: 'all', label: 'All Messages' },
+              { id: 'starred', label: '⭐ Starred' },
+              { id: 'media', label: '📷 Media' },
+              { id: 'audio', label: '🎙️ Voice Notes' }
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setChatFilter(f.id as any)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all whitespace-nowrap ${
+                  chatFilter === f.id
+                    ? 'bg-accent-pink text-white shadow-md'
+                    : 'glass-card text-slate-300 hover:text-white'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

@@ -82,12 +82,18 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ src, isMe = fa
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Generate 16 decorative waveform frequency height bars
-  const barHeights = [40, 75, 55, 90, 60, 100, 45, 80, 65, 95, 50, 70, 85, 40, 60, 90];
+  // Generate 24 dynamic waveform frequency height bars for smooth visualization
+  const barHeights = [
+    35, 65, 45, 85, 55, 95, 40, 75, 60, 90,
+    50, 80, 70, 100, 65, 85, 45, 75, 55, 90,
+    40, 60, 80, 50
+  ];
 
-  const handleBarClick = (barIndex: number) => {
-    if (!duration) return;
-    const targetTime = (barIndex / barHeights.length) * duration;
+  const handleWaveformClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+    const targetTime = ratio * (duration || 0);
     const audio = audioRef.current;
     if (audio) {
       audio.currentTime = targetTime;
@@ -118,8 +124,12 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ src, isMe = fa
           {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
         </button>
 
-        {/* Waveform Visualization Bars */}
-        <div className="flex-1 flex items-center gap-1 h-8 px-1 overflow-hidden">
+        {/* 24-Bar Waveform Visualization Spectrum */}
+        <div
+          onClick={handleWaveformClick}
+          className="flex-1 flex items-center gap-0.5 sm:gap-1 h-8 px-1 overflow-hidden cursor-pointer group"
+          title="Click to seek"
+        >
           {barHeights.map((h, idx) => {
             const progress = duration > 0 ? currentTime / duration : 0;
             const barProgress = idx / barHeights.length;
@@ -128,15 +138,14 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ src, isMe = fa
             return (
               <span
                 key={idx}
-                onClick={() => handleBarClick(idx)}
-                className={`w-1 rounded-full cursor-pointer hover:opacity-80 transition-all duration-200 ${
+                className={`flex-1 rounded-full transition-all duration-150 ${
                   isPassed
-                    ? isMe ? 'bg-pink-200' : 'bg-pink-400'
-                    : 'bg-white/25'
-                } ${isPlaying ? 'animate-pulse' : ''}`}
+                    ? isMe ? 'bg-pink-200 shadow-sm shadow-pink-300/50' : 'bg-pink-400 shadow-sm shadow-pink-400/50'
+                    : 'bg-white/25 group-hover:bg-white/35'
+                } ${isPlaying && isPassed ? 'animate-pulse' : ''}`}
                 style={{
                   height: `${h}%`,
-                  animationDelay: `${idx * 60}ms`
+                  animationDelay: `${idx * 40}ms`
                 }}
               />
             );
@@ -156,7 +165,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ src, isMe = fa
 
       {/* Custom Seek Bar & Timer */}
       <div className="flex items-center gap-2 text-[10px] opacity-80 px-0.5">
-        <span>{formatTime(currentTime)}</span>
+        <span className="font-semibold tracking-wider">{formatTime(currentTime)}</span>
         <input
           type="range"
           min={0}
@@ -165,7 +174,7 @@ export const VoiceNotePlayer: React.FC<VoiceNotePlayerProps> = ({ src, isMe = fa
           onChange={handleSeek}
           className="flex-1 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-pink-400"
         />
-        <span>{formatTime(duration)}</span>
+        <span className="font-semibold tracking-wider">{formatTime(duration)}</span>
       </div>
     </div>
   );

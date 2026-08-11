@@ -193,6 +193,44 @@ export const HomeDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* "On This Day" Memory Throwback Feature */}
+      {memories.length > 0 && (() => {
+        const todayMD = new Date().toISOString().slice(5, 10);
+        const throwback = memories.find(m => m.date && m.date.slice(5, 10) === todayMD) || memories[0];
+        if (!throwback) return null;
+        return (
+          <div className="glass-panel-glow p-5 sm:p-6 rounded-3xl border border-pink-400/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shrink-0 border-2 border-pink-400 shadow-md">
+                <img
+                  src={throwback.mediaUrls?.[0]}
+                  alt={throwback.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="%230b071a" width="100" height="100"/><text fill="%23ff70a6" font-size="30" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">📸</text></svg>';
+                  }}
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-pink-300">
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
+                  <span>On This Day Throwback</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-200 border border-pink-500/30">{throwback.date}</span>
+                </div>
+                <h4 className="font-bold text-sm sm:text-base text-white truncate mt-0.5">{throwback.title}</h4>
+                <p className="text-xs text-slate-300 italic truncate max-w-md mt-0.5">"{throwback.description}"</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSurpriseMemory(throwback)}
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 transition-all shrink-0 w-full sm:w-auto"
+            >
+              Relive Memory ❤️
+            </button>
+          </div>
+        );
+      })()}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 glass-panel p-6 rounded-3xl border border-white/10 flex items-center justify-between relative overflow-hidden">
           <div className="space-y-2 max-w-md">

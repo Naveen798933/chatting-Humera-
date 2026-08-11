@@ -401,10 +401,53 @@ export const LoveVaultCalendar: React.FC = () => {
       {/* SECTION 4: LOVE MAP */}
       {activeSection === 'map' && (
         <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-6">
-          <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-accent-pink" />
-            <span>Love Map & Visited Destinations</span>
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-accent-pink" />
+              <span>Interactive Love Map &amp; Destinations</span>
+            </h3>
+            <span className="text-xs font-bold text-pink-300 bg-pink-500/20 px-3 py-1 rounded-full border border-pink-500/30">
+              0 km apart in heart ❤️
+            </span>
+          </div>
+
+          {/* Interactive World / Couple Map Visual Canvas Overlay */}
+          <div className="relative w-full h-64 sm:h-80 rounded-3xl overflow-hidden glass-card border border-pink-500/30 bg-space-950 p-4 flex flex-col justify-between">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,112,166,0.15)_0%,transparent_70%)] pointer-events-none" />
+            
+            {/* Grid Pattern */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
+            <div className="relative z-10 flex items-center justify-between text-xs text-slate-300 font-bold">
+              <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-pink-400" /> Couple Radar Map</span>
+              <span className="text-emerald-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" /> Live Connected</span>
+            </div>
+
+            {/* Simulated Couple Map Pins */}
+            <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 my-auto">
+              <div className="p-3 rounded-2xl glass-panel-glow border border-pink-500/40 text-center space-y-1 transform hover:scale-105 transition-transform">
+                <span className="text-xl">🏙️</span>
+                <p className="font-extrabold text-xs text-white">Naveen's Base</p>
+                <p className="text-[10px] text-pink-300">Vijayawada, AP</p>
+              </div>
+
+              <div className="p-3 rounded-2xl glass-panel-glow border border-purple-500/40 text-center space-y-1 transform hover:scale-105 transition-transform">
+                <span className="text-xl">🌆</span>
+                <p className="font-extrabold text-xs text-white">Humera's Base</p>
+                <p className="text-[10px] text-purple-300">Medchal, TS</p>
+              </div>
+
+              <div className="p-3 rounded-2xl glass-panel-glow border border-amber-500/40 text-center space-y-1 transform hover:scale-105 transition-transform col-span-2 sm:col-span-1">
+                <span className="text-xl">🗼</span>
+                <p className="font-extrabold text-xs text-white">Honeymoon Wish</p>
+                <p className="text-[10px] text-amber-300">Paris, France</p>
+              </div>
+            </div>
+
+            <div className="relative z-10 text-center">
+              <p className="text-[10px] text-slate-400 italic">"Distance is just a test to see how far love can travel."</p>
+            </div>
+          </div>
 
           <form onSubmit={handleCreateMapPin} className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
             <input
