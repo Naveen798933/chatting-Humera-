@@ -1,4 +1,8 @@
 /* ─── Base Reset & Responsive Viewport Safeguards ─────────────────────────── */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
 html, body, #root {
   color-scheme: dark;
   overflow-x: hidden;

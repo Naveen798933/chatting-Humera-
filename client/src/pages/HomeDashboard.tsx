@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { toast } from '../lib/toast';
+import { sounds } from '../lib/soundEffects';
 import { Memory } from '../types';
+import confetti from 'canvas-confetti';
 import {
   Heart, Sun, Moon, CloudSun, Smile, Sparkles,
-  Send, Music, Gift, MapPin, Zap, MessageCircle, Image, Mic
+  Send, Music, Gift, MapPin, Zap, MessageCircle, Image, Mic, BatteryCharging, Cookie
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -17,6 +19,14 @@ const DAILY_QUOTES = [
   "Whatever our souls are made of, yours and mine are the same."
 ];
 
+const LOVE_FORTUNES = [
+  { fortune: "A deep, romantic conversation tonight will bring you both even closer than ever.", numbers: "14, 02, 26, 99" },
+  { fortune: "Your bond with Jaanu grows stronger with every passing heartbeat.", numbers: "07, 11, 21, 30" },
+  { fortune: "A spontaneous kiss or voice note will turn ordinary hours into magical memories.", numbers: "03, 14, 18, 24" },
+  { fortune: "The universe is aligning to bring a dream trip or milestone celebration into reality soon!", numbers: "09, 15, 20, 33" },
+  { fortune: "Every smile shared between Naveen & Humera creates ripples of joy across the cosmos.", numbers: "05, 14, 28, 77" }
+];
+
 export const HomeDashboard: React.FC = () => {
   const { currentUser, partnerUser, updateMood } = useAuth();
   const { anniversaryDate, setAnniversaryDate, sendQuickAction, memories, messages, recentNotification } = useUniverse();
@@ -24,12 +34,25 @@ export const HomeDashboard: React.FC = () => {
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [editingMood, setEditingMood] = useState(false);
   const [showDateEditor, setShowDateEditor] = useState(false);
-  // Slice to YYYY-MM-DD so <input type="date"> works correctly (ISO string has time component that breaks it)
   const [tempDate, setTempDate] = useState(anniversaryDate.slice(0, 10));
   const [moodEmoji, setMoodEmoji] = useState('💖');
   const [moodText, setMoodText] = useState('');
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [surpriseMemory, setSurpriseMemory] = useState<Memory | null>(null);
+
+  // Love Battery State
+  const [loveBattery, setLoveBattery] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ou_love_battery');
+      return saved ? parseInt(saved, 10) : 95;
+    } catch {
+      return 95;
+    }
+  });
+
+  // Fortune Cookie State
+  const [fortuneCracked, setFortuneCracked] = useState(false);
+  const [currentFortune, setCurrentFortune] = useState(() => LOVE_FORTUNES[0]);
 
   useEffect(() => {
     const calculateTime = () => {
@@ -53,6 +76,7 @@ export const HomeDashboard: React.FC = () => {
   useEffect(() => {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     setQuoteIndex(dayOfYear % DAILY_QUOTES.length);
+    setCurrentFortune(LOVE_FORTUNES[dayOfYear % LOVE_FORTUNES.length]);
   }, []);
 
   const handleSaveMood = (e: React.FormEvent) => {
@@ -70,6 +94,23 @@ export const HomeDashboard: React.FC = () => {
       setSurpriseMemory(random);
     }
     toast.love('Surprise sent! 🎉');
+  };
+
+  const handleBoostBattery = () => {
+    setLoveBattery(100);
+    try { localStorage.setItem('ou_love_battery', '100'); } catch (_) {}
+    sounds.playKissSound();
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    toast.love('⚡ Love Battery Charged to 100%! Maximum Love Power!');
+  };
+
+  const handleCrackFortune = () => {
+    if (!fortuneCracked) {
+      setFortuneCracked(true);
+      sounds.playSecretBurnSound();
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+      toast.love('🥠 Fortune Cookie Cracked!');
+    }
   };
 
   const hour = new Date().getHours();
@@ -127,7 +168,7 @@ export const HomeDashboard: React.FC = () => {
 
           <div className="text-center sm:text-right min-w-0">
             <h2 className="text-base sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent truncate">
-              {currentUser?.petName} & {partnerUser?.petName}
+              {currentUser?.petName} &amp; {partnerUser?.petName}
             </h2>
             <p className="text-[10px] sm:text-xs text-slate-300 font-medium mt-1 flex flex-wrap items-center justify-center sm:justify-end gap-1">
               <span className="truncate max-w-[140px] sm:max-w-none">{currentUser?.city}</span>
@@ -182,7 +223,6 @@ export const HomeDashboard: React.FC = () => {
               { value: timeTogether.seconds, label: 'Secs', color: 'text-rose-300', glow: 'shadow-rose-500/30 border-rose-500/30', from: 'from-rose-500', to: 'to-pink-600', pulse: true },
             ].map(({ value, label, color, glow, from, to, pulse }) => (
               <div key={label} className={`relative overflow-hidden glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border ${glow} shadow-lg text-center group`}>
-                {/* Gradient bar at top */}
                 <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${from} ${to} opacity-80`} />
                 <p className={`text-xl sm:text-4xl font-extrabold tracking-tight ${color} ${pulse ? 'animate-pulse' : ''} tabular-nums`}>
                   {String(value).padStart(2, '0')}
@@ -191,6 +231,72 @@ export const HomeDashboard: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Love Battery & Daily Fortune Cookie Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Interactive Love Battery Card */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <BatteryCharging className="w-4 h-4 text-emerald-400" />
+              <span>Couple Love Battery</span>
+            </h4>
+            <span className="text-xs font-extrabold text-emerald-300">{loveBattery}%</span>
+          </div>
+
+          <div className="h-4 bg-space-950 rounded-full p-1 border border-white/10 relative overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-pink-500 transition-all duration-1000 shadow-md shadow-emerald-500/40"
+              style={{ width: `${loveBattery}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-[11px] text-slate-300">
+              {loveBattery >= 90 ? '⚡ Maximum charge & affection!' : '💖 Send a boost to recharge!'}
+            </p>
+            <button
+              onClick={handleBoostBattery}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-xs shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300" />
+              <span>Recharge ⚡</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Daily Love Fortune Cookie */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <Cookie className="w-4 h-4 text-amber-400" />
+              <span>Daily Love Fortune</span>
+            </h4>
+            <span className="text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+              {fortuneCracked ? 'Unlocked' : 'Tap to Crack'}
+            </span>
+          </div>
+
+          {!fortuneCracked ? (
+            <div
+              onClick={handleCrackFortune}
+              className="p-4 rounded-2xl glass-card border border-amber-500/30 hover:border-amber-500/60 cursor-pointer flex items-center justify-center gap-3 text-center transition-all hover:scale-[1.02]"
+            >
+              <span className="text-3xl animate-bounce">🥠</span>
+              <div className="text-left">
+                <p className="font-bold text-xs text-white">Crack Open Today's Love Cookie</p>
+                <p className="text-[10px] text-amber-300">Reveal a romantic prophecy for you &amp; partner</p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 space-y-1.5 animate-fade-in">
+              <p className="text-xs text-amber-100 font-semibold italic">"{currentFortune.fortune}"</p>
+              <p className="text-[10px] text-amber-300/80 font-bold">Lucky Love Numbers: {currentFortune.numbers}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -251,7 +357,7 @@ export const HomeDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Couple Connection Card — replaces fake weather */}
+        {/* Couple Connection Card */}
         <div className="glass-panel p-6 rounded-3xl border border-white/10 flex flex-col justify-between gap-4">
           <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-pink-400" />
@@ -448,6 +554,7 @@ export const HomeDashboard: React.FC = () => {
           </div>
         ))}
       </div>
+
       <AnimatePresence>
         {surpriseMemory && (
           <motion.div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -473,7 +580,7 @@ export const HomeDashboard: React.FC = () => {
                 onClick={() => setSurpriseMemory(null)}
                 className="w-full py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs"
               >
-                Close & Relive Memory
+                Close &amp; Relive Memory
               </button>
             </motion.div>
           </motion.div>

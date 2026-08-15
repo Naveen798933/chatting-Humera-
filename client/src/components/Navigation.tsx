@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut, ShieldAlert, Palette, HelpCircle } from 'lucide-react';
+import { Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings, LogOut, ShieldAlert, Palette, HelpCircle, Bot, Music } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { useShakeLock } from '../hooks/useShakeLock';
@@ -15,6 +15,8 @@ interface NavigationProps {
   onOpenCallHistory?: () => void;
   onOpenTheme?: () => void;
   onOpenDailyQuestion?: () => void;
+  onOpenLoveAI?: () => void;
+  onOpenSoundscapes?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -24,7 +26,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenStatus,
   onOpenCallHistory,
   onOpenTheme,
-  onOpenDailyQuestion
+  onOpenDailyQuestion,
+  onOpenLoveAI,
+  onOpenSoundscapes
 }) => {
   const { currentUser, logout, toggleDecoyMode } = useAuth();
   const { messages } = useUniverse();
@@ -159,6 +163,27 @@ export const Navigation: React.FC<NavigationProps> = ({
 
           {/* Desktop Only Action Buttons */}
           <div className="hidden md:flex items-center gap-2">
+            {onOpenLoveAI && (
+              <button
+                onClick={onOpenLoveAI}
+                title="Cupid Love AI Assistant"
+                className="p-2 rounded-xl glass-card border border-pink-500/30 text-pink-300 hover:text-white hover:border-pink-400/60 transition-all relative group"
+              >
+                <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping absolute top-1 right-1" />
+                <Sparkles className="w-5 h-5 text-accent-pink group-hover:scale-110 transition-transform" />
+              </button>
+            )}
+
+            {onOpenSoundscapes && (
+              <button
+                onClick={onOpenSoundscapes}
+                title="Ambient Soundscapes & Lo-Fi"
+                className="p-2 rounded-xl glass-card text-cyan-300 hover:text-white hover:border-cyan-400/40 transition-colors"
+              >
+                <Music className="w-5 h-5" />
+              </button>
+            )}
+
             {onOpenTheme && (
               <button
                 onClick={onOpenTheme}
@@ -233,6 +258,27 @@ export const Navigation: React.FC<NavigationProps> = ({
 
       {/* Mobile Quick Action Toolbar Strip — 100% visible on all mobile screens */}
       <div className="md:hidden flex items-center justify-start overflow-x-auto scrollbar-none pt-2 border-t border-white/10 mt-2 gap-1.5 px-1">
+        {onOpenLoveAI && (
+          <button
+            onClick={onOpenLoveAI}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card border border-pink-500/30 text-pink-300 text-[10px] font-bold shrink-0 relative"
+          >
+            <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping" />
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Love AI</span>
+          </button>
+        )}
+
+        {onOpenSoundscapes && (
+          <button
+            onClick={onOpenSoundscapes}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card text-cyan-300 text-[10px] font-bold shrink-0"
+          >
+            <Music className="w-3.5 h-3.5" />
+            <span>Soundscape</span>
+          </button>
+        )}
+
         {onOpenStatus && (
           <button
             onClick={onOpenStatus}

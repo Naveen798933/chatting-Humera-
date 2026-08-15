@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { Memory } from '../types';
 import { toast } from '../lib/toast';
 import {
   Heart, Image, FolderHeart, Lock, Plus, Star,
-  Calendar, MapPin, Sparkles, X, Upload, ZoomIn, Trash2, Download
+  Calendar, MapPin, Sparkles, X, Upload, ZoomIn, Trash2, Download, Play, Pause, ChevronLeft, ChevronRight, Search, SlidersHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -14,11 +14,17 @@ export const MemoriesGallery: React.FC = () => {
   const { memories, addMemory, deleteMemory, toggleFavoriteMemory } = useUniverse();
 
   const [activeAlbum, setActiveAlbum] = useState<Memory['album'] | 'All'>('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState(false);
   const [lightboxMem, setLightboxMem] = useState<Memory | null>(null);
+
+  // Slideshow state
+  const [isSlideshowOpen, setIsSlideshowOpen] = useState(false);
+  const [slideshowIdx, setSlideshowIdx] = useState(0);
+  const [isSlideshowPlaying, setIsSlideshowPlaying] = useState(true);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -104,8 +110,6 @@ export const MemoriesGallery: React.FC = () => {
     }
   };
 
-
-
   const handleCreateMemory = (e: React.FormEvent) => {
     e.preventDefault();
     const url = mediaUrl.trim();
@@ -129,14 +133,38 @@ export const MemoriesGallery: React.FC = () => {
     setTitle('');
     setDescription('');
     setMediaUrl('');
+    setImagePreview(null);
     setShowAddModal(false);
   };
 
   const filteredMemories = memories.filter(m => {
-    if (activeAlbum === 'All') return m.album !== 'Hidden';
-    if (activeAlbum === 'Favorites') return m.isFavorite;
-    return m.album === activeAlbum;
+    const matchesAlbum = activeAlbum === 'All' 
+      ? m.album !== 'Hidden' 
+      : activeAlbum === 'Favorites' 
+        ? m.isFavorite 
+        : m.album === activeAlbum;
+
+    if (!matchesAlbum) return false;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return m.title.toLowerCase().includes(q) || m.description.toLowerCase().includes(q);
+    }
+    return true;
   });
+
+  // Slideshow timer
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isSlideshowOpen && isSlideshowPlaying && filteredMemories.length > 0) {
+      interval = setInterval(() => {
+        setSlideshowIdx(prev => (prev + 1) % filteredMemories.length);
+      }, 4000);
+    }
+    return () => clearInterval(interval);
+  }, [isSlideshowOpen, isSlideshowPlaying, filteredMemories.length]);
+
+  const currentSlideMem = filteredMemories[slideshowIdx % Math.max(1, filteredMemories.length)];
 
   return (
     <div className="space-y-6 pb-20 max-w-6xl mx-auto">
@@ -144,49 +172,75 @@ export const MemoriesGallery: React.FC = () => {
         <div>
           <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
             <FolderHeart className="w-6 h-6 text-accent-pink" />
-            <span>Memories & Albums</span>
+            <span>Memories &amp; Albums</span>
           </h2>
           <p className="text-xs text-slate-300 mt-1">
             Our beautiful timeline of captured moments together ❤️
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 min-h-[44px]"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Memory</span>
-        </button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {filteredMemories.length > 0 && (
+            <button
+              onClick={() => { setSlideshowIdx(0); setIsSlideshowPlaying(true); setIsSlideshowOpen(true); }}
+              className="px-4 py-2.5 rounded-2xl glass-card border border-pink-500/30 text-pink-300 hover:text-white font-bold text-xs shadow-md flex items-center gap-2 min-h-[44px]"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Slideshow</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex-1 sm:flex-none px-4 py-2.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[44px]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Memory</span>
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        {albumsList.map((alb) => {
-          const isActive = activeAlbum === alb;
-          const isHidden = alb === 'Hidden';
+      {/* Album Filters & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {albumsList.map((alb) => {
+            const isActive = activeAlbum === alb;
+            const isHidden = alb === 'Hidden';
 
-          return (
-            <button
-              key={alb}
-              onClick={() => handleOpenAlbum(alb)}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[44px] ${
-                isActive
-                  ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
-                  : 'glass-card text-slate-300 hover:text-white active:scale-95'
-              } ${isHidden ? 'border border-pink-500/40' : ''}`}
-            >
-              {isHidden && <Lock className="w-3.5 h-3.5 text-pink-300" />}
-              <span>{alb}</span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={alb}
+                onClick={() => handleOpenAlbum(alb)}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[40px] ${
+                  isActive
+                    ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
+                    : 'glass-card text-slate-300 hover:text-white active:scale-95'
+                } ${isHidden ? 'border border-pink-500/40' : ''}`}
+              >
+                {isHidden && <Lock className="w-3.5 h-3.5 text-pink-300" />}
+                <span>{alb}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search memories..."
+            className="w-full pl-9 pr-4 py-2 rounded-xl glass-input text-xs"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {filteredMemories.map((mem) => (
           <motion.div
             key={mem.id}
-            className="glass-card rounded-3xl overflow-hidden border border-white/10 flex flex-col group"
+            className="glass-card rounded-3xl overflow-hidden border border-white/10 flex flex-col group hover:border-pink-400/40 transition-all"
           >
             <div className="relative h-56 overflow-hidden cursor-pointer" onClick={() => setLightboxMem(mem)}>
               <img
@@ -234,13 +288,81 @@ export const MemoriesGallery: React.FC = () => {
                   <Calendar className="w-3.5 h-3.5 text-pink-400" />
                   {mem.date}
                 </span>
-                <span>Captured with ❤️</span>
+                <button
+                  onClick={() => { deleteMemory(mem.id); toast.info('Memory removed'); }}
+                  className="text-slate-400 hover:text-rose-400 p-1"
+                  title="Delete Memory"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           </motion.div>
         ))}
       </div>
 
+      {/* Romantic Full-Screen Slideshow Modal */}
+      <AnimatePresence>
+        {isSlideshowOpen && currentSlideMem && (
+          <motion.div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-8 animate-fade-in">
+            <div className="flex items-center justify-between z-20">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-pink-400" />
+                <span className="text-xs font-extrabold text-white">Memory Slideshow ({slideshowIdx + 1} / {filteredMemories.length})</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsSlideshowPlaying(!isSlideshowPlaying)}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+                  title={isSlideshowPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
+                >
+                  {isSlideshowPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
+                </button>
+                <button
+                  onClick={() => setIsSlideshowOpen(false)}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Slide Image */}
+            <div className="relative max-w-4xl max-h-[70vh] mx-auto my-auto flex items-center justify-center">
+              <img
+                src={currentSlideMem.mediaUrls[0]}
+                alt={currentSlideMem.title}
+                className="max-h-[65vh] w-auto max-w-full rounded-3xl object-contain shadow-2xl border border-white/20"
+              />
+
+              {/* Prev / Next controls */}
+              <button
+                onClick={() => setSlideshowIdx(prev => (prev - 1 + filteredMemories.length) % filteredMemories.length)}
+                className="absolute left-2 sm:-left-12 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+
+              <button
+                onClick={() => setSlideshowIdx(prev => (prev + 1) % filteredMemories.length)}
+                className="absolute right-2 sm:-right-12 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Slide Caption */}
+            <div className="max-w-xl mx-auto text-center space-y-1 z-20">
+              <h3 className="text-lg font-extrabold text-white">{currentSlideMem.title}</h3>
+              <p className="text-xs text-pink-300 italic">"{currentSlideMem.description}"</p>
+              <p className="text-[10px] text-slate-400">{currentSlideMem.date} • {currentSlideMem.album}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Memory Modal */}
       <AnimatePresence>
         {showAddModal && (
           <motion.div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -248,96 +370,83 @@ export const MemoriesGallery: React.FC = () => {
               <div className="flex items-center justify-between">
                 <h3 className="font-extrabold text-base text-white flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-accent-pink" />
-                  <span>Add New Memory</span>
+                  <span>Save New Memory</span>
                 </h3>
-                <button onClick={() => { setShowAddModal(false); }} className="text-slate-400 hover:text-white">
+                <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form onSubmit={handleCreateMemory} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Memory Title:</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Memory Title</label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Stargazing at the Beach"
+                    placeholder="e.g. Stargazing Night by the Lake"
                     className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
                     required
                   />
                 </div>
 
-                {/* Photo Upload / URL Section */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Upload Photo from Gallery or Enter Image URL:</label>
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      type="file"
-                      ref={memFileInputRef}
-                      onChange={handleMemFileChange}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => memFileInputRef.current?.click()}
-                      className="flex-1 py-2.5 px-3 rounded-xl glass-card border border-pink-500/30 text-pink-300 text-xs font-bold flex items-center justify-center gap-2 hover:bg-pink-500/10 min-h-[44px]"
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Choose from Phone Gallery</span>
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={mediaUrl}
-                    onChange={(e) => { setMediaUrl(e.target.value); setImagePreview(e.target.value); }}
-                    placeholder="Or paste image URL (https://...)"
-                    className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
-                    required
-                  />
-                  {(imagePreview || mediaUrl) && (
-                    <div className="mt-2 relative w-full h-32 rounded-xl overflow-hidden border border-white/10">
-                      <img
-                        src={imagePreview || mediaUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Album Category:</label>
-                  <select
-                    value={album}
-                    onChange={(e) => setAlbum(e.target.value as Memory['album'])}
-                    className="w-full px-4 py-2.5 rounded-xl bg-space-900 border border-white/10 text-xs text-white"
-                  >
-                    <option value="Random">Random Moments</option>
-                    <option value="Vacations">Vacations</option>
-                    <option value="Birthdays">Birthdays</option>
-                    <option value="Favorites">Favorites</option>
-                    <option value="Hidden">Hidden (PIN Gated)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Description / Love Note:</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Story / Note</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="What made this moment special?"
-                    className="w-full px-4 py-2.5 rounded-xl glass-input text-xs h-20 resize-none"
+                    placeholder="What made this moment magical?"
+                    rows={3}
+                    className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Album</label>
+                  <select
+                    value={album}
+                    onChange={(e) => setAlbum(e.target.value as any)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-space-900 border border-white/10 text-xs text-white"
+                  >
+                    <option value="Random">Random Moments 📸</option>
+                    <option value="Vacations">Vacations &amp; Trips ✈️</option>
+                    <option value="Birthdays">Birthdays &amp; Parties 🎂</option>
+                    <option value="Favorites">Top Favorites ⭐</option>
+                    <option value="Hidden">Hidden Vault (PIN Protected) 🔒</option>
+                  </select>
+                </div>
+
+                {/* Upload Image Section */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-300">Photo</label>
+                  <input
+                    ref={memFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleMemFileChange}
+                    className="hidden"
+                  />
+                  <div
+                    onClick={() => memFileInputRef.current?.click()}
+                    className="w-full p-4 rounded-2xl border-2 border-dashed border-pink-500/30 hover:border-pink-500/60 flex flex-col items-center justify-center gap-2 cursor-pointer bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="h-32 rounded-xl object-cover" />
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-pink-400" />
+                        <span className="text-xs font-bold text-slate-300">Tap to upload photo from device</span>
+                        <span className="text-[10px] text-slate-500">Supports JPG, PNG, WEBP</span>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/25 hover:scale-[1.02] active:scale-95 transition-all"
+                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/25 active:scale-95 transition-transform"
                 >
-                  Save to Memories ❤️
+                  Save to Our Universe Gallery ✨
                 </button>
               </form>
             </motion.div>
@@ -345,98 +454,67 @@ export const MemoriesGallery: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showPinModal && (
-          <motion.div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div className="glass-panel-glow p-6 rounded-3xl max-w-sm w-full border border-pink-400/40 text-center space-y-4">
-              <div className="w-12 h-12 mx-auto rounded-full bg-pink-500/20 flex items-center justify-center text-pink-400">
-                <Lock className="w-6 h-6" />
-              </div>
-              <h3 className="font-extrabold text-base text-white">Hidden Album Protected</h3>
-              <p className="text-xs text-slate-300">Enter your 4-digit Universe PIN to view private memories.</p>
-
-              {pinError && (
-                <p className="text-xs text-rose-400 font-semibold">Incorrect PIN. Please try again.</p>
-              )}
-
-              <form onSubmit={handleVerifyPin} className="space-y-4">
-                <input
-                  type="password"
-                  maxLength={4}
-                  value={enteredPin}
-                  onChange={(e) => setEnteredPin(e.target.value)}
-                  placeholder="••••"
-                  className="w-full text-center tracking-widest text-lg font-bold px-4 py-3 rounded-2xl glass-input"
-                  required
-                />
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setShowPinModal(false)} className="flex-1 py-2.5 rounded-xl glass-card text-slate-300 font-bold text-xs">
-                    Cancel
-                  </button>
-                  <button type="submit" className="flex-1 py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs">
-                    Unlock
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Lightbox */}
-      <AnimatePresence>
-        {lightboxMem && (
-          <motion.div
-            className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
-            onClick={() => setLightboxMem(null)}
-          >
-            <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => setLightboxMem(null)}
-                className="absolute -top-10 right-0 text-white/60 hover:text-white p-2"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <img
-                src={lightboxMem.mediaUrls[0]}
-                alt={lightboxMem.title}
-                className="w-full max-h-[70vh] object-contain rounded-2xl"
-              />
-              <div className="mt-3 text-center space-y-2">
-                <p className="font-bold text-sm text-white">{lightboxMem.title}</p>
-                {lightboxMem.description && <p className="text-xs text-slate-400 italic">"{lightboxMem.description}"</p>}
-                <p className="text-[10px] text-slate-500">{lightboxMem.date}</p>
-
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <a
-                    href={lightboxMem.mediaUrls[0]}
-                    download={`memory_${lightboxMem.title}.jpg`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 rounded-xl glass-card text-xs font-bold text-slate-200 hover:text-white flex items-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5 text-pink-400" />
-                    <span>Save Photo</span>
-                  </a>
-
-                  <button
-                    onClick={() => {
-                      deleteMemory(lightboxMem.id);
-                      setLightboxMem(null);
-                      toast.info('Memory deleted 🗑️');
-                    }}
-                    className="px-3 py-1.5 rounded-xl glass-card text-xs font-bold text-rose-300 hover:text-rose-200 hover:border-rose-500/40 flex items-center gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Delete</span>
-                  </button>
-                </div>
-              </div>
+      {/* Hidden Album PIN Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <motion.div className="glass-panel p-6 rounded-3xl max-w-sm w-full border border-pink-400/40 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-pink-500/20 flex items-center justify-center mx-auto text-pink-300">
+              <Lock className="w-6 h-6 animate-pulse" />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            <h4 className="font-bold text-base text-white">Hidden Album Protected</h4>
+            <p className="text-xs text-slate-300">Enter your 4-digit vault PIN to access hidden photos.</p>
 
+            {pinError && <p className="text-xs text-rose-400 font-bold">Incorrect PIN. Try again.</p>}
+
+            <form onSubmit={handleVerifyPin} className="space-y-3">
+              <input
+                type="password"
+                maxLength={4}
+                value={enteredPin}
+                onChange={(e) => setEnteredPin(e.target.value)}
+                placeholder="****"
+                className="w-full text-center tracking-widest text-lg font-bold px-4 py-2.5 rounded-xl glass-input"
+                required
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPinModal(false)}
+                  className="flex-1 py-2 rounded-xl glass-card text-xs font-bold text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-md"
+                >
+                  Unlock
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Lightbox Single Memory Modal */}
+      {lightboxMem && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setLightboxMem(null)}>
+          <div className="max-w-3xl w-full glass-panel p-4 rounded-3xl border border-white/20 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-sm text-white">{lightboxMem.title}</h3>
+              <button onClick={() => setLightboxMem(null)} className="text-slate-400 hover:text-white p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <img
+              src={lightboxMem.mediaUrls[0]}
+              alt={lightboxMem.title}
+              className="w-full max-h-[60vh] object-contain rounded-2xl"
+            />
+            <p className="text-xs text-slate-200 italic">{lightboxMem.description}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };

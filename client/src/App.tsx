@@ -16,6 +16,7 @@ import { MemoriesGallery } from './pages/MemoriesGallery';
 import { LoveVaultCalendar } from './pages/LoveVaultCalendar';
 import { TogetherTime } from './pages/TogetherTime';
 import { LoveAIAssistant } from './components/LoveAIAssistant';
+import { AmbientSoundscapeModal } from './components/AmbientSoundscape';
 import { AdminBackupModal } from './components/AdminBackupModal';
 import { DecoyCalculator } from './components/DecoyCalculator';
 import { ToastContainer } from './components/Toast';
@@ -39,6 +40,8 @@ const AppContent: React.FC = () => {
   const [isCallHistoryOpen, setIsCallHistoryOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
   const [isDailyQuestionOpen, setIsDailyQuestionOpen] = useState(false);
+  const [isLoveAIOpen, setIsLoveAIOpen] = useState(false);
+  const [isSoundscapeOpen, setIsSoundscapeOpen] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<AppTheme>(() => {
     return (localStorage.getItem('ou_theme') as AppTheme) || 'cosmic';
   });
@@ -56,6 +59,8 @@ const AppContent: React.FC = () => {
         if (isAdminOpen) { setIsAdminOpen(false); return; }
         if (isThemeOpen) { setIsThemeOpen(false); return; }
         if (isDailyQuestionOpen) { setIsDailyQuestionOpen(false); return; }
+        if (isLoveAIOpen) { setIsLoveAIOpen(false); return; }
+        if (isSoundscapeOpen) { setIsSoundscapeOpen(false); return; }
         if (isStatusOpen) { setIsStatusOpen(false); return; }
         if (isProfileDrawerOpen) { setIsProfileDrawerOpen(false); return; }
         if (isCallHistoryOpen) { setIsCallHistoryOpen(false); return; }
@@ -63,7 +68,7 @@ const AppContent: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAdminOpen, isThemeOpen, isDailyQuestionOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen]);
+  }, [isAdminOpen, isThemeOpen, isDailyQuestionOpen, isLoveAIOpen, isSoundscapeOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen]);
 
   const [stories, setStories] = useState<StoryItem[]>(() => {
     try {
@@ -186,6 +191,8 @@ const AppContent: React.FC = () => {
         onOpenCallHistory={() => setIsCallHistoryOpen(true)}
         onOpenTheme={() => setIsThemeOpen(true)}
         onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
+        onOpenLoveAI={() => setIsLoveAIOpen(true)}
+        onOpenSoundscapes={() => setIsSoundscapeOpen(true)}
       />
 
       <main className={`flex-1 w-full overflow-x-hidden min-h-0 ${
@@ -200,6 +207,15 @@ const AppContent: React.FC = () => {
         {activeTab === 'vault' && <LoveVaultCalendar />}
       </main>
 
+      <LoveAIAssistant
+        isOpen={isLoveAIOpen}
+        onClose={() => setIsLoveAIOpen(false)}
+        isModal={true}
+      />
+      <AmbientSoundscapeModal
+        isOpen={isSoundscapeOpen}
+        onClose={() => setIsSoundscapeOpen(false)}
+      />
       <AdminBackupModal
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}

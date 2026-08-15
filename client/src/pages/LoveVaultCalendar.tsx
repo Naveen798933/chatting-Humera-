@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { VaultNote, CalendarEvent, SharedListItem, LoveMapPin } from '../types';
 import { toast } from '../lib/toast';
 import { 
   Lock, Calendar, CheckSquare, MapPin, Plus, 
-  Key, Sparkles, BookOpen, Clock, Heart, Trash2, CheckCircle2 
+  Key, Sparkles, BookOpen, Clock, Heart, Trash2, CheckCircle2, Mic, StopCircle, Play, Pause, Volume2, ShieldCheck, Eye, EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
+import confetti from 'canvas-confetti';
 
 export const LoveVaultCalendar: React.FC = () => {
   const { currentUser, isVaultUnlocked, unlockVaultWithPin, lockVault } = useAuth();
@@ -26,6 +27,15 @@ export const LoveVaultCalendar: React.FC = () => {
   const [newVaultTitle, setNewVaultTitle] = useState('');
   const [newVaultContent, setNewVaultContent] = useState('');
   const [newVaultFutureDate, setNewVaultFutureDate] = useState('');
+  const [newVaultAudioData, setNewVaultAudioData] = useState<string | null>(null);
+
+  // Audio recording state for vault notes
+  const [isRecordingVaultAudio, setIsRecordingVaultAudio] = useState(false);
+  const [vaultRecordingTime, setVaultRecordingTime] = useState(0);
+  const vaultMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const vaultAudioChunksRef = useRef<Blob[]>([]);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const currentAudioElementRef = useRef<HTMLAudioElement | null>(null);
 
   const [newCalTitle, setNewCalTitle] = useState('');
   const [newCalDate, setNewCalDate] = useState('');
@@ -37,11 +47,78 @@ export const LoveVaultCalendar: React.FC = () => {
   const [newPinTitle, setNewPinTitle] = useState('');
   const [newPinLoc, setNewPinLoc] = useState('');
 
+  // Audio Recording timer
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    if (isRecordingVaultAudio) {
+      timer = setInterval(() => setVaultRecordingTime(p => p + 1), 1000);
+    } else {
+      setVaultRecordingTime(0);
+    }
+    return () => clearInterval(timer);
+  }, [isRecordingVaultAudio]);
+
+  const handleStartVaultAudioRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      vaultMediaRecorderRef.current = recorder;
+      vaultAudioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) vaultAudioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(vaultAudioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setNewVaultAudioData(reader.result as string);
+          toast.love('Voice capsule recorded! 🎙️');
+        };
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      recorder.start();
+      setIsRecordingVaultAudio(true);
+      toast.info('Recording voice letter...');
+    } catch (err) {
+      toast.error('Microphone access required for voice capsule');
+    }
+  };
+
+  const handleStopVaultAudioRecording = () => {
+    if (vaultMediaRecorderRef.current && isRecordingVaultAudio) {
+      vaultMediaRecorderRef.current.stop();
+      setIsRecordingVaultAudio(false);
+    }
+  };
+
+  const handlePlayVoiceCapsule = (audioUrl: string, id: string) => {
+    if (playingAudioId === id) {
+      currentAudioElementRef.current?.pause();
+      setPlayingAudioId(null);
+      return;
+    }
+
+    if (currentAudioElementRef.current) {
+      currentAudioElementRef.current.pause();
+    }
+
+    const audio = new Audio(audioUrl);
+    currentAudioElementRef.current = audio;
+    setPlayingAudioId(id);
+    audio.play();
+    audio.onended = () => setPlayingAudioId(null);
+  };
+
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
     if (unlockVaultWithPin(pinInput)) {
       setPinInput('');
       setPinErr(false);
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
       toast.love('Vault unlocked! 🔑');
     } else {
       setPinErr(true);
@@ -51,20 +128,25 @@ export const LoveVaultCalendar: React.FC = () => {
 
   const handleCreateVaultNote = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVaultTitle.trim() || !newVaultContent.trim()) return;
+    if (!newVaultTitle.trim() && !newVaultContent.trim() && !newVaultAudioData) return;
+
+    const fullContent = newVaultAudioData 
+      ? `${newVaultContent.trim()}\n\n[VOICE_CAPSULE_DATA]${newVaultAudioData}[/VOICE_CAPSULE_DATA]`
+      : newVaultContent.trim();
 
     addVaultNote({
-      title: newVaultTitle.trim(),
-      content: newVaultContent.trim(),
+      title: newVaultTitle.trim() || 'Untitled Letter',
+      content: fullContent,
       unlockDate: newVaultFutureDate ? newVaultFutureDate : undefined,
       isLocked: Boolean(newVaultFutureDate),
       createdBy: currentUser?.uid ?? 'naveen_uid_798933'
     });
 
-    toast.love('Vault note locked & saved! 🔒');
+    toast.love('Vault letter & capsule saved! 🔒');
     setNewVaultTitle('');
     setNewVaultContent('');
     setNewVaultFutureDate('');
+    setNewVaultAudioData(null);
   };
 
   const handleCreateCalendarEvent = (e: React.FormEvent) => {
@@ -78,7 +160,7 @@ export const LoveVaultCalendar: React.FC = () => {
       createdBy: currentUser?.uid ?? 'naveen_uid_798933'
     });
 
-    toast.love('Calendar event added! 🗓️');
+    toast.love('Calendar milestone added! 🗓️');
     setNewCalTitle('');
     setNewCalDate('');
   };
@@ -101,7 +183,7 @@ export const LoveVaultCalendar: React.FC = () => {
       locationName: newPinLoc.trim(),
       isBucketList: true
     });
-    toast.love('Love map pin added! 📍');
+    toast.love('Love map destination added! 📍');
     setNewPinTitle('');
     setNewPinLoc('');
   };
@@ -163,10 +245,10 @@ export const LoveVaultCalendar: React.FC = () => {
       {/* SECTION 1: LOVE CALENDAR */}
       {activeSection === 'calendar' && (
         <div className="space-y-6">
-          <div className="glass-panel p-6 rounded-3xl border border-white/10">
+          <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/10">
             <h3 className="font-extrabold text-lg text-white mb-2 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-accent-pink" />
-              <span>Upcoming Milestones & Events</span>
+              <span>Upcoming Milestones &amp; Events</span>
             </h3>
 
             {/* Add Event Form */}
@@ -175,7 +257,7 @@ export const LoveVaultCalendar: React.FC = () => {
                 type="text"
                 value={newCalTitle}
                 onChange={(e) => setNewCalTitle(e.target.value)}
-                placeholder="Event name e.g. Maldives Trip"
+                placeholder="Event name e.g. Maldives Getaway"
                 className="w-full sm:col-span-2 px-4 py-2.5 rounded-xl glass-input text-xs"
                 required
               />
@@ -223,7 +305,7 @@ export const LoveVaultCalendar: React.FC = () => {
                 <Key className="w-8 h-8 animate-pulse" />
               </div>
               <h3 className="text-xl font-extrabold text-white">Love Vault Locked</h3>
-              <p className="text-xs text-slate-300">Enter your secret 4-digit PIN to access private letters.</p>
+              <p className="text-xs text-slate-300">Enter your secret 4-digit PIN to access private letters and audio time capsules.</p>
 
               {pinErr && (
                 <p className="text-xs text-rose-400 font-bold">Incorrect PIN. Please try again.</p>
@@ -253,9 +335,9 @@ export const LoveVaultCalendar: React.FC = () => {
                 <div>
                   <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-accent-pink" />
-                    <span>Unlocked Private Vault & Letters</span>
+                    <span>Unlocked Private Vault &amp; Voice Capsules</span>
                   </h3>
-                  <p className="text-xs text-slate-300">Your protected love notes and future messages</p>
+                  <p className="text-xs text-slate-300">Your protected love notes, time capsules, and future voice letters</p>
                 </div>
                 <button
                   onClick={lockVault}
@@ -265,27 +347,63 @@ export const LoveVaultCalendar: React.FC = () => {
                 </button>
               </div>
 
-              {/* Write New Vault Note */}
-              <div className="glass-panel p-6 rounded-3xl border border-white/10">
-                <h4 className="font-bold text-sm text-white mb-3">Write Secret Letter or Future Note</h4>
+              {/* Write New Vault Note with Voice Capsule */}
+              <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+                <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-pink-400" />
+                  <span>Write Secret Letter or Voice Time Capsule</span>
+                </h4>
                 <form onSubmit={handleCreateVaultNote} className="space-y-3">
                   <input
                     type="text"
                     value={newVaultTitle}
                     onChange={(e) => setNewVaultTitle(e.target.value)}
-                    placeholder="Letter Title e.g. Open on our 3rd anniversary..."
+                    placeholder="Letter Title e.g. Open on our 5th anniversary..."
                     className="w-full px-4 py-2.5 rounded-xl glass-input text-xs"
-                    required
                   />
                   <textarea
                     value={newVaultContent}
                     onChange={(e) => setNewVaultContent(e.target.value)}
-                    placeholder="Write your heart out here..."
+                    placeholder="Write your heartfelt message here..."
                     className="w-full px-4 py-3 rounded-xl glass-input text-xs h-28"
-                    required
                   />
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
+
+                  {/* Voice Capsule Recording Section */}
+                  <div className="p-3 rounded-2xl glass-card border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-2 rounded-xl ${isRecordingVaultAudio ? 'bg-rose-500 animate-pulse text-white' : 'bg-pink-500/20 text-pink-400'}`}>
+                        <Mic className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white">
+                          {isRecordingVaultAudio ? `Recording Voice Capsule (${vaultRecordingTime}s)...` : newVaultAudioData ? 'Voice Capsule Ready' : 'Add Audio Voice Letter'}
+                        </p>
+                        <p className="text-[10px] text-slate-400">Record a voice letter to lock in time</p>
+                      </div>
+                    </div>
+
+                    {!isRecordingVaultAudio ? (
+                      <button
+                        type="button"
+                        onClick={handleStartVaultAudioRecording}
+                        className="px-3.5 py-1.5 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 text-xs font-bold border border-pink-500/30"
+                      >
+                        {newVaultAudioData ? 'Re-record Audio' : 'Record Audio'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleStopVaultAudioRecording}
+                        className="px-3.5 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-md flex items-center gap-1"
+                      >
+                        <StopCircle className="w-3.5 h-3.5" />
+                        <span>Done</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                    <div className="flex-1 w-full">
                       <label className="block text-[10px] text-slate-400 font-semibold mb-1">Optional Future Unlock Date:</label>
                       <input
                         type="date"
@@ -296,37 +414,88 @@ export const LoveVaultCalendar: React.FC = () => {
                     </div>
                     <button
                       type="submit"
-                      className="py-3 px-6 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-md self-end"
+                      className="w-full sm:w-auto py-3 px-8 rounded-xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-md self-end min-h-[44px]"
                     >
-                      Save Letter
+                      Save to Vault 💌
                     </button>
                   </div>
                 </form>
               </div>
 
-              {/* Note Cards */}
+              {/* Note Cards with Wax Seal Animation */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {vaultNotes.map((note) => (
-                  <div key={note.id} className="glass-card p-6 rounded-3xl border border-white/10 space-y-3 relative">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-sm text-pink-200">{note.title}</h4>
-                      <button onClick={() => deleteVaultNote(note.id)} className="text-slate-400 hover:text-rose-400">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                {vaultNotes.map((note) => {
+                  const hasVoiceCapsule = note.content.includes('[VOICE_CAPSULE_DATA]');
+                  let textDisplay = note.content;
+                  let audioUrl: string | null = null;
+
+                  if (hasVoiceCapsule) {
+                    const match = note.content.match(/\[VOICE_CAPSULE_DATA\](.*?)\[\/VOICE_CAPSULE_DATA\]/s);
+                    if (match && match[1]) {
+                      audioUrl = match[1];
+                      textDisplay = note.content.replace(/\[VOICE_CAPSULE_DATA\].*?\[\/VOICE_CAPSULE_DATA\]/s, '').trim();
+                    }
+                  }
+
+                  const isFutureLocked = note.unlockDate && new Date(note.unlockDate).getTime() > Date.now();
+
+                  return (
+                    <div key={note.id} className="glass-card p-6 rounded-3xl border border-white/10 space-y-3 relative overflow-hidden group">
+                      {/* Wax Seal Badge for Future Locked Notes */}
+                      {isFutureLocked ? (
+                        <div className="text-center py-4 space-y-2">
+                          <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-rose-600 to-amber-600 p-0.5 shadow-xl shadow-rose-600/40 flex items-center justify-center animate-pulse">
+                            <Lock className="w-6 h-6 text-white" />
+                          </div>
+                          <h4 className="font-extrabold text-sm text-pink-200">{note.title}</h4>
+                          <p className="text-xs text-amber-300 font-bold flex items-center justify-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Locked until {note.unlockDate}</span>
+                          </p>
+                          <p className="text-[10px] text-slate-400 italic">This time capsule is sealed by wax until the special milestone date!</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                              <h4 className="font-bold text-sm text-pink-200">{note.title}</h4>
+                            </div>
+                            <button onClick={() => deleteVaultNote(note.id)} className="text-slate-400 hover:text-rose-400 p-1">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {textDisplay && (
+                            <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
+                              {textDisplay}
+                            </p>
+                          )}
+
+                          {audioUrl && (
+                            <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 text-xs font-bold text-pink-300">
+                                <Volume2 className="w-4 h-4" />
+                                <span>Voice Letter Capsule</span>
+                              </div>
+                              <button
+                                onClick={() => handlePlayVoiceCapsule(audioUrl!, note.id)}
+                                className="px-3 py-1.5 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-md flex items-center gap-1"
+                              >
+                                {playingAudioId === note.id ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                                <span>{playingAudioId === note.id ? 'Pause' : 'Play'}</span>
+                              </button>
+                            </div>
+                          )}
+
+                          <p className="text-[9px] text-slate-500 text-right">
+                            Created: {new Date(note.createdAt).toLocaleDateString()}
+                          </p>
+                        </>
+                      )}
                     </div>
-
-                    <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
-                      {note.content}
-                    </p>
-
-                    {note.unlockDate && (
-                      <p className="text-[10px] font-bold text-amber-300 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>Future Lock Date: {note.unlockDate}</span>
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -338,7 +507,7 @@ export const LoveVaultCalendar: React.FC = () => {
         <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-6">
           <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-accent-purple" />
-            <span>Shared Bucket Lists & Wishlist</span>
+            <span>Shared Bucket Lists &amp; Wishlist</span>
           </h3>
 
           <form onSubmit={handleCreateTodo} className="flex flex-col sm:flex-row gap-2">
@@ -346,7 +515,7 @@ export const LoveVaultCalendar: React.FC = () => {
               type="text"
               value={newTodoTitle}
               onChange={(e) => setNewTodoTitle(e.target.value)}
-              placeholder="Add bucket list item..."
+              placeholder="Add bucket list item e.g. Hot air balloon ride in Cappadocia..."
               className="flex-1 min-w-0 px-4 py-2.5 rounded-xl glass-input text-xs"
               required
             />
@@ -360,6 +529,7 @@ export const LoveVaultCalendar: React.FC = () => {
                 <option value="movies">Movies</option>
                 <option value="travel">Travel</option>
                 <option value="foods">Foods</option>
+                <option value="wishlist">Wishlist</option>
               </select>
               <button type="submit" className="px-4 sm:px-5 py-2.5 rounded-xl bg-accent-purple text-white font-bold text-xs min-h-[44px] whitespace-nowrap">
                 Add Item
