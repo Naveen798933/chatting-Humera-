@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
   Message, Memory, VaultNote, CalendarEvent, SharedListItem,
   LoveMapPin, AmbientEffect, QuickActionNotification
@@ -11,21 +11,10 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CHAT ID: always sort so Naveen→Humera and Humera→Naveen produce SAME id
-// This was the root cause of one-way messaging
 // ─────────────────────────────────────────────────────────────────────────────
 const NAVEEN_UID  = 'naveen_uid_798933';
 const HUMERA_UID  = 'humera_uid_140299';
 const SHARED_CHAT_ID = [NAVEEN_UID, HUMERA_UID].sort().join('_');
-
-// Firestore collection paths
-const CHATS_COL   = 'chats';
-const MSGS_SUB    = 'messages';
-const MEMS_COL    = 'memories';
-const VAULT_COL   = 'vault';
-const CAL_COL     = 'calendar';
-const TODO_COL    = 'todos';
-const MAP_COL     = 'mapPins';
-const NOTIF_COL   = 'notifications';
 
 // Local-only keys (non-message data stored in localStorage as fallback)
 const LS_MEMS  = 'ou_shared_memories';
@@ -67,9 +56,6 @@ const SEED_MESSAGES: Message[] = [
   }
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Seed data for first-time runs
-// ─────────────────────────────────────────────────────────────────────────────
 const SEED_MEMORIES: Memory[] = [
   { id: 'mem1', title: 'Our First Coffee Date ☕', description: 'The day time stood still and we talked for 4 hours.', mediaUrls: ['https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=800&q=80'], type: 'photo', album: 'Random', date: '2024-02-14', isFavorite: true, createdBy: NAVEEN_UID, createdAt: '2024-02-14T10:00:00.000Z' },
   { id: 'mem2', title: 'Stargazing by the Lake 🌌', description: 'Holding hands under a sky full of stars.', mediaUrls: ['https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'], type: 'photo', album: 'Vacations', date: '2024-07-20', isFavorite: true, createdBy: HUMERA_UID, createdAt: '2024-07-20T22:30:00.000Z' }
@@ -96,9 +82,6 @@ const SEED_MAP: LoveMapPin[] = [
   { id: 'p3', title: 'Dream Honeymoon Destination 🗼', latitude: 48.8566, longitude: 2.3522, locationName: 'Paris, France', isBucketList: true }
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Context type
-// ─────────────────────────────────────────────────────────────────────────────
 interface UniverseContextType {
   ambientEffect: AmbientEffect;
   setAmbientEffect: (e: AmbientEffect) => void;
@@ -159,26 +142,24 @@ interface UniverseContextType {
 
 const UniverseContext = createContext<UniverseContextType | undefined>(undefined);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Provider
-// ─────────────────────────────────────────────────────────────────────────────
 export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
 
   const [ambientEffect, setAmbientEffect]     = useState<AmbientEffect>('hearts');
   const [anniversaryDate, setAnniversaryDate] = useState('2026-05-30T00:00:00.000Z');
 
-  // ── Messages — localStorage & Supabase ──────────────────────────────────────
+  // ── Messages state ──────────────────────────────────────────────────────────
   const [messages, setMessages] = useState<Message[]>(() => {
     const raw = readLS(LS_MSGS, SEED_MESSAGES);
     return raw.map(m => ({ ...m, reactions: m.reactions || {} }));
   });
-  const msgSyncChannelRef = useRef<BroadcastChannel | null>(null);
-  // Stable ref so the burn interval always reads the latest messages
-  // without needing to re-create the interval on every message change
   const messagesRef = useRef<Message[]>(messages);
+  messagesRef.current = messages;
 
-  // ── Non-message data — localStorage with BroadcastChannel ─────────────────
+  const msgSyncChannelRef = useRef<BroadcastChannel | null>(null);
+  const spChatChannelRef  = useRef<any>(null);
+
+  // ── Non-message data ───────────────────────────────────────────────────────
   const [memories, setMemories]         = useState<Memory[]>(() => readLS(LS_MEMS, SEED_MEMORIES));
   const [vaultNotes, setVaultNotes]     = useState<VaultNote[]>(() => readLS(LS_VAULT, SEED_VAULT));
   const [calendarEvents, setCalendar]   = useState<CalendarEvent[]>(() => readLS(LS_CAL, SEED_CALENDAR));
@@ -194,111 +175,98 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isPlayingMedia, setIsPlayingMedia] = useState(false);
   const callRingtoneTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Supabase Realtime Listener ─────────────────────────────────────────────
-  useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-
-    console.log('[Supabase] Initializing real-time subscription for chat:', SHARED_CHAT_ID);
-
-    // Initial fetch
-    supabase
-      .from('messages')
-      .select('*')
-      .eq('chat_id', SHARED_CHAT_ID)
-      .order('created_at', { ascending: true })
-      .then(({ data, error }) => {
-        if (data && !error) {
-          const loaded: Message[] = data.map(row => ({
-            id: row.id,
-            senderId: row.sender_id,
-            type: row.type || 'text',
-            content: row.content || '',
-            mediaUrl: row.media_url || undefined,
-            replyTo: row.reply_to || undefined,
-            reactions: row.reactions || {},
-            delivered: true,
-            isSecret: Boolean(row.is_secret),
-            isStarred: Boolean(row.is_starred),
-            expiresAt: row.expires_at || undefined,
-            createdAt: row.created_at || new Date().toISOString()
-          }));
-          setMessages(loaded);
-        }
-      });
-
-    // Realtime changes channel
-    const channel = supabase
-      .channel(`chat_${SHARED_CHAT_ID}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `chat_id=eq.${SHARED_CHAT_ID}`
-        },
-        (payload) => {
-          console.log('[Supabase Realtime] Event received:', payload.eventType);
-          if (payload.eventType === 'INSERT') {
-            const row = payload.new;
-            const newMsg: Message = {
-              id: row.id,
-              senderId: row.sender_id,
-              type: row.type || 'text',
-              content: row.content || '',
-              mediaUrl: row.media_url || undefined,
-              replyTo: row.reply_to || undefined,
-              reactions: row.reactions || {},
-              delivered: true,
-              isSecret: Boolean(row.is_secret),
-              isStarred: Boolean(row.is_starred),
-              expiresAt: row.expires_at || undefined,
-              createdAt: row.created_at || new Date().toISOString()
-            };
-            setMessages(prev => {
-              const exists = prev.some(m => m.id === newMsg.id);
-              if (exists) return prev;
-              const filtered = prev.filter(m => m.id !== newMsg.id && !(m.content === newMsg.content && m.senderId === newMsg.senderId && m.id.startsWith('temp_')));
-              if (currentUser && newMsg.senderId !== currentUser.uid) {
-                sounds.playMessageReceivedSound();
-              }
-              return [...filtered, newMsg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-            });
-          } else if (payload.eventType === 'DELETE') {
-            setMessages(prev => prev.filter(m => m.id !== payload.old.id));
-          } else if (payload.eventType === 'UPDATE') {
-            const row = payload.new;
-            setMessages(prev => prev.map(m => m.id === row.id ? {
-              ...m,
-              content: row.content,
-              reactions: row.reactions || {},
-              isStarred: Boolean(row.is_starred)
-            } : m));
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('[Supabase Realtime] Subscription status:', status);
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentUser]);
-
-  // ── Typing indicator via BroadcastChannel & Supabase Realtime Broadcast ──
+  // ── Typing status ─────────────────────────────────────────────────────────
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const typingChannelRef = useRef<BroadcastChannel | null>(null);
   const typingClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const spChatChannelRef = useRef<any>(null);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Core Helper: Fetch and merge messages from Supabase Database
+  // ─────────────────────────────────────────────────────────────────────────────
+  const fetchRemoteMessages = useCallback(async () => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', SHARED_CHAT_ID)
+        .order('created_at', { ascending: true });
+
+      if (data && !error && data.length > 0) {
+        const loaded: Message[] = data.map(row => ({
+          id: row.id,
+          senderId: row.sender_id,
+          type: row.type || 'text',
+          content: row.content || '',
+          mediaUrl: row.media_url || undefined,
+          replyTo: row.reply_to || undefined,
+          reactions: row.reactions || {},
+          delivered: true,
+          seen: Boolean(row.seen),
+          seenAt: row.seen_at || undefined,
+          isSecret: Boolean(row.is_secret),
+          isStarred: Boolean(row.is_starred),
+          isEdited: Boolean(row.is_edited),
+          expiresAt: row.expires_at || undefined,
+          createdAt: row.created_at || new Date().toISOString()
+        }));
+
+        setMessages(prev => {
+          // Check if any new message from partner arrived
+          const currentIds = new Set(prev.map(m => m.id));
+          const hasNewPartnerMsg = loaded.some(m => !currentIds.has(m.id) && m.senderId !== currentUser?.uid);
+          if (hasNewPartnerMsg) {
+            sounds.playMessageReceivedSound();
+          }
+
+          // Merge local optimistic unsent messages with loaded ones
+          const loadedIds = new Set(loaded.map(m => m.id));
+          const localUnsynced = prev.filter(m => m.id.startsWith('temp_') && !loadedIds.has(m.id));
+          return [...loaded, ...localUnsynced].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        });
+      }
+    } catch (err) {
+      console.warn('[Supabase Sync] Background fetch error:', err);
+    }
+  }, [currentUser?.uid]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Unified Real-Time Supabase Channel & Event Listeners
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!currentUser) return;
-    const bcChannel = new BroadcastChannel('ou_typing_indicator');
-    typingChannelRef.current = bcChannel;
+    // 1. Initial immediate database fetch
+    fetchRemoteMessages();
 
-    const handleIncomingTyping = (userId: string, isTyping: boolean) => {
-      if (userId && userId !== currentUser.uid) {
+    // 2. Multi-tab BroadcastChannel for instant same-browser sync
+    const bcSync = new BroadcastChannel('ou_chat_sync');
+    msgSyncChannelRef.current = bcSync;
+    bcSync.onmessage = (e) => {
+      if (e.data?.type === 'NEW_MESSAGE' && e.data.msg) {
+        const normalizedMsg = { ...e.data.msg, reactions: e.data.msg.reactions || {} };
+        setMessages(prev => {
+          if (prev.some(m => m.id === normalizedMsg.id)) return prev;
+          if (currentUser && normalizedMsg.senderId !== currentUser.uid) {
+            sounds.playMessageReceivedSound();
+          }
+          return [...prev, normalizedMsg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        });
+      } else if (e.data?.type === 'DELETE_MESSAGE' && e.data.id) {
+        setMessages(prev => prev.filter(m => m.id !== e.data.id));
+      } else if (e.data?.type === 'EDIT_MESSAGE' && e.data.id && e.data.content) {
+        setMessages(prev => prev.map(m => m.id === e.data.id ? { ...m, content: e.data.content, isEdited: true } : m));
+      } else if (e.data?.type === 'MARK_SEEN' && e.data.readerId) {
+        const seenTime = e.data.seenAt || new Date().toISOString();
+        setMessages(prev => prev.map(m => m.senderId !== e.data.readerId && !m.seen ? { ...m, seen: true, seenAt: seenTime } : m));
+      } else if (e.data?.type === 'REACTION' && e.data.id && e.data.reactions) {
+        setMessages(prev => prev.map(m => m.id === e.data.id ? { ...m, reactions: e.data.reactions } : m));
+      }
+    };
+
+    const bcTyping = new BroadcastChannel('ou_typing_indicator');
+    typingChannelRef.current = bcTyping;
+    bcTyping.onmessage = (e) => {
+      const { userId, isTyping } = e.data || {};
+      if (userId && userId !== currentUser?.uid) {
         setIsPartnerTyping(Boolean(isTyping));
         if (isTyping) {
           if (typingClearRef.current) clearTimeout(typingClearRef.current);
@@ -307,31 +275,22 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     };
 
-    bcChannel.onmessage = (e) => {
-      const { userId, isTyping } = e.data || {};
-      handleIncomingTyping(userId, isTyping);
-    };
-
-    // Supabase Realtime Channel for internet-wide cross-device typing & actions
+    // 3. Setup Unified Supabase Realtime Channel
     if (isSupabaseConfigured()) {
-      const spChannel = supabase.channel('ou_chat_broadcast');
-      spChatChannelRef.current = spChannel;
+      console.log('[Supabase] Subscribing to unified chat channel:', SHARED_CHAT_ID);
 
-      spChannel
-        .on('broadcast', { event: 'TYPING_STATUS' }, (payload) => {
-          const { userId, isTyping } = payload.payload || {};
-          handleIncomingTyping(userId, isTyping);
-        })
-        .on('broadcast', { event: 'MARK_SEEN' }, (payload) => {
-          const { readerId, seenAt } = payload.payload || {};
-          if (readerId && readerId !== currentUser.uid) {
-            const seenTime = seenAt || new Date().toISOString();
-            setMessages(prev => prev.map(m => m.senderId !== readerId && !m.seen ? { ...m, seen: true, seenAt: seenTime } : m));
-          }
-        })
-        .on('broadcast', { event: 'NEW_MESSAGE' }, (payload) => {
-          const { msg } = payload.payload || {};
-          if (msg && msg.senderId !== currentUser.uid) {
+      const channel = supabase.channel(`ou_chat_room_${SHARED_CHAT_ID}`, {
+        config: {
+          broadcast: { ack: true, self: false }
+        }
+      });
+      spChatChannelRef.current = channel;
+
+      channel
+        // Broadcast listener for zero-latency cross-device messaging
+        .on('broadcast', { event: 'NEW_MESSAGE' }, ({ payload }) => {
+          const { msg } = payload || {};
+          if (msg && msg.senderId !== currentUser?.uid) {
             setMessages(prev => {
               if (prev.some(m => m.id === msg.id)) return prev;
               sounds.playMessageReceivedSound();
@@ -339,49 +298,71 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             });
           }
         })
-        .on('broadcast', { event: 'INCOMING_CALL' }, (payload) => {
-          const { callerId, callerName, callerPhoto, callType: cType } = payload.payload || {};
-          if (callerId && callerId !== currentUser.uid) {
+        .on('broadcast', { event: 'DELETE_MESSAGE' }, ({ payload }) => {
+          const { id } = payload || {};
+          if (id) setMessages(prev => prev.filter(m => m.id !== id));
+        })
+        .on('broadcast', { event: 'EDIT_MESSAGE' }, ({ payload }) => {
+          const { id, content } = payload || {};
+          if (id && content) {
+            setMessages(prev => prev.map(m => m.id === id ? { ...m, content, isEdited: true } : m));
+          }
+        })
+        .on('broadcast', { event: 'REACTION' }, ({ payload }) => {
+          const { id, reactions } = payload || {};
+          if (id && reactions) {
+            setMessages(prev => prev.map(m => m.id === id ? { ...m, reactions } : m));
+          }
+        })
+        .on('broadcast', { event: 'MARK_SEEN' }, ({ payload }) => {
+          const { readerId, seenAt } = payload || {};
+          if (readerId && readerId !== currentUser?.uid) {
+            const seenTime = seenAt || new Date().toISOString();
+            setMessages(prev => prev.map(m => m.senderId !== readerId && !m.seen ? { ...m, seen: true, seenAt: seenTime } : m));
+          }
+        })
+        .on('broadcast', { event: 'TYPING_STATUS' }, ({ payload }) => {
+          const { userId, isTyping } = payload || {};
+          if (userId && userId !== currentUser?.uid) {
+            setIsPartnerTyping(Boolean(isTyping));
+            if (isTyping) {
+              if (typingClearRef.current) clearTimeout(typingClearRef.current);
+              typingClearRef.current = setTimeout(() => setIsPartnerTyping(false), 3500);
+            }
+          }
+        })
+        .on('broadcast', { event: 'QUICK_ACTION' }, ({ payload }) => {
+          const { action } = payload || {};
+          if (action && action.senderId !== currentUser?.uid) {
+            setNotif(action);
+            if (action.type === 'kiss') { sounds.playKissSound(); confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
+            else if (action.type === 'hug') sounds.playHugSound();
+            else if (action.type === 'miss_you') sounds.playHeartbeatSound();
+            else if (action.type === 'surprise') { sounds.playKissSound(); confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } }); }
+            setTimeout(() => setNotif(null), 4000);
+          }
+        })
+        .on('broadcast', { event: 'INCOMING_CALL' }, ({ payload }) => {
+          const { callerId, callerName, callerPhoto, callType: cType } = payload || {};
+          if (callerId && callerId !== currentUser?.uid) {
             setIncomingCall({ callerId, callerName, callerPhoto, callType: cType || 'voice' });
             if (typeof navigator !== 'undefined' && navigator.vibrate) {
               try { navigator.vibrate([500, 200, 500, 200, 500]); } catch (_) {}
             }
-
-            // Trigger PWA / Web Notification if tab is hidden / backgrounded
-            if (typeof document !== 'undefined' && document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-              try {
-                navigator.serviceWorker?.ready.then((reg) => {
-                  reg.showNotification(`Incoming ${cType === 'video' ? 'Video' : 'Voice'} Call 📞`, {
-                    body: `${callerName || 'Partner'} is calling you...`,
-                    icon: callerPhoto || '/heart.svg',
-                    badge: '/heart.svg',
-                    vibrate: [500, 200, 500, 200, 500],
-                    tag: 'incoming_call',
-                    requireInteraction: true,
-                    data: { url: '/' }
-                  } as NotificationOptions & { vibrate?: number[] });
-                }).catch(() => {
-                  new Notification(`Incoming ${cType === 'video' ? 'Video' : 'Voice'} Call 📞`, {
-                    body: `${callerName || 'Partner'} is calling you...`,
-                    icon: callerPhoto || '/heart.svg',
-                  });
-                });
-              } catch (_) {}
-            }
           }
         })
-        .on('broadcast', { event: 'ACCEPT_CALL' }, (payload) => {
-          const { responderId } = payload.payload || {};
-          if (responderId && responderId !== currentUser.uid) {
+        .on('broadcast', { event: 'ACCEPT_CALL' }, ({ payload }) => {
+          const { responderId } = payload || {};
+          if (responderId && responderId !== currentUser?.uid) {
             if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
             setIncomingCall(null);
             setCallActive(true);
             toast.love('Call Connected! 📞');
           }
         })
-        .on('broadcast', { event: 'DECLINE_CALL' }, (payload) => {
-          const { responderId } = payload.payload || {};
-          if (responderId && responderId !== currentUser.uid) {
+        .on('broadcast', { event: 'DECLINE_CALL' }, ({ payload }) => {
+          const { responderId } = payload || {};
+          if (responderId && responderId !== currentUser?.uid) {
             if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
             setIncomingCall(null);
             setCallActive(false);
@@ -407,19 +388,88 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setCallRole(null);
           toast.info('Call ended');
         })
-        .subscribe();
+        // Postgres Changes listener
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'messages' },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              const row = payload.new;
+              if (row.chat_id === SHARED_CHAT_ID) {
+                const newMsg: Message = {
+                  id: row.id,
+                  senderId: row.sender_id,
+                  type: row.type || 'text',
+                  content: row.content || '',
+                  mediaUrl: row.media_url || undefined,
+                  replyTo: row.reply_to || undefined,
+                  reactions: row.reactions || {},
+                  delivered: true,
+                  seen: Boolean(row.seen),
+                  seenAt: row.seen_at || undefined,
+                  isSecret: Boolean(row.is_secret),
+                  isStarred: Boolean(row.is_starred),
+                  isEdited: Boolean(row.is_edited),
+                  expiresAt: row.expires_at || undefined,
+                  createdAt: row.created_at || new Date().toISOString()
+                };
+                setMessages(prev => {
+                  if (prev.some(m => m.id === newMsg.id)) return prev;
+                  if (currentUser && newMsg.senderId !== currentUser.uid) {
+                    sounds.playMessageReceivedSound();
+                  }
+                  return [...prev.filter(m => m.id !== newMsg.id), newMsg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                });
+              }
+            } else if (payload.eventType === 'DELETE') {
+              setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+            } else if (payload.eventType === 'UPDATE') {
+              const row = payload.new;
+              setMessages(prev => prev.map(m => m.id === row.id ? {
+                ...m,
+                content: row.content,
+                reactions: row.reactions || {},
+                seen: Boolean(row.seen),
+                seenAt: row.seen_at || undefined,
+                isStarred: Boolean(row.is_starred),
+                isEdited: Boolean(row.is_edited)
+              } : m));
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('[Supabase Realtime] Channel status:', status);
+        });
     }
 
+    // 4. Background Polling & Mobile Visibility change synchronization (every 4s)
+    const pollInterval = setInterval(() => {
+      fetchRemoteMessages();
+    }, 4000);
+
+    const handleAppFocusOrOnline = () => {
+      fetchRemoteMessages();
+    };
+
+    window.addEventListener('focus', handleAppFocusOrOnline);
+    window.addEventListener('online', handleAppFocusOrOnline);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) handleAppFocusOrOnline();
+    });
+
     return () => {
-      bcChannel.close();
-      typingChannelRef.current = null;
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleAppFocusOrOnline);
+      window.removeEventListener('online', handleAppFocusOrOnline);
+      bcSync.close();
+      bcTyping.close();
       if (spChatChannelRef.current) {
         supabase.removeChannel(spChatChannelRef.current);
         spChatChannelRef.current = null;
       }
       if (typingClearRef.current) clearTimeout(typingClearRef.current);
     };
-  }, [currentUser]);
+  }, [currentUser, fetchRemoteMessages]);
 
   const setTypingStatus = (isTyping: boolean) => {
     if (!currentUser) return;
@@ -454,48 +504,17 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (toDelete.length) sounds.playSecretBurnSound();
     }, 2000);
     return () => clearInterval(interval);
-  // Stable interval — reads latest messages via messagesRef, no [messages] dep needed
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Persist all state to LocalStorage ─────────────────────────────────────
-  useEffect(() => { messagesRef.current = messages; writeLS(LS_MSGS,  messages);  }, [messages]);
+  // ── Persist to LocalStorage ───────────────────────────────────────────────
+  useEffect(() => { writeLS(LS_MSGS,  messages);  }, [messages]);
   useEffect(() => { writeLS(LS_MEMS,  memories);  }, [memories]);
   useEffect(() => { writeLS(LS_VAULT, vaultNotes); }, [vaultNotes]);
   useEffect(() => { writeLS(LS_CAL,   calendarEvents); }, [calendarEvents]);
   useEffect(() => { writeLS(LS_TODO,  todoItems);  }, [todoItems]);
   useEffect(() => { writeLS(LS_MAP,   mapPins);    }, [mapPins]);
 
-  // ── Cross-tab Local Realtime Sync via BroadcastChannel ───────────────────
-  useEffect(() => {
-    const bc = new BroadcastChannel('ou_chat_sync');
-    msgSyncChannelRef.current = bc;
-    bc.onmessage = (e) => {
-      if (e.data?.type === 'NEW_MESSAGE' && e.data.msg) {
-        const normalizedMsg = { ...e.data.msg, reactions: e.data.msg.reactions || {} };
-        setMessages(prev => {
-          if (prev.some(m => m.id === normalizedMsg.id)) return prev;
-          if (currentUser && normalizedMsg.senderId !== currentUser.uid) {
-            sounds.playMessageReceivedSound();
-          }
-          return [...prev, normalizedMsg].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-        });
-      } else if (e.data?.type === 'DELETE_MESSAGE' && e.data.id) {
-        setMessages(prev => prev.filter(m => m.id !== e.data.id));
-      } else if (e.data?.type === 'EDIT_MESSAGE' && e.data.id && e.data.content) {
-        setMessages(prev => prev.map(m => m.id === e.data.id ? { ...m, content: e.data.content, isEdited: true } : m));
-      } else if (e.data?.type === 'MARK_SEEN' && e.data.readerId) {
-        const seenTime = e.data.seenAt || new Date().toISOString();
-        setMessages(prev => prev.map(m => m.senderId !== e.data.readerId && !m.seen ? { ...m, seen: true, seenAt: seenTime } : m));
-      }
-    };
-    return () => {
-      bc.close();
-      msgSyncChannelRef.current = null;
-    };
-  }, [currentUser]);
-
-  // ── sendMessage → Supabase write ──────────────────────────────────────────
+  // ── sendMessage ───────────────────────────────────────────────────────────
   const sendMessage = async (
     content: string,
     type: Message['type'] = 'text',
@@ -511,9 +530,9 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       ? { id: replyToMsg.id, senderId: replyToMsg.senderId, excerpt: replyToMsg.content.substring(0, 40) }
       : null;
 
-    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const newMsgObj: Message = {
-      id: tempId,
+      id: messageId,
       senderId: currentUser.uid,
       type,
       content,
@@ -521,19 +540,23 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       replyTo: replyToObj ?? undefined,
       reactions: {},
       delivered: true,
+      seen: false,
       isSecret: isSecret ?? false,
       isStarred: false,
       expiresAt: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : undefined,
       createdAt: new Date().toISOString()
     };
 
-    // ⚡ Optimistic local UI update — instant 0ms rendering for sender
+    // 1. Optimistic UI update
     setMessages(prev => [...prev, newMsgObj]);
     sounds.playMessageSentSound();
+
+    // 2. Broadcast to local browser tabs
     try {
       msgSyncChannelRef.current?.postMessage({ type: 'NEW_MESSAGE', msg: newMsgObj });
     } catch {}
 
+    // 3. Broadcast to Realtime internet channel
     if (spChatChannelRef.current) {
       try {
         spChatChannelRef.current.send({
@@ -544,10 +567,11 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } catch {}
     }
 
+    // 4. Insert into Supabase database
     if (isSupabaseConfigured()) {
       try {
-        await supabase.from('messages').insert({
-          id: tempId,
+        const { error } = await supabase.from('messages').insert({
+          id: messageId,
           chat_id: SHARED_CHAT_ID,
           sender_id: currentUser.uid,
           receiver_id: currentUser.uid === NAVEEN_UID ? HUMERA_UID : NAVEEN_UID,
@@ -557,13 +581,18 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           reply_to: replyToObj ?? null,
           reactions: {},
           delivered: true,
+          seen: false,
           is_secret: isSecret ?? false,
           is_starred: false,
           expires_at: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : null,
-          created_at: new Date().toISOString()
+          created_at: newMsgObj.createdAt
         });
-      } catch (err: any) {
-        console.error('[Supabase] Insert failed:', err);
+
+        if (error) {
+          console.error('[Supabase Insert Error]:', error);
+        }
+      } catch (err) {
+        console.error('[Supabase Insert Exception]:', err);
       }
     }
   };
@@ -572,10 +601,11 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!forEveryone) return;
     setMessages(prev => prev.filter(m => m.id !== id));
     try { msgSyncChannelRef.current?.postMessage({ type: 'DELETE_MESSAGE', id }); } catch {}
+    if (spChatChannelRef.current) {
+      try { spChatChannelRef.current.send({ type: 'broadcast', event: 'DELETE_MESSAGE', payload: { id } }); } catch {}
+    }
     if (isSupabaseConfigured()) {
-      try {
-        await supabase.from('messages').delete().eq('id', id);
-      } catch {}
+      try { await supabase.from('messages').delete().eq('id', id); } catch {}
     }
   };
 
@@ -583,13 +613,13 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const msg = messages.find(m => m.id === id);
     if (!msg || !newContent.trim()) return;
     const content = newContent.trim();
-    // Optimistic update
     setMessages(prev => prev.map(m => m.id === id ? { ...m, content, isEdited: true } : m));
     try { msgSyncChannelRef.current?.postMessage({ type: 'EDIT_MESSAGE', id, content }); } catch {}
+    if (spChatChannelRef.current) {
+      try { spChatChannelRef.current.send({ type: 'broadcast', event: 'EDIT_MESSAGE', payload: { id, content } }); } catch {}
+    }
     if (isSupabaseConfigured()) {
-      try {
-        await supabase.from('messages').update({ content, is_edited: true }).eq('id', id);
-      } catch {}
+      try { await supabase.from('messages').update({ content, is_edited: true }).eq('id', id); } catch {}
     }
   };
 
@@ -649,12 +679,28 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const uids = has ? cur.filter(u => u !== currentUser.uid) : [...cur, currentUser.uid];
     const next = { ...reactions };
     if (uids.length) next[emoji] = uids; else delete next[emoji];
+
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, reactions: next } : m));
+
+    try {
+      msgSyncChannelRef.current?.postMessage({ type: 'REACTION', id, reactions: next });
+    } catch {}
+
+    if (spChatChannelRef.current) {
+      try {
+        spChatChannelRef.current.send({
+          type: 'broadcast',
+          event: 'REACTION',
+          payload: { id, reactions: next }
+        });
+      } catch {}
+    }
+
     if (isSupabaseConfigured()) {
       try {
         await supabase.from('messages').update({ reactions: next }).eq('id', id);
       } catch {}
     }
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, reactions: next } : m));
   };
 
   // ── Non-message helpers ────────────────────────────────────────────────────
@@ -681,18 +727,33 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const sendQuickAction = (type: QuickActionNotification['type']) => {
     if (!currentUser) return;
-    setNotif({ id: `action_${Date.now()}`, senderId: currentUser.uid, type, timestamp: new Date().toISOString() });
+    const actionObj: QuickActionNotification = {
+      id: `action_${Date.now()}`,
+      senderId: currentUser.uid,
+      type,
+      timestamp: new Date().toISOString()
+    };
+    setNotif(actionObj);
     if (type === 'kiss')     { sounds.playKissSound();     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
     else if (type === 'hug')      sounds.playHugSound();
     else if (type === 'miss_you') sounds.playHeartbeatSound();
     else if (type === 'surprise') { sounds.playKissSound(); confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } }); }
     setTimeout(() => setNotif(null), 4000);
+
+    if (spChatChannelRef.current) {
+      try {
+        spChatChannelRef.current.send({
+          type: 'broadcast',
+          event: 'QUICK_ACTION',
+          payload: { action: actionObj }
+        });
+      } catch {}
+    }
   };
 
   const startCall = (type: 'voice' | 'video') => {
     if (!currentUser) return;
     if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
-    // Caller is ringing partner — NOT yet connected. callActive stays false until partner accepts.
     setCallActive(false);
     setCallType(type);
     setCallRole('caller');
@@ -710,7 +771,6 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
     } catch {}
 
-    // Auto-cancel after 30 seconds if unanswered — send CANCEL_CALL so receiver ringing also stops
     callRingtoneTimeoutRef.current = setTimeout(() => {
       setCallType(null);
       setCallRole(null);
@@ -756,9 +816,6 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const endCall = () => {
     if (callRingtoneTimeoutRef.current) clearTimeout(callRingtoneTimeoutRef.current);
-
-    // If caller cancels BEFORE the call was answered, send CANCEL_CALL so receiver's
-    // ringing modal closes immediately (instead of waiting 30s unanswered timeout).
     const isCancellingUnanswered = callRole === 'caller' && !isCallActive;
 
     setIncomingCall(null);
