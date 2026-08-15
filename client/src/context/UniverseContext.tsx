@@ -89,7 +89,8 @@ interface UniverseContextType {
   setAnniversaryDate: (d: string) => void;
 
   messages: Message[];
-  sendMessage: (content: string, type?: Message['type'], mediaUrl?: string, replyToId?: string, isSecret?: boolean, secretTimeout?: number) => Promise<void>;
+  sendMessage: (content: string, type?: Message['type'], mediaUrl?: string, replyToId?: string, isSecret?: boolean, secretTimeout?: number, isViewOnce?: boolean) => Promise<void>;
+  burnViewOnceMessage: (id: string) => Promise<void>;
   deleteMessage: (id: string, forEveryone?: boolean) => Promise<void>;
   editMessage: (id: string, newContent: string) => Promise<void>;
   markMessagesAsSeen: () => void;
@@ -521,7 +522,8 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     mediaUrl?: string,
     replyToId?: string,
     isSecret?: boolean,
-    secretTimeout = 60
+    secretTimeout = 60,
+    isViewOnce?: boolean
   ) => {
     if (!currentUser) return;
 
@@ -542,6 +544,8 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       delivered: true,
       seen: false,
       isSecret: isSecret ?? false,
+      isViewOnce: isViewOnce ?? false,
+      viewedOnce: false,
       isStarred: false,
       expiresAt: isSecret ? new Date(Date.now() + secretTimeout * 1000).toISOString() : undefined,
       createdAt: new Date().toISOString()
@@ -595,6 +599,12 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('[Supabase Insert Exception]:', err);
       }
     }
+  };
+
+  const burnViewOnceMessage = async (id: string) => {
+    // Delete immediately on burn
+    await deleteMessage(id, true);
+    sounds.playSecretBurnSound();
   };
 
   const deleteMessage = async (id: string, forEveryone = true) => {
@@ -847,7 +857,7 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <UniverseContext.Provider value={{
       ambientEffect, setAmbientEffect, anniversaryDate, setAnniversaryDate,
-      messages, sendMessage, deleteMessage, editMessage, markMessagesAsSeen, toggleStarMessage, addReaction,
+      messages, sendMessage, burnViewOnceMessage, deleteMessage, editMessage, markMessagesAsSeen, toggleStarMessage, addReaction,
       isPartnerTyping, setTypingStatus,
       memories, addMemory, deleteMemory, toggleFavoriteMemory,
       vaultNotes, addVaultNote, deleteVaultNote,

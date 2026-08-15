@@ -17,6 +17,7 @@ interface NavigationProps {
   onOpenDailyQuestion?: () => void;
   onOpenLoveAI?: () => void;
   onOpenSoundscapes?: () => void;
+  onOpenSecurityCenter?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -28,7 +29,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenTheme,
   onOpenDailyQuestion,
   onOpenLoveAI,
-  onOpenSoundscapes
+  onOpenSoundscapes,
+  onOpenSecurityCenter
 }) => {
   const { currentUser, logout, toggleDecoyMode } = useAuth();
   const { messages } = useUniverse();
@@ -225,12 +227,22 @@ export const Navigation: React.FC<NavigationProps> = ({
               </button>
             )}
 
+            {onOpenSecurityCenter && (
+              <button
+                onClick={onOpenSecurityCenter}
+                title="Security & Privacy Hub"
+                className="p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors"
+              >
+                <ShieldAlert className="w-5 h-5" />
+              </button>
+            )}
+
             <button
               onClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}
               title="Panic / Stealth Mode (Alt + L)"
               className="p-2 rounded-xl glass-card hover:border-rose-400/40 text-rose-300 hover:text-rose-200 transition-colors"
             >
-              <ShieldAlert className="w-5 h-5" />
+              <Lock className="w-5 h-5" />
             </button>
 
             {currentUser?.role === 'owner' && (
@@ -320,11 +332,21 @@ export const Navigation: React.FC<NavigationProps> = ({
           </button>
         )}
 
+        {onOpenSecurityCenter && (
+          <button
+            onClick={onOpenSecurityCenter}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card text-emerald-300 text-[10px] font-bold shrink-0"
+          >
+            <ShieldAlert className="w-3.5 h-3.5" />
+            <span>Security</span>
+          </button>
+        )}
+
         <button
           onClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl glass-card text-rose-300 text-[10px] font-bold shrink-0"
         >
-          <ShieldAlert className="w-3.5 h-3.5" />
+          <Lock className="w-3.5 h-3.5" />
           <span>Stealth</span>
         </button>
       </div>

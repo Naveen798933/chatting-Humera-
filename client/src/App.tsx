@@ -29,6 +29,8 @@ import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { toast } from './lib/toast';
 import { ThemeSelectorModal, AppTheme } from './components/ThemeSelectorModal';
 import { DailyQuestionModal } from './components/DailyQuestionModal';
+import { PrivacyShieldOverlay } from './components/PrivacyShieldOverlay';
+import { SecurityCenterModal } from './components/SecurityCenterModal';
 
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
@@ -42,6 +44,7 @@ const AppContent: React.FC = () => {
   const [isDailyQuestionOpen, setIsDailyQuestionOpen] = useState(false);
   const [isLoveAIOpen, setIsLoveAIOpen] = useState(false);
   const [isSoundscapeOpen, setIsSoundscapeOpen] = useState(false);
+  const [isSecurityCenterOpen, setIsSecurityCenterOpen] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<AppTheme>(() => {
     return (localStorage.getItem('ou_theme') as AppTheme) || 'cosmic';
   });
@@ -52,9 +55,17 @@ const AppContent: React.FC = () => {
     try { localStorage.setItem('ou_theme', currentTheme); } catch (_) {}
   }, [currentTheme]);
 
-  // Global Escape key listener to close active modals
+  // Global Escape & Panic Shortcut listener (Alt+L or Ctrl+Shift+L triggers Stealth Decoy)
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Panic / Stealth shortcut
+      if ((e.altKey && e.key.toLowerCase() === 'l') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l')) {
+        e.preventDefault();
+        toast.info('Emergency Stealth mode activated!');
+        toggleDecoyMode();
+        return;
+      }
+
       if (e.key === 'Escape') {
         if (isAdminOpen) { setIsAdminOpen(false); return; }
         if (isThemeOpen) { setIsThemeOpen(false); return; }
@@ -64,11 +75,12 @@ const AppContent: React.FC = () => {
         if (isStatusOpen) { setIsStatusOpen(false); return; }
         if (isProfileDrawerOpen) { setIsProfileDrawerOpen(false); return; }
         if (isCallHistoryOpen) { setIsCallHistoryOpen(false); return; }
+        if (isSecurityCenterOpen) { setIsSecurityCenterOpen(false); return; }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAdminOpen, isThemeOpen, isDailyQuestionOpen, isLoveAIOpen, isSoundscapeOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen]);
+  }, [isAdminOpen, isThemeOpen, isDailyQuestionOpen, isLoveAIOpen, isSoundscapeOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen, isSecurityCenterOpen, toggleDecoyMode]);
 
   const [stories, setStories] = useState<StoryItem[]>(() => {
     try {
@@ -88,7 +100,6 @@ const AppContent: React.FC = () => {
     ];
   });
 
-  // Ref to the subscribed story broadcast channel (must be subscribed before send)
   const storyChannelRef = React.useRef<any>(null);
 
   const handleAddStory = (st: Omit<StoryItem, 'id' | 'createdAt'>) => {
@@ -103,7 +114,6 @@ const AppContent: React.FC = () => {
       return updated;
     });
 
-    // Broadcast to partner via the already-subscribed storyChannelRef
     if (isSupabaseConfigured() && storyChannelRef.current) {
       try {
         storyChannelRef.current.send({
@@ -115,7 +125,6 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Subscribe to real-time partner stories broadcast
   React.useEffect(() => {
     if (!isSupabaseConfigured()) return;
     const channel = supabase.channel('ou_story_broadcast');
@@ -159,13 +168,10 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     if (isCallActive && callType && callRole) {
-      // Call is connected — initialise WebRTC peer connection
       initializeCall(callType === 'video', callRole);
     } else if (!isCallActive && !callRole) {
-      // Call fully ended (not just ringing) — tear down WebRTC
       webrtcEndCall();
     }
-    // Don't tear down WebRTC during ringing phase (callRole set, isCallActive false)
   }, [isCallActive, callType, callRole]);
 
   if (isDecoyActive) {
@@ -180,6 +186,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen h-full flex flex-col relative z-10">
+      {/* App Switcher Multitasking Privacy Mask Shield */}
+      <PrivacyShieldOverlay />
       <ScreenshotBanner />
       <PWAInstallPrompt />
       <AnniversaryOverlay />
@@ -193,6 +201,7 @@ const AppContent: React.FC = () => {
         onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
         onOpenLoveAI={() => setIsLoveAIOpen(true)}
         onOpenSoundscapes={() => setIsSoundscapeOpen(true)}
+        onOpenSecurityCenter={() => setIsSecurityCenterOpen(true)}
       />
 
       <main className={`flex-1 w-full overflow-x-hidden min-h-0 ${
@@ -255,6 +264,11 @@ const AppContent: React.FC = () => {
         messages={messages}
         partnerUser={partnerUser}
         onStartCall={(type) => { setIsCallHistoryOpen(false); startCall(type); }}
+      />
+      <SecurityCenterModal
+        isOpen={isSecurityCenterOpen}
+        onClose={() => setIsSecurityCenterOpen(false)}
+        onOpenDecoyCalculator={() => toggleDecoyMode()}
       />
       <IncomingCallModal
         incomingCall={incomingCall}

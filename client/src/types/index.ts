@@ -66,6 +66,8 @@ export interface Message {
   isEdited?: boolean;
   isStarred?: boolean;
   isSecret?: boolean;
+  isViewOnce?: boolean;
+  viewedOnce?: boolean;
   expiresAt?: string; // ISO timestamp for secret disappearing messages
   createdAt: string;
 }

@@ -8,9 +8,10 @@ import { toast } from '../lib/toast';
 import { Message } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
 import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
+import { ViewOnceModal } from '../components/ViewOnceModal';
 import {
   Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video, Camera,
-  Trash2, Star, Search, CornerUpLeft, Clock, Paperclip,
+  Trash2, Star, Search, CornerUpLeft, Clock, Paperclip, Eye, Flame,
   CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical, ArrowDown, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
@@ -24,12 +25,13 @@ interface CoreChatProps {
 export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
   const { currentUser, partnerUser, toggleDecoyMode } = useAuth();
   const {
-    messages, sendMessage, deleteMessage, editMessage, markMessagesAsSeen,
+    messages, sendMessage, burnViewOnceMessage, deleteMessage, editMessage, markMessagesAsSeen,
     toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus, startCall
   } = useUniverse();
 
   const [inputContent, setInputContent] = useState('');
   const [isSecretMode, setIsSecretMode] = useState(false);
+  const [isViewOnceMode, setIsViewOnceMode] = useState(false);
   const [secretTimeout, setSecretTimeout] = useState<number>(60);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [forwardingMsg, setForwardingMsg] = useState<Message | null>(null);
@@ -44,6 +46,7 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [activeReactionMsgId, setActiveReactionMsgId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [activeViewOnce, setActiveViewOnce] = useState<{ id: string; url: string } | null>(null);
 
   const { isMobile } = useScreenSize();
 
@@ -356,9 +359,22 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
           toast.error('Could not process image.');
           return;
         }
-        sendMessage('Shared an image', 'image', mediaUrl, replyingTo?.id, isSecretMode, secretTimeout);
+        sendMessage(
+          isViewOnceMode ? 'Photo (View Once)' : 'Shared an image',
+          'image',
+          mediaUrl,
+          replyingTo?.id,
+          isSecretMode,
+          secretTimeout,
+          isViewOnceMode
+        );
         setReplyingTo(null);
-        toast.love('Photo sent! 💕');
+        if (isViewOnceMode) {
+          setIsViewOnceMode(false);
+          toast.love('View Once Photo Sent! 👁️');
+        } else {
+          toast.love('Photo sent! 💕');
+        }
       } catch (err) {
         console.error('Image compression error:', err);
         toast.error('Failed to send photo.');
@@ -804,7 +820,26 @@ ${htmlRows}
                         </div>
                       )}
 
-                      {msg.type === 'image' && msg.mediaUrl && (
+                      {msg.isViewOnce && msg.mediaUrl ? (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveViewOnce({ id: msg.id, url: msg.mediaUrl! });
+                          }}
+                          className="p-3 rounded-2xl bg-black/40 border border-rose-500/40 text-rose-200 flex items-center gap-3 cursor-pointer hover:bg-black/60 transition-all my-1 active:scale-95 shadow-md"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-rose-500 text-white flex items-center justify-center font-black text-sm shadow-md shrink-0">
+                            1
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-xs text-white flex items-center gap-1.5">
+                              <Flame className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                              <span>View Once Photo</span>
+                            </p>
+                            <p className="text-[10px] text-rose-300">Tap to view (5s burn timer)</p>
+                          </div>
+                        </div>
+                      ) : msg.type === 'image' && msg.mediaUrl ? (
                         <img
                           src={msg.mediaUrl}
                           alt="Shared image"
@@ -817,7 +852,7 @@ ${htmlRows}
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
-                      )}
+                      ) : null}
 
                       {msg.type === 'video' && msg.mediaUrl && (
                         <video src={msg.mediaUrl} controls className="w-full max-h-56 rounded-xl mb-2 border border-white/10" />
@@ -1093,6 +1128,29 @@ ${htmlRows}
               aria-label="Type a message"
             />
 
+            {/* 👁️ View Once Toggle Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !isViewOnceMode;
+                setIsViewOnceMode(next);
+                if (next) toast.love('View Once Mode (1) Enabled 👁️');
+                else toast.info('View Once Disabled');
+              }}
+              className={`p-1.5 rounded-full transition-all min-w-[34px] min-h-[34px] flex items-center justify-center flex-shrink-0 ${
+                isViewOnceMode
+                  ? 'bg-rose-500 text-white font-extrabold shadow-lg shadow-rose-500/40 animate-pulse'
+                  : 'text-slate-400 hover:text-pink-300'
+              }`}
+              title="View Once Photo (Burns after 5s)"
+              aria-label="Toggle view once mode"
+            >
+              <div className="flex items-center gap-0.5 text-xs font-black">
+                <Eye className="w-3.5 h-3.5" />
+                <span className="text-[9px]">1</span>
+              </div>
+            </button>
+
             {/* 📎 Attachment Clip inside Capsule */}
             <button
               type="button"
@@ -1152,6 +1210,18 @@ ${htmlRows}
           </div>
         </form>
       </div>
+
+      {/* 👁️ View Once Self-Destructing Photo Modal */}
+      {activeViewOnce && (
+        <ViewOnceModal
+          mediaUrl={activeViewOnce.url}
+          onBurn={() => {
+            burnViewOnceMessage(activeViewOnce.id);
+            setActiveViewOnce(null);
+          }}
+          onClose={() => setActiveViewOnce(null)}
+        />
+      )}
 
       {/* Full-Screen Image Lightbox Modal */}
       <AnimatePresence>
