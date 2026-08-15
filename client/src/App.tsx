@@ -31,6 +31,7 @@ import { ThemeSelectorModal, AppTheme } from './components/ThemeSelectorModal';
 import { DailyQuestionModal } from './components/DailyQuestionModal';
 import { PrivacyShieldOverlay } from './components/PrivacyShieldOverlay';
 import { SecurityCenterModal } from './components/SecurityCenterModal';
+import { MobileQuickHubSheet } from './components/MobileQuickHubSheet';
 
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
@@ -45,6 +46,7 @@ const AppContent: React.FC = () => {
   const [isLoveAIOpen, setIsLoveAIOpen] = useState(false);
   const [isSoundscapeOpen, setIsSoundscapeOpen] = useState(false);
   const [isSecurityCenterOpen, setIsSecurityCenterOpen] = useState(false);
+  const [isMobileHubOpen, setIsMobileHubOpen] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<AppTheme>(() => {
     return (localStorage.getItem('ou_theme') as AppTheme) || 'cosmic';
   });
@@ -76,11 +78,12 @@ const AppContent: React.FC = () => {
         if (isProfileDrawerOpen) { setIsProfileDrawerOpen(false); return; }
         if (isCallHistoryOpen) { setIsCallHistoryOpen(false); return; }
         if (isSecurityCenterOpen) { setIsSecurityCenterOpen(false); return; }
+        if (isMobileHubOpen) { setIsMobileHubOpen(false); return; }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAdminOpen, isThemeOpen, isDailyQuestionOpen, isLoveAIOpen, isSoundscapeOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen, isSecurityCenterOpen, toggleDecoyMode]);
+  }, [isAdminOpen, isThemeOpen, isDailyQuestionOpen, isLoveAIOpen, isSoundscapeOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen, isSecurityCenterOpen, isMobileHubOpen, toggleDecoyMode]);
 
   const [stories, setStories] = useState<StoryItem[]>(() => {
     try {
@@ -202,6 +205,8 @@ const AppContent: React.FC = () => {
         onOpenLoveAI={() => setIsLoveAIOpen(true)}
         onOpenSoundscapes={() => setIsSoundscapeOpen(true)}
         onOpenSecurityCenter={() => setIsSecurityCenterOpen(true)}
+        onOpenMobileHub={() => setIsMobileHubOpen(true)}
+        onOpenPartnerProfile={() => setIsProfileDrawerOpen(true)}
       />
 
       <main className={`flex-1 w-full overflow-x-hidden min-h-0 ${
@@ -215,6 +220,21 @@ const AppContent: React.FC = () => {
         {activeTab === 'memories' && <MemoriesGallery />}
         {activeTab === 'vault' && <LoveVaultCalendar />}
       </main>
+
+      {/* Universal Space Hub Bottom Sheet for Mobile */}
+      <MobileQuickHubSheet
+        isOpen={isMobileHubOpen}
+        onClose={() => setIsMobileHubOpen(false)}
+        onOpenLoveAI={() => setIsLoveAIOpen(true)}
+        onOpenSoundscapes={() => setIsSoundscapeOpen(true)}
+        onOpenStatus={() => setIsStatusOpen(true)}
+        onOpenCallHistory={() => setIsCallHistoryOpen(true)}
+        onOpenTheme={() => setIsThemeOpen(true)}
+        onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
+        onOpenSecurityCenter={() => setIsSecurityCenterOpen(true)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
+        onToggleDecoy={() => toggleDecoyMode()}
+      />
 
       <LoveAIAssistant
         isOpen={isLoveAIOpen}
