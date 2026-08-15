@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { toast } from '../lib/toast';
 
-export type GameType = 'tictactoe' | 'canvas' | 'trivia' | 'truth' | 'would' | 'never';
+export type GameType = 'tictactoe' | 'canvas' | 'trivia' | 'truth' | 'would' | 'never' | 'wordle' | 'compat';
 
 export interface RealtimeGameSession {
   sessionId: string;
