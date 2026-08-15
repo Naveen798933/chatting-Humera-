@@ -48,10 +48,10 @@ self.addEventListener('fetch', (event) => {
           return caches.match(event.request).then((cached) => {
             return cached || caches.match('/index.html');
           });
-        }
-    );
-  }
-});
+        })
+      );
+    }
+  });
 
 // Push Notifications Listener for Incoming Messages & WhatsApp-Like Calls
 self.addEventListener('push', (event) => {
