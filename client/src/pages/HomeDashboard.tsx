@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { toast } from '../lib/toast';
@@ -7,7 +7,8 @@ import { Memory } from '../types';
 import confetti from 'canvas-confetti';
 import {
   Heart, Sun, Moon, CloudSun, Smile, Sparkles,
-  Send, Music, Gift, MapPin, Zap, MessageCircle, Image, Mic, BatteryCharging, Cookie
+  Send, Music, Gift, MapPin, Zap, MessageCircle, Image, Mic, BatteryCharging, Cookie,
+  Flame, Target, Trophy, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -27,11 +28,72 @@ const LOVE_FORTUNES = [
   { fortune: "Every smile shared between Naveen & Humera creates ripples of joy across the cosmos.", numbers: "05, 14, 28, 77" }
 ];
 
+const LOVE_CHALLENGES = [
+  { emoji: "📝", title: "Write a haiku", desc: "Write a 3-line haiku about something you love about your partner." },
+  { emoji: "🎵", title: "Dedicate a song", desc: "Send your partner a song that reminds you of them right now." },
+  { emoji: "📸", title: "Capture a moment", desc: "Share a photo of where you are right now — let them see your world." },
+  { emoji: "💌", title: "Love letter", desc: "Write 5 sentences about why today reminded you of your love." },
+  { emoji: "🌟", title: "Compliment blitz", desc: "Name 3 things you find incredibly beautiful about your partner." },
+  { emoji: "🍕", title: "Plan a date", desc: "Plan your next virtual or in-person date together — right now!" },
+  { emoji: "🔮", title: "Future vision", desc: "Describe one dream you have of your future together." },
+];
+
+// ── Helper: days since a date ─────────────────────────────────────────────────
+function daysSince(dateStr: string): number {
+  const start = new Date(dateStr).getTime();
+  const now = Date.now();
+  return Math.max(0, Math.floor((now - start) / (1000 * 60 * 60 * 24)));
+}
+
+// ── Helper: days until next anniversary month marker ─────────────────────────
+function getNextMilestone(anniversaryDate: string): { label: string; daysLeft: number } | null {
+  const start = new Date(anniversaryDate);
+  if (isNaN(start.getTime())) return null;
+  const now = new Date();
+  const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  
+  // Look for next milestone at: 3, 6, 12, 18, 24, 36, 48, 60 months, etc.
+  const milestones = [3, 6, 9, 12, 18, 24, 30, 36, 42, 48, 54, 60, 72, 84, 96, 108, 120];
+  const nextMonths = milestones.find(m => m > totalMonths);
+  if (!nextMonths) return null;
+
+  const nextDate = new Date(start);
+  nextDate.setMonth(nextDate.getMonth() + nextMonths);
+  const daysLeft = Math.max(0, Math.ceil((nextDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  
+  const years = Math.floor(nextMonths / 12);
+  const months = nextMonths % 12;
+  const label = years > 0
+    ? (months > 0 ? `${years}yr ${months}mo` : `${years} Year${years > 1 ? 's' : ''}`)
+    : `${nextMonths} Month${nextMonths > 1 ? 's' : ''}`;
+
+  return { label, daysLeft };
+}
+
+// ── Animated counter hook ─────────────────────────────────────────────────────
+function useAnimatedCount(target: number, duration = 800): number {
+  const [count, setCount] = useState(0);
+  const rafRef = useRef<number>(0);
+  useEffect(() => {
+    const start = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(elapsed / duration, 1);
+      setCount(Math.round(progress * target));
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+  return count;
+}
+
 export const HomeDashboard: React.FC = () => {
   const { currentUser, partnerUser, updateMood } = useAuth();
   const { anniversaryDate, setAnniversaryDate, sendQuickAction, memories, messages, recentNotification } = useUniverse();
 
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [prevSeconds, setPrevSeconds] = useState(0);
   const [editingMood, setEditingMood] = useState(false);
   const [showDateEditor, setShowDateEditor] = useState(false);
   const [tempDate, setTempDate] = useState(anniversaryDate.slice(0, 10));
@@ -45,29 +107,75 @@ export const HomeDashboard: React.FC = () => {
     try {
       const saved = localStorage.getItem('ou_love_battery');
       return saved ? parseInt(saved, 10) : 95;
-    } catch {
-      return 95;
-    }
+    } catch { return 95; }
   });
 
   // Fortune Cookie State
   const [fortuneCracked, setFortuneCracked] = useState(false);
   const [currentFortune, setCurrentFortune] = useState(() => LOVE_FORTUNES[0]);
 
+  // ── NEW: Love Streak ─────────────────────────────────────────────────────
+  const [loveStreak, setLoveStreak] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ou_love_streak');
+      if (saved) {
+        const { streak, lastDate } = JSON.parse(saved);
+        const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        if (lastDate === today) return streak;
+        if (lastDate === yesterday) {
+          const newStreak = streak + 1;
+          localStorage.setItem('ou_love_streak', JSON.stringify({ streak: newStreak, lastDate: today }));
+          return newStreak;
+        }
+        // Streak broken
+        localStorage.setItem('ou_love_streak', JSON.stringify({ streak: 1, lastDate: today }));
+        return 1;
+      }
+      const init = { streak: 1, lastDate: new Date().toDateString() };
+      localStorage.setItem('ou_love_streak', JSON.stringify(init));
+      return 1;
+    } catch { return 1; }
+  });
+
+  // ── NEW: Today's Love Challenge ──────────────────────────────────────────
+  const [todayChallenge, setTodayChallenge] = useState(() => LOVE_CHALLENGES[0]);
+  const [challengeDone, setChallengeDown] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ou_challenge_done');
+      if (saved) {
+        const { date } = JSON.parse(saved);
+        return date === new Date().toDateString();
+      }
+    } catch {}
+    return false;
+  });
+
+  // ── NEW: Next Milestone ──────────────────────────────────────────────────
+  const nextMilestone = getNextMilestone(anniversaryDate);
+
+  const totalMessages = messages.length;
+  const totalPhotos = messages.filter(m => m.type === 'image').length;
+  const totalVoice = messages.filter(m => m.type === 'audio').length;
+  const totalStars = messages.filter(m => m.isStarred).length;
+
+  const animMessages = useAnimatedCount(totalMessages, 1000);
+  const animPhotos = useAnimatedCount(totalPhotos, 900);
+  const animVoice = useAnimatedCount(totalVoice, 800);
+  const animStars = useAnimatedCount(totalStars, 700);
+
   useEffect(() => {
     const calculateTime = () => {
       const start = new Date(anniversaryDate).getTime();
       const now = new Date().getTime();
       const diff = Math.max(0, now - start);
-
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
       const minutes = Math.floor((diff / (1000 * 60)) % 60);
       const seconds = Math.floor((diff / 1000) % 60);
-
+      setPrevSeconds(prev => prev);
       setTimeTogether({ days, hours, minutes, seconds });
     };
-
     calculateTime();
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
@@ -77,6 +185,7 @@ export const HomeDashboard: React.FC = () => {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     setQuoteIndex(dayOfYear % DAILY_QUOTES.length);
     setCurrentFortune(LOVE_FORTUNES[dayOfYear % LOVE_FORTUNES.length]);
+    setTodayChallenge(LOVE_CHALLENGES[dayOfYear % LOVE_CHALLENGES.length]);
   }, []);
 
   const handleSaveMood = (e: React.FormEvent) => {
@@ -100,7 +209,7 @@ export const HomeDashboard: React.FC = () => {
     setLoveBattery(100);
     try { localStorage.setItem('ou_love_battery', '100'); } catch (_) {}
     sounds.playKissSound();
-    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ['#ff70a6', '#a855f7', '#38bdf8', '#10b981'] });
     toast.love('⚡ Love Battery Charged to 100%! Maximum Love Power!');
   };
 
@@ -108,17 +217,35 @@ export const HomeDashboard: React.FC = () => {
     if (!fortuneCracked) {
       setFortuneCracked(true);
       sounds.playSecretBurnSound();
-      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#f59e0b', '#fbbf24', '#ff70a6'] });
       toast.love('🥠 Fortune Cookie Cracked!');
     }
+  };
+
+  const handleMarkChallengeDone = () => {
+    setChallengeDown(true);
+    try {
+      localStorage.setItem('ou_challenge_done', JSON.stringify({ date: new Date().toDateString() }));
+    } catch (_) {}
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    toast.love('🎯 Challenge completed! You two are amazing! ❤️');
   };
 
   const hour = new Date().getHours();
   const isMorning = hour >= 5 && hour < 12;
   const isAfternoon = hour >= 12 && hour < 18;
 
+  const timerCells = [
+    { value: timeTogether.days,    label: 'Days',  color: 'text-white',        from: 'from-pink-500',   to: 'to-purple-600',  glow: 'shadow-pink-500/30 border-pink-500/30' },
+    { value: timeTogether.hours,   label: 'Hours', color: 'text-pink-300',     from: 'from-purple-500', to: 'to-indigo-600',  glow: 'shadow-purple-500/30 border-purple-500/30' },
+    { value: timeTogether.minutes, label: 'Mins',  color: 'text-purple-300',   from: 'from-indigo-500', to: 'to-blue-600',    glow: 'shadow-indigo-500/30 border-indigo-500/30' },
+    { value: timeTogether.seconds, label: 'Secs',  color: 'text-rose-300',     from: 'from-rose-500',   to: 'to-pink-600',    glow: 'shadow-rose-500/30 border-rose-500/30', pulse: true },
+  ];
+
   return (
-    <div className="space-y-6 pb-20 max-w-5xl mx-auto">
+    <div className="space-y-5 pb-20 max-w-5xl mx-auto">
+
+      {/* ── Floating Action Notification ── */}
       <AnimatePresence>
         {recentNotification && (
           <motion.div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 glass-panel-glow px-4 sm:px-6 py-3 rounded-full border border-pink-400/40 text-white font-bold text-xs sm:text-sm shadow-2xl flex items-center gap-2 sm:gap-3 max-w-[calc(100vw-2rem)] w-max">
@@ -132,63 +259,82 @@ export const HomeDashboard: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <div className="glass-panel p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 relative overflow-hidden">
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── HERO: Couple Profile + Anniversary Timer ────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <div className="aurora-border glass-panel-aurora p-5 sm:p-8 rounded-2xl sm:rounded-3xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-5 sm:gap-6 relative z-10">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative">
-              <img
-                src={currentUser?.photoURL}
-                alt={currentUser?.realName}
-                className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-3 sm:border-4 border-accent-pink shadow-xl shadow-pink-500/30"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.realName || 'Naveen')}&background=ff70a6&color=fff`;
-                }}
-              />
-              <span className="absolute bottom-0 right-0 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 border-2 border-space-950 rounded-full" />
+          <div className="flex items-center gap-3 sm:gap-5">
+            {/* Current user avatar */}
+            <div className="relative flex-shrink-0">
+              <div className={`rounded-full p-0.5 ${currentUser ? 'bg-gradient-to-tr from-pink-500 to-purple-600' : ''}`}>
+                <img
+                  src={currentUser?.photoURL}
+                  alt={currentUser?.realName}
+                  className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-space-950"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.realName || 'Naveen')}&background=ff70a6&color=fff`;
+                  }}
+                />
+              </div>
+              <span className="absolute bottom-0.5 right-0.5 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500 border-2 border-space-950 rounded-full animate-presence-glow" />
             </div>
 
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-accent-pink to-accent-purple p-0.5 shadow-lg flex items-center justify-center animate-heartbeat flex-shrink-0">
-              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-current" />
+            {/* Heartbeat center icon */}
+            <div className="relative flex-shrink-0">
+              <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-accent-pink to-accent-purple p-0.5 shadow-lg shadow-pink-500/30 flex items-center justify-center animate-heartbeat">
+                <Heart className="w-4 h-4 sm:w-6 sm:h-6 text-white fill-current" />
+              </div>
             </div>
 
-            <div className="relative">
-              <img
-                src={partnerUser?.photoURL}
-                alt={partnerUser?.realName}
-                className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-3 sm:border-4 border-accent-purple shadow-xl shadow-purple-500/30"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Humera')}&background=a855f7&color=fff`;
-                }}
-              />
-              <span className={`absolute bottom-0 right-0 w-3 h-3 sm:w-4 sm:h-4 border-2 border-space-950 rounded-full ${
-                partnerUser?.online ? 'bg-emerald-500' : 'bg-slate-500'
+            {/* Partner avatar */}
+            <div className="relative flex-shrink-0">
+              <div className={`rounded-full p-0.5 ${partnerUser?.online ? 'bg-gradient-to-tr from-emerald-400 to-teal-500' : 'bg-gradient-to-tr from-purple-500 to-indigo-600'}`}>
+                <img
+                  src={partnerUser?.photoURL}
+                  alt={partnerUser?.realName}
+                  className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-space-950"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Humera')}&background=a855f7&color=fff`;
+                  }}
+                />
+              </div>
+              <span className={`absolute bottom-0.5 right-0.5 w-3 h-3 sm:w-4 sm:h-4 border-2 border-space-950 rounded-full transition-all ${
+                partnerUser?.online ? 'bg-emerald-500 animate-presence-glow' : 'bg-slate-500'
               }`} />
             </div>
           </div>
 
           <div className="text-center sm:text-right min-w-0">
             <h2 className="text-base sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent truncate">
-              {currentUser?.petName} &amp; {partnerUser?.petName}
+              {currentUser?.petName} & {partnerUser?.petName}
             </h2>
             <p className="text-[10px] sm:text-xs text-slate-300 font-medium mt-1 flex flex-wrap items-center justify-center sm:justify-end gap-1">
               <span className="truncate max-w-[140px] sm:max-w-none">{currentUser?.city}</span>
               <span>•</span>
               <span className="truncate max-w-[140px] sm:max-w-none">{partnerUser?.city}</span>
             </p>
+            <div className="mt-2 flex items-center justify-center sm:justify-end gap-2">
+              <span className="tag-pill bg-pink-500/15 text-pink-300 border-pink-500/30">
+                <Heart className="w-2.5 h-2.5 fill-current" />
+                {daysSince(anniversaryDate)} days together
+              </span>
+            </div>
           </div>
         </div>
 
+        {/* ── Anniversary Timer ── */}
         <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-white/10 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2.5 sm:mb-3">
-            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-pink-300">
-              Together For
-            </p>
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-pink-300">Together For</p>
             <button
               onClick={() => setShowDateEditor(!showDateEditor)}
-              className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded-full bg-white/5 border border-white/10"
+              className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded-full bg-white/5 border border-white/10 transition-colors"
               title="Edit Anniversary Date"
             >
-              ✏️ {showDateEditor ? 'Close' : 'Edit Date'}
+              ✏️ {showDateEditor ? 'Close' : 'Edit'}
             </button>
           </div>
 
@@ -215,16 +361,17 @@ export const HomeDashboard: React.FC = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-4 gap-2 sm:gap-3 max-w-xl mx-auto">
-            {[
-              { value: timeTogether.days, label: 'Days', color: 'text-white', glow: 'shadow-pink-500/30 border-pink-500/30', from: 'from-pink-500', to: 'to-purple-600' },
-              { value: timeTogether.hours, label: 'Hours', color: 'text-pink-300', glow: 'shadow-purple-500/30 border-purple-500/30', from: 'from-purple-500', to: 'to-indigo-600' },
-              { value: timeTogether.minutes, label: 'Mins', color: 'text-purple-300', glow: 'shadow-indigo-500/30 border-indigo-500/30', from: 'from-indigo-500', to: 'to-blue-600' },
-              { value: timeTogether.seconds, label: 'Secs', color: 'text-rose-300', glow: 'shadow-rose-500/30 border-rose-500/30', from: 'from-rose-500', to: 'to-pink-600', pulse: true },
-            ].map(({ value, label, color, glow, from, to, pulse }) => (
-              <div key={label} className={`relative overflow-hidden glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border ${glow} shadow-lg text-center group`}>
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 max-w-xl mx-auto" style={{ perspective: '600px' }}>
+            {timerCells.map(({ value, label, color, from, to, glow, pulse }) => (
+              <div
+                key={label}
+                className={`relative overflow-hidden glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border ${glow} shadow-lg text-center`}
+              >
                 <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${from} ${to} opacity-80`} />
-                <p className={`text-xl sm:text-4xl font-extrabold tracking-tight ${color} ${pulse ? 'animate-pulse' : ''} tabular-nums`}>
+                <p
+                  key={value}
+                  className={`text-xl sm:text-4xl font-extrabold tracking-tight ${color} ${pulse ? 'animate-pulse' : ''} tabular-nums animate-flip-in`}
+                >
                   {String(value).padStart(2, '0')}
                 </p>
                 <p className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 sm:mt-1">{label}</p>
@@ -234,24 +381,130 @@ export const HomeDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Love Battery & Daily Fortune Cookie Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Interactive Love Battery Card */}
-        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── ROW: Love Streak + Today's Challenge + Next Milestone ──────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        {/* 🔥 Love Streak */}
+        <div className="glass-panel card-hover-lift p-5 rounded-3xl border border-orange-500/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/8 to-transparent pointer-events-none" />
+          <div className="flex items-start justify-between mb-3 relative z-10">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-orange-300 flex items-center gap-1">
+                <Flame className="w-3 h-3 animate-streak-flicker" />
+                Love Streak
+              </p>
+              <p className="text-3xl font-extrabold text-white mt-1 animate-count-up">
+                {loveStreak}<span className="text-lg text-orange-300">🔥</span>
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">consecutive days</p>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-orange-500/15 border border-orange-500/25">
+              <Flame className="w-6 h-6 text-orange-400 animate-streak-flicker" />
+            </div>
+          </div>
+          <div className="relative z-10">
+            <div className="flex gap-1 mt-2">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`flex-1 h-1.5 rounded-full transition-all ${
+                    i < Math.min(loveStreak % 7 || 7, 7) ? 'bg-gradient-to-r from-orange-500 to-pink-500' : 'bg-white/10'
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-[9px] text-orange-300/70 mt-1">7-day streak goal</p>
+          </div>
+        </div>
+
+        {/* 🎯 Today's Love Challenge */}
+        <div className={`glass-panel card-hover-lift p-5 rounded-3xl border relative overflow-hidden ${
+          challengeDone ? 'border-emerald-500/30' : 'border-purple-500/20'
+        }`}>
+          <div className="challenge-shimmer absolute inset-0 pointer-events-none rounded-3xl" />
+          <div className="relative z-10">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1 mb-2">
+              <Target className="w-3 h-3" />
+              Today's Challenge
+            </p>
+            <div className="text-2xl mb-1">{todayChallenge.emoji}</div>
+            <p className="text-xs font-bold text-white">{todayChallenge.title}</p>
+            <p className="text-[10px] text-slate-300 leading-relaxed mt-1">{todayChallenge.desc}</p>
+            <button
+              onClick={handleMarkChallengeDone}
+              disabled={challengeDone}
+              className={`mt-3 w-full py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                challengeDone
+                  ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 cursor-default'
+                  : 'bg-purple-500/20 border border-purple-500/30 text-purple-200 hover:bg-purple-500/30'
+              }`}
+            >
+              {challengeDone ? '✅ Completed!' : '✨ Mark Done'}
+            </button>
+          </div>
+        </div>
+
+        {/* 🏆 Next Milestone */}
+        {nextMilestone ? (
+          <div className="glass-panel card-hover-lift p-5 rounded-3xl border border-amber-500/20 relative overflow-hidden animate-milestone-pulse">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/6 to-transparent pointer-events-none" />
+            <div className="relative z-10">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1 mb-2">
+                <Trophy className="w-3 h-3" />
+                Next Milestone
+              </p>
+              <p className="text-3xl font-extrabold text-white animate-count-up">
+                {nextMilestone.daysLeft}<span className="text-base text-amber-300 ml-1">days</span>
+              </p>
+              <p className="text-[10px] text-amber-200/80 mt-0.5 font-semibold">until {nextMilestone.label} anniversary 🎊</p>
+              <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-400 transition-all duration-1000"
+                  style={{ width: `${Math.max(5, 100 - Math.min(nextMilestone.daysLeft / 30 * 100, 100))}%` }}
+                />
+              </div>
+              <p className="text-[9px] text-amber-400/70 mt-1">milestone progress</p>
+            </div>
+          </div>
+        ) : (
+          <div className="glass-panel p-5 rounded-3xl border border-amber-500/20 flex items-center justify-center">
+            <p className="text-xs text-amber-300 text-center">🏆 Set your anniversary date to unlock milestones!</p>
+          </div>
+        )}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── Love Battery & Fortune Cookie ──────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        {/* ⚡ Love Battery */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4 card-hover-lift">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <BatteryCharging className="w-4 h-4 text-emerald-400" />
-              <span>Couple Love Battery</span>
+              Couple Love Battery
             </h4>
-            <span className="text-xs font-extrabold text-emerald-300">{loveBattery}%</span>
+            <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full border ${
+              loveBattery >= 90 ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30' : 'text-amber-300 bg-amber-500/15 border-amber-500/30'
+            }`}>{loveBattery}%</span>
           </div>
 
-          <div className="h-4 bg-space-950 rounded-full p-1 border border-white/10 relative overflow-hidden">
+          {/* Battery bar with animated fill */}
+          <div className="h-5 bg-space-950 rounded-full p-1 border border-white/10 relative overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-pink-500 transition-all duration-1000 shadow-md shadow-emerald-500/40"
+              className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-pink-500 transition-all duration-1000 shadow-md shadow-emerald-500/40 relative overflow-hidden"
               style={{ width: `${loveBattery}%` }}
-            />
+            >
+              {/* Shimmer inside bar */}
+              <div className="absolute inset-0 animate-shimmer" />
+            </div>
+            {/* Battery segments */}
+            {[25, 50, 75].map(pct => (
+              <div key={pct} className="absolute top-0 bottom-0 w-px bg-black/30" style={{ left: `${pct}%` }} />
+            ))}
           </div>
 
           <div className="flex items-center justify-between pt-1">
@@ -260,55 +513,60 @@ export const HomeDashboard: React.FC = () => {
             </p>
             <button
               onClick={handleBoostBattery}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-xs shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5"
+              className="btn-love px-3.5 py-1.5 text-xs rounded-xl"
             >
               <Zap className="w-3.5 h-3.5 text-amber-300" />
-              <span>Recharge ⚡</span>
+              Recharge
             </button>
           </div>
         </div>
 
-        {/* Daily Love Fortune Cookie */}
-        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-3">
+        {/* 🥠 Fortune Cookie */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-3 card-hover-lift">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <Cookie className="w-4 h-4 text-amber-400" />
-              <span>Daily Love Fortune</span>
+              Daily Love Fortune
             </h4>
-            <span className="text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-              {fortuneCracked ? 'Unlocked' : 'Tap to Crack'}
+            <span className="tag-pill bg-amber-500/20 text-amber-300 border-amber-500/30">
+              {fortuneCracked ? '✅ Unlocked' : '🥠 Tap to Crack'}
             </span>
           </div>
 
           {!fortuneCracked ? (
             <div
               onClick={handleCrackFortune}
-              className="p-4 rounded-2xl glass-card border border-amber-500/30 hover:border-amber-500/60 cursor-pointer flex items-center justify-center gap-3 text-center transition-all hover:scale-[1.02]"
+              className="p-4 rounded-2xl glass-card border border-amber-500/30 hover:border-amber-500/60 cursor-pointer flex items-center justify-center gap-3 text-center transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-amber-500/20 active:scale-95"
             >
-              <span className="text-3xl animate-bounce">🥠</span>
+              <span className="text-4xl animate-bounce">🥠</span>
               <div className="text-left">
                 <p className="font-bold text-xs text-white">Crack Open Today's Love Cookie</p>
-                <p className="text-[10px] text-amber-300">Reveal a romantic prophecy for you &amp; partner</p>
+                <p className="text-[10px] text-amber-300 mt-0.5">Reveal a romantic prophecy for you & partner</p>
               </div>
             </div>
           ) : (
-            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/30 space-y-1.5 animate-fade-in">
-              <p className="text-xs text-amber-100 font-semibold italic">"{currentFortune.fortune}"</p>
-              <p className="text-[10px] text-amber-300/80 font-bold">Lucky Love Numbers: {currentFortune.numbers}</p>
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-400/30 space-y-2 animate-fade-in">
+              <div className="flex items-start gap-2">
+                <span className="text-xl shrink-0">🥠</span>
+                <p className="text-xs text-amber-100 font-semibold italic leading-relaxed">"{currentFortune.fortune}"</p>
+              </div>
+              <p className="text-[10px] text-amber-300/80 font-bold pl-7">Lucky Love Numbers: {currentFortune.numbers}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* "On This Day" Memory Throwback Feature */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── "On This Day" Memory Throwback ─────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       {memories.length > 0 && (() => {
         const todayMD = new Date().toISOString().slice(5, 10);
         const throwback = memories.find(m => m.date && m.date.slice(5, 10) === todayMD) || memories[0];
         if (!throwback) return null;
         return (
-          <div className="glass-panel-glow p-5 sm:p-6 rounded-3xl border border-pink-400/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="aurora-border glass-panel-aurora p-5 sm:p-6 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shrink-0 border-2 border-pink-400 shadow-md">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shrink-0 border-2 border-pink-400 shadow-md shadow-pink-500/30">
                 <img
                   src={throwback.mediaUrls?.[0]}
                   alt={throwback.title}
@@ -320,9 +578,9 @@ export const HomeDashboard: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 text-xs font-extrabold text-pink-300">
-                  <Sparkles className="w-4 h-4 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-spin-slow" />
                   <span>On This Day Throwback</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-200 border border-pink-500/30">{throwback.date}</span>
+                  <span className="tag-pill bg-pink-500/20 text-pink-200 border-pink-500/30">{throwback.date}</span>
                 </div>
                 <h4 className="font-bold text-sm sm:text-base text-white truncate mt-0.5">{throwback.title}</h4>
                 <p className="text-xs text-slate-300 italic truncate max-w-md mt-0.5">"{throwback.description}"</p>
@@ -330,17 +588,22 @@ export const HomeDashboard: React.FC = () => {
             </div>
             <button
               onClick={() => setSurpriseMemory(throwback)}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 transition-all shrink-0 w-full sm:w-auto"
+              className="btn-love shrink-0 w-full sm:w-auto px-5 py-2.5 rounded-2xl text-xs"
             >
-              Relive Memory ❤️
+              <Heart className="w-3.5 h-3.5 fill-current" />
+              Relive Memory
             </button>
           </div>
         );
       })()}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 glass-panel p-6 rounded-3xl border border-white/10 flex items-center justify-between relative overflow-hidden">
-          <div className="space-y-2 max-w-md">
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── Greeting + Distance Cards ───────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="md:col-span-2 glass-panel p-6 rounded-3xl border border-white/10 flex items-center justify-between relative overflow-hidden card-hover-lift">
+          <div className="absolute inset-0 challenge-shimmer pointer-events-none rounded-3xl" />
+          <div className="space-y-2 max-w-md relative z-10">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-pink-300 border border-white/10">
               {isMorning ? <Sun className="w-3.5 h-3.5 text-amber-300" /> : isAfternoon ? <CloudSun className="w-3.5 h-3.5 text-orange-300" /> : <Moon className="w-3.5 h-3.5 text-indigo-300" />}
               {isMorning ? 'Good Morning' : isAfternoon ? 'Good Afternoon' : 'Good Night'}
@@ -352,13 +615,13 @@ export const HomeDashboard: React.FC = () => {
               "{DAILY_QUOTES[quoteIndex]}"
             </p>
           </div>
-          <div className="hidden sm:block text-5xl">
+          <div className="hidden sm:block text-6xl relative z-10">
             {isMorning ? '🌅' : isAfternoon ? '🌤️' : '🌙'}
           </div>
         </div>
 
-        {/* Couple Connection Card */}
-        <div className="glass-panel p-6 rounded-3xl border border-white/10 flex flex-col justify-between gap-4">
+        {/* Distance Card */}
+        <div className="glass-panel p-6 rounded-3xl border border-white/10 flex flex-col justify-between gap-4 card-hover-lift">
           <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <MapPin className="w-4 h-4 text-pink-400" />
             <span>Our Distance</span>
@@ -386,11 +649,18 @@ export const HomeDashboard: React.FC = () => {
               </div>
             </div>
           </div>
-          <p className="text-[10px] text-pink-300/70 italic text-center truncate" title="Vijayawada ↔ Medchal • 0 km apart in heart ❤️">Vijayawada ↔ Medchal • 0 km apart in heart ❤️</p>
+          <p className="text-[10px] text-pink-300/70 italic text-center truncate" title="0 km apart in heart ❤️">
+            0 km apart in heart ❤️
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── Moods + One-Tap Express ─────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        {/* Mood Card */}
         <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
@@ -399,7 +669,7 @@ export const HomeDashboard: React.FC = () => {
             </h4>
             <button
               onClick={() => setEditingMood(!editingMood)}
-              className="text-xs font-semibold text-accent-pink hover:underline"
+              className="text-xs font-semibold text-accent-pink hover:text-pink-300 transition-colors"
             >
               {editingMood ? 'Cancel' : 'Update Mood'}
             </button>
@@ -407,17 +677,16 @@ export const HomeDashboard: React.FC = () => {
 
           {!editingMood ? (
             <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="glass-card p-4 rounded-2xl space-y-1 border border-pink-500/20">
+              <div className="glass-card p-4 rounded-2xl space-y-1 border border-pink-500/20 card-hover-lift">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl animate-bounce">{currentUser?.mood.emoji || '💖'}</span>
                   <span className="text-xs font-bold text-pink-200">{currentUser?.petName}</span>
                 </div>
                 <p className="text-xs text-slate-300 italic">"{currentUser?.mood.text || 'Thinking of you'}"</p>
               </div>
-
-              <div className="glass-card p-4 rounded-2xl space-y-1 border border-purple-500/20">
+              <div className="glass-card p-4 rounded-2xl space-y-1 border border-purple-500/20 card-hover-lift">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl animate-bounce">{partnerUser?.mood.emoji || '💕'}</span>
+                  <span className="text-2xl animate-bounce" style={{ animationDelay: '0.2s' }}>{partnerUser?.mood.emoji || '💕'}</span>
                   <span className="text-xs font-bold text-purple-200">{partnerUser?.petName}</span>
                 </div>
                 <p className="text-xs text-slate-300 italic">"{partnerUser?.mood.text || 'Loving you always'}"</p>
@@ -441,8 +710,6 @@ export const HomeDashboard: React.FC = () => {
                   className="flex-1 px-4 py-2 rounded-xl glass-input text-xs"
                 />
               </div>
-
-              {/* Quick Mood Presets */}
               <div className="grid grid-cols-3 gap-1.5 pt-1">
                 {[
                   { emoji: '💖', label: 'Loving' },
@@ -455,21 +722,17 @@ export const HomeDashboard: React.FC = () => {
                   <button
                     key={preset.label}
                     type="button"
-                    onClick={() => {
-                      setMoodEmoji(preset.emoji);
-                      setMoodText(preset.label);
-                    }}
-                    className="p-1.5 rounded-xl glass-card text-[10px] font-semibold text-slate-300 hover:text-white flex items-center justify-center gap-1 hover:border-pink-400/40"
+                    onClick={() => { setMoodEmoji(preset.emoji); setMoodText(preset.label); }}
+                    className="p-1.5 rounded-xl glass-card text-[10px] font-semibold text-slate-300 hover:text-white flex items-center justify-center gap-1 hover:border-pink-400/40 transition-all"
                   >
                     <span>{preset.emoji}</span>
                     <span className="truncate">{preset.label}</span>
                   </button>
                 ))}
               </div>
-
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-bold text-xs shadow-md hover:scale-[1.02] active:scale-95 transition-transform"
+                className="btn-love w-full py-2.5 rounded-xl text-xs"
               >
                 Save Mood Status
               </button>
@@ -477,91 +740,81 @@ export const HomeDashboard: React.FC = () => {
           )}
         </div>
 
+        {/* One-Tap Love Express */}
         <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
           <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-400" />
             <span>One-Tap Love Express</span>
           </h4>
-
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            <button
-              onClick={() => sendQuickAction('miss_you')}
-              className="p-3 rounded-2xl glass-card border border-pink-500/20 hover:border-pink-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"
-            >
-              <div className="p-2 rounded-xl bg-pink-500/20 text-pink-400 flex-shrink-0">
-                <Heart className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse-heart fill-current" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-xs text-white truncate">I Miss You</p>
-                <p className="text-[10px] text-slate-400 truncate">Heartbeat sync</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => sendQuickAction('hug')}
-              className="p-3 rounded-2xl glass-card border border-purple-500/20 hover:border-purple-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"
-            >
-              <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 flex-shrink-0">
-                <span className="text-lg sm:text-xl">🤗</span>
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-xs text-white truncate">Send Hug</p>
-                <p className="text-[10px] text-slate-400 truncate">Warm hug effect</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => sendQuickAction('kiss')}
-              className="p-3 rounded-2xl glass-card border border-rose-500/20 hover:border-rose-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"
-            >
-              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 flex-shrink-0">
-                <span className="text-lg sm:text-xl">💋</span>
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-xs text-white truncate">Send Kiss</p>
-                <p className="text-[10px] text-slate-400 truncate">Confetti explosion</p>
-              </div>
-            </button>
-
-            <button
-              onClick={handleSurpriseMode}
-              className="p-3 rounded-2xl glass-card border border-amber-500/20 hover:border-amber-500/50 flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px]"
-            >
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 flex-shrink-0">
-                <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-bold text-xs text-white truncate">Surprise</p>
-                <p className="text-[10px] text-slate-400 truncate">Random memory</p>
-              </div>
-            </button>
+            {[
+              {
+                action: 'miss_you', label: 'I Miss You', desc: 'Heartbeat sync',
+                icon: <Heart className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse-heart fill-current" />,
+                iconBg: 'bg-pink-500/20 text-pink-400',
+                border: 'border-pink-500/20 hover:border-pink-500/60 hover:shadow-pink-500/20'
+              },
+              {
+                action: 'hug', label: 'Send Hug', desc: 'Warm embrace',
+                icon: <span className="text-lg sm:text-xl">🤗</span>,
+                iconBg: 'bg-purple-500/20',
+                border: 'border-purple-500/20 hover:border-purple-500/60 hover:shadow-purple-500/20'
+              },
+              {
+                action: 'kiss', label: 'Send Kiss', desc: 'Confetti explosion',
+                icon: <span className="text-lg sm:text-xl">💋</span>,
+                iconBg: 'bg-rose-500/20',
+                border: 'border-rose-500/20 hover:border-rose-500/60 hover:shadow-rose-500/20'
+              },
+              {
+                action: null, label: 'Surprise!', desc: 'Random memory',
+                icon: <Gift className="w-4 h-4 sm:w-5 sm:h-5" />,
+                iconBg: 'bg-amber-500/20 text-amber-400',
+                border: 'border-amber-500/20 hover:border-amber-500/60 hover:shadow-amber-500/20',
+                custom: handleSurpriseMode
+              },
+            ].map((btn, i) => (
+              <button
+                key={btn.label}
+                onClick={btn.custom ?? (() => btn.action && sendQuickAction(btn.action as any))}
+                className={`p-3 rounded-2xl glass-card border flex items-center gap-2.5 sm:gap-3 hover:scale-105 active:scale-95 transition-all text-left min-h-[56px] hover:shadow-lg ${btn.border}`}
+              >
+                <div className={`p-2 rounded-xl flex-shrink-0 ${btn.iconBg}`}>{btn.icon}</div>
+                <div className="min-w-0">
+                  <p className="font-bold text-xs text-white truncate">{btn.label}</p>
+                  <p className="text-[10px] text-slate-400 truncate">{btn.desc}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Real-time Relationship Stats */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── Relationship Stats (with count-up animation) ────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Messages', value: messages.length, icon: <MessageCircle className="w-4 h-4" />, color: 'text-pink-300', bg: 'bg-pink-500/10 border-pink-500/20' },
-          { label: 'Photos', value: messages.filter(m => m.type === 'image').length, icon: <Image className="w-4 h-4" />, color: 'text-purple-300', bg: 'bg-purple-500/10 border-purple-500/20' },
-          { label: 'Voice Notes', value: messages.filter(m => m.type === 'audio').length, icon: <Mic className="w-4 h-4" />, color: 'text-amber-300', bg: 'bg-amber-500/10 border-amber-500/20' },
-          { label: 'Stars', value: messages.filter(m => m.isStarred).length, icon: <Sparkles className="w-4 h-4" />, color: 'text-emerald-300', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+          { label: 'Messages',    value: animMessages, icon: <MessageCircle className="w-4 h-4" />, color: 'text-pink-300',    bg: 'bg-pink-500/10 border-pink-500/20'   },
+          { label: 'Photos',      value: animPhotos,   icon: <Image className="w-4 h-4" />,         color: 'text-purple-300',  bg: 'bg-purple-500/10 border-purple-500/20'},
+          { label: 'Voice Notes', value: animVoice,    icon: <Mic className="w-4 h-4" />,           color: 'text-amber-300',   bg: 'bg-amber-500/10 border-amber-500/20' },
+          { label: 'Stars',       value: animStars,    icon: <Sparkles className="w-4 h-4" />,      color: 'text-emerald-300', bg: 'bg-emerald-500/10 border-emerald-500/20'},
         ].map(stat => (
-          <div key={stat.label} className={`glass-panel glass-card-tilt p-4 rounded-2xl border ${stat.bg} flex flex-col items-center justify-center gap-1.5 text-center`}>
+          <div key={stat.label} className={`glass-panel glass-card-tilt p-4 rounded-2xl border ${stat.bg} flex flex-col items-center justify-center gap-1.5 text-center card-hover-lift`}>
             <span className={stat.color}>{stat.icon}</span>
-            <p className={`text-xl sm:text-2xl font-extrabold ${stat.color}`}>{stat.value.toLocaleString()}</p>
+            <p className={`text-xl sm:text-2xl font-extrabold ${stat.color} animate-count-up`}>{stat.value.toLocaleString()}</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{stat.label}</p>
           </div>
         ))}
       </div>
 
+      {/* ── Surprise Memory Modal ── */}
       <AnimatePresence>
         {surpriseMemory && (
           <motion.div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div className="glass-panel-glow p-6 rounded-3xl max-w-md w-full border border-pink-400/50 text-center space-y-4">
+            <motion.div className="aurora-border glass-panel-aurora p-6 rounded-3xl max-w-md w-full text-center space-y-4">
               <span className="text-3xl">🎉</span>
               <h3 className="text-lg font-extrabold text-white">Surprise Memory Unlocked!</h3>
-              
               {surpriseMemory.mediaUrls?.[0] && (
                 <img
                   src={surpriseMemory.mediaUrls[0]}
@@ -572,15 +825,13 @@ export const HomeDashboard: React.FC = () => {
                   }}
                 />
               )}
-
               <p className="font-bold text-sm text-pink-300">{surpriseMemory.title}</p>
               <p className="text-xs text-slate-300 italic">"{surpriseMemory.description}"</p>
-
               <button
                 onClick={() => setSurpriseMemory(null)}
-                className="w-full py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs"
+                className="btn-love w-full py-2.5 rounded-xl text-xs"
               >
-                Close &amp; Relive Memory
+                Close & Relive Memory ❤️
               </button>
             </motion.div>
           </motion.div>

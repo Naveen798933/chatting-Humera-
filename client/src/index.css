@@ -536,3 +536,276 @@ p, span, h1, h2, h3, h4, h5, h6, button, a {
 .typing-dot:nth-child(2) { animation: typingDot 1.2s ease-in-out infinite 0.2s; }
 .typing-dot:nth-child(3) { animation: typingDot 1.2s ease-in-out infinite 0.4s; }
 
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* ─── PREMIUM UPGRADE CSS — Our Universe v2.0 ─────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Aurora Border Shimmer ───────────────────────────────────────────────── */
+@keyframes auroraShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.aurora-border {
+  position: relative;
+  border-radius: inherit;
+}
+.aurora-border::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    #ff70a6,
+    #a855f7,
+    #38bdf8,
+    #10b981,
+    #f59e0b,
+    #ff70a6
+  );
+  background-size: 300% 300%;
+  animation: auroraShift 6s ease infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ─── Glass Panel with Aurora Glow ───────────────────────────────────────── */
+.glass-panel-aurora {
+  background: rgba(22, 12, 46, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow:
+    0 0 40px rgba(255, 112, 166, 0.12),
+    0 0 80px rgba(168, 85, 247, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* ─── Premium btn-love Button ─────────────────────────────────────────────── */
+.btn-love {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #ff70a6, #a855f7, #ec4899);
+  background-size: 200% 200%;
+  animation: auroraShift 4s ease infinite;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(255, 112, 166, 0.4), 0 0 0 0 rgba(255, 112, 166, 0);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-love:hover {
+  transform: scale(1.06) translateY(-1px);
+  box-shadow: 0 8px 30px rgba(255, 112, 166, 0.55), 0 2px 8px rgba(168, 85, 247, 0.3);
+}
+.btn-love:active {
+  transform: scale(0.96);
+}
+.btn-love::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+.btn-love:active::after {
+  transform: scale(1);
+  opacity: 1;
+  transition: 0s;
+}
+
+/* ─── Tag / Pill Badge ────────────────────────────────────────────────────── */
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+/* ─── Card Hover Lift (3D tilt + glow) ───────────────────────────────────── */
+@media (hover: hover) {
+  .card-hover-lift {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+    cursor: pointer;
+  }
+  .card-hover-lift:hover {
+    transform: perspective(800px) rotateX(3deg) rotateY(-3deg) translateY(-5px) scale(1.02);
+    box-shadow:
+      0 20px 50px -10px rgba(255, 112, 166, 0.25),
+      0 10px 20px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+}
+
+/* ─── Slow Spin Keyframe ─────────────────────────────────────────────────── */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes spinMedium {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes spinReverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+
+.animate-spin-slow   { animation: spinSlow 8s linear infinite; }
+.animate-spin-medium { animation: spinMedium 4s linear infinite; }
+.animate-spin-reverse{ animation: spinReverse 6s linear infinite; }
+
+/* ─── Flip Digit (for timer) ─────────────────────────────────────────────── */
+@keyframes flipIn {
+  0%   { transform: rotateX(90deg) translateY(-10px); opacity: 0; }
+  60%  { transform: rotateX(-8deg); }
+  100% { transform: rotateX(0deg) translateY(0); opacity: 1; }
+}
+.animate-flip-in {
+  animation: flipIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ─── Glow Border (selected / active state) ──────────────────────────────── */
+.glow-border-pink {
+  box-shadow: 0 0 0 2px rgba(255,112,166,0.8), 0 0 20px rgba(255,112,166,0.3);
+}
+.glow-border-purple {
+  box-shadow: 0 0 0 2px rgba(168,85,247,0.8), 0 0 20px rgba(168,85,247,0.3);
+}
+
+/* ─── Love Streak Card ────────────────────────────────────────────────────── */
+@keyframes streakFlicker {
+  0%, 90%, 100% { filter: drop-shadow(0 0 8px rgba(251,146,60,0.9)); opacity: 1; }
+  91%           { filter: drop-shadow(0 0 3px rgba(251,146,60,0.4)); opacity: 0.8; }
+  93%           { filter: drop-shadow(0 0 14px rgba(251,146,60,1)); opacity: 1; }
+}
+.animate-streak-flicker {
+  animation: streakFlicker 5s ease-in-out infinite;
+}
+
+/* ─── Count Up Number Animation ──────────────────────────────────────────── */
+@keyframes countUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.animate-count-up {
+  animation: countUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ─── Sparkle Ring (decorative rotating rings) ───────────────────────────── */
+.sparkle-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255,112,166,0.35);
+  animation: spinSlow 10s linear infinite;
+  pointer-events: none;
+}
+.sparkle-ring-inner {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px dotted rgba(168,85,247,0.3);
+  animation: spinReverse 7s linear infinite;
+  pointer-events: none;
+}
+
+/* ─── Presence Glow Ring (partner online indicator) ──────────────────────── */
+@keyframes presenceGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(16,185,129,0.4),
+      0 0 12px rgba(16,185,129,0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(16,185,129,0.6),
+      0 0 20px rgba(16,185,129,0.35);
+  }
+}
+.animate-presence-glow {
+  animation: presenceGlow 2.5s ease-in-out infinite;
+}
+
+/* ─── Challenge Card Shimmer ─────────────────────────────────────────────── */
+@keyframes challengeShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.challenge-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(168,85,247,0.05) 0%,
+    rgba(255,112,166,0.12) 25%,
+    rgba(168,85,247,0.05) 50%,
+    rgba(56,189,248,0.10) 75%,
+    rgba(168,85,247,0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: challengeShimmer 4s ease infinite;
+}
+
+/* ─── Mobile bottom nav: bounce on tab switch ─────────────────────────────── */
+@keyframes navBounce {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.3) translateY(-3px); }
+  55%  { transform: scale(0.9); }
+  75%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+.animate-nav-bounce {
+  animation: navBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── Auth page: floating particle CSS animation ─────────────────────────── */
+@keyframes floatParticle {
+  0%   { transform: translateY(0) rotate(0deg);   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.7; }
+  100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+}
+.auth-particle {
+  position: fixed;
+  pointer-events: none;
+  animation: floatParticle linear infinite;
+  font-size: 1.2rem;
+  z-index: 1;
+  will-change: transform, opacity;
+}
+
+/* ─── Milestone badge pulse ───────────────────────────────────────────────── */
+@keyframes milestonePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(251,191,36,0.6); }
+  50%       { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(251,191,36,0); }
+}
+.animate-milestone-pulse {
+  animation: milestonePulse 2.5s ease-in-out infinite;
+}

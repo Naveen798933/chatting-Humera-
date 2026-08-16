@@ -42,9 +42,21 @@ export const Navigation: React.FC<NavigationProps> = ({
   const { currentUser, partnerUser, logout, toggleDecoyMode } = useAuth();
   const { messages } = useUniverse();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [lastActiveTab, setLastActiveTab] = useState<TabType>(activeTab);
+  const [bouncingTab, setBouncingTab] = useState<TabType | null>(null);
 
   // Count unread messages (partner messages not yet seen)
   const unreadCount = messages.filter(m => m.senderId !== currentUser?.uid && !m.seen).length;
+
+  // Trigger bounce animation on tab switch
+  const handleTabChange = (tab: TabType) => {
+    if (tab !== activeTab) {
+      setBouncingTab(tab);
+      setActiveTab(tab);
+      setLastActiveTab(tab);
+      setTimeout(() => setBouncingTab(null), 500);
+    }
+  };
 
   useEffect(() => {
     const vv = window.visualViewport;
@@ -91,8 +103,11 @@ export const Navigation: React.FC<NavigationProps> = ({
 
   return (
     <>
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ─── Top Header Bar ─────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       <header
-        className="sticky top-0 z-40 w-full bg-space-950/90 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-6 shadow-2xl shadow-black/50 select-none"
+        className="sticky top-0 z-40 w-full bg-space-950/92 backdrop-blur-2xl border-b border-white/8 px-3 sm:px-6 shadow-2xl shadow-black/60 select-none"
         style={{
           paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))',
           paddingBottom: '0.5rem'
@@ -100,16 +115,22 @@ export const Navigation: React.FC<NavigationProps> = ({
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
 
-          {/* Left: Brand Logo & Title */}
+          {/* ── Brand Logo & Title ── */}
           <div
-            onClick={() => setActiveTab('home')}
+            onClick={() => handleTabChange('home')}
             className="flex items-center gap-2 cursor-pointer group select-none flex-shrink-0"
           >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-accent-rose via-accent-pink to-accent-purple p-0.5 shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
-              <div className="w-full h-full bg-space-950 rounded-[14px] flex items-center justify-center">
-                <span className="text-sm sm:text-base animate-heartbeat">❤️</span>
+            {/* Logo with sparkle ring */}
+            <div className="relative flex-shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-accent-rose via-accent-pink to-accent-purple p-0.5 shadow-lg shadow-pink-500/25 group-hover:scale-110 transition-transform relative z-10 flex items-center justify-center">
+                <div className="w-full h-full bg-space-950 rounded-[14px] flex items-center justify-center">
+                  <span className="text-sm sm:text-base animate-heartbeat">❤️</span>
+                </div>
               </div>
+              {/* Decorative rotating rings on the logo */}
+              <div className="absolute inset-0 rounded-2xl border border-dashed border-pink-500/25 animate-spin-slow pointer-events-none" />
             </div>
+
             <div className="min-w-0" onDoubleClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}>
               <h1 className="font-extrabold text-xs sm:text-base tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent truncate cursor-pointer">
                 OUR UNIVERSE
@@ -120,12 +141,16 @@ export const Navigation: React.FC<NavigationProps> = ({
             </div>
           </div>
 
-          {/* Center on Mobile: Partner Status Capsule */}
+          {/* ── Center on Mobile: Partner Status Capsule ── */}
           <div
             onClick={onOpenPartnerProfile}
-            className="flex md:hidden items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:border-pink-500/30 cursor-pointer active:scale-95 transition-all"
+            className={`flex md:hidden items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/5 border cursor-pointer active:scale-95 transition-all ${
+              partnerUser?.online
+                ? 'border-emerald-500/30 hover:border-emerald-500/50'
+                : 'border-white/10 hover:border-pink-500/30'
+            }`}
           >
-            <div className="relative w-5 h-5 rounded-full overflow-hidden shrink-0 border border-pink-400">
+            <div className="relative w-5 h-5 rounded-full overflow-hidden shrink-0 border border-pink-400 flex-shrink-0">
               <img
                 src={partnerUser?.photoURL}
                 alt="Partner"
@@ -134,39 +159,47 @@ export const Navigation: React.FC<NavigationProps> = ({
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Partner&background=a855f7&color=fff`;
                 }}
               />
-              <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full border border-black ${partnerUser?.online ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+              <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full border border-black ${
+                partnerUser?.online ? 'bg-emerald-400 animate-presence-glow' : 'bg-slate-500'
+              }`} />
             </div>
             <span className="text-[11px] font-bold text-pink-200 truncate max-w-[80px]">
               {partnerUser?.petName || 'Partner'}
             </span>
+            {partnerUser?.online && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+            )}
           </div>
 
-          {/* Desktop Navigation Pills */}
+          {/* ── Desktop Navigation Pills ── */}
           <nav className="hidden md:flex items-center gap-1 glass-card p-1.5 rounded-full border border-white/10">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 ${
+                  onClick={() => handleTabChange(item.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300 relative overflow-hidden ${
                     isActive
                       ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
                       : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  {item.icon}
-                  <span>{item.label}</span>
+                  {isActive && (
+                    <span className="absolute inset-0 animate-shimmer pointer-events-none" />
+                  )}
+                  <span className={`relative z-10 ${isActive ? '' : ''}`}>{item.icon}</span>
+                  <span className="relative z-10">{item.label}</span>
                 </button>
               );
             })}
           </nav>
 
-          {/* Controls & Quick Action Buttons */}
+          {/* ── Controls & Quick Action Buttons ── */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
-            
+
             {/* Desktop Only Extra Action Buttons */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1.5">
               {onOpenLoveAI && (
                 <button
                   onClick={onOpenLoveAI}
@@ -258,9 +291,9 @@ export const Navigation: React.FC<NavigationProps> = ({
               )}
             </div>
 
-            {/* Mobile Header Buttons (Clean & Minimal) */}
+            {/* Mobile Header Buttons */}
             <div className="flex md:hidden items-center gap-1.5">
-              {/* Universal Space Hub Sheet Trigger */}
+              {/* Hub Sheet Trigger */}
               <button
                 onClick={onOpenMobileHub}
                 title="Space Hub Tools"
@@ -270,7 +303,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <span className="text-[10px] font-bold">Hub</span>
               </button>
 
-              {/* Stealth Quick Panic Button */}
+              {/* Stealth Panic Button */}
               <button
                 onClick={() => { toast.info('Stealth mode activated!'); toggleDecoyMode(); }}
                 title="Stealth Mode (Alt + L)"
@@ -280,7 +313,7 @@ export const Navigation: React.FC<NavigationProps> = ({
               </button>
             </div>
 
-            {/* Desktop Logout Button */}
+            {/* Desktop Logout */}
             <button
               onClick={handleLogout}
               title="Logout of Universe"
@@ -293,7 +326,9 @@ export const Navigation: React.FC<NavigationProps> = ({
         </div>
       </header>
 
-      {/* Floating Modern Glass Bottom Navigation Bar for Mobile */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* ─── Floating Glass Bottom Nav Bar (Mobile) ──────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
       <div
         className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 transition-all duration-300 ease-in-out ${
           activeTab === 'chat' || isKeyboardOpen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
@@ -303,10 +338,11 @@ export const Navigation: React.FC<NavigationProps> = ({
         <nav className="max-w-md mx-auto bg-space-950/95 backdrop-blur-3xl border border-white/15 rounded-3xl p-1.5 shadow-2xl shadow-black/80 flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
+            const isBouncing = bouncingTab === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleTabChange(item.id)}
                 className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 relative min-h-[48px] ${
                   isActive
                     ? 'text-pink-300'
@@ -316,7 +352,11 @@ export const Navigation: React.FC<NavigationProps> = ({
                 {isActive && (
                   <span className="absolute inset-0 rounded-2xl bg-gradient-to-b from-accent-pink/20 to-accent-purple/15 border border-pink-500/30 shadow-inner" />
                 )}
-                <div className={`relative z-10 ${isActive ? 'text-pink-400 drop-shadow-[0_0_8px_rgba(255,112,166,0.9)] scale-110' : ''}`}>
+                <div
+                  className={`relative z-10 ${isActive ? 'text-pink-400 drop-shadow-[0_0_8px_rgba(255,112,166,0.9)]' : ''} ${
+                    isBouncing ? 'animate-nav-bounce' : isActive ? 'scale-110' : ''
+                  }`}
+                >
                   {item.icon}
                   {item.id === 'chat' && unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-rose-500 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center px-0.5 shadow-lg shadow-rose-500/40 border border-space-950 animate-pulse">
