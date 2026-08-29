@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { toast } from '../lib/toast';
 import { UserProfile } from '../types';
 
@@ -68,16 +68,18 @@ export function useRealtimeGame(activeGame: GameType, opponent?: UserProfile | n
 
   // Broadcast state change helper
   const broadcastGameState = useCallback((updatedState: Partial<RealtimeGameSession>, eventName = 'GAME_STATE_UPDATE') => {
-    if (!channelRef.current) return;
-
     setSession((prev) => {
       const nextSession = { ...prev, ...updatedState, updatedAt: new Date().toISOString() };
       
-      channelRef.current.send({
-        type: 'broadcast',
-        event: eventName,
-        payload: nextSession,
-      });
+      if (channelRef.current && isSupabaseConfigured()) {
+        try {
+          channelRef.current.send({
+            type: 'broadcast',
+            event: eventName,
+            payload: nextSession,
+          }).catch(() => {});
+        } catch (_) {}
+      }
 
       return nextSession;
     });
@@ -85,6 +87,8 @@ export function useRealtimeGame(activeGame: GameType, opponent?: UserProfile | n
 
   // Initialize Supabase Realtime channel for game synchronization
   useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
     const channelName = `game_room_${sessionId}`;
     const channel = supabase.channel(channelName, {
       config: { broadcast: { self: false } },

@@ -132,13 +132,14 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
   };
 
   // Initial scroll to bottom — runs synchronously before first paint so the user
+  // Initial scroll to bottom — runs synchronously before first paint so the user
   // ALWAYS sees the latest message when opening the chat (no flicker, no delay).
   // 'instant' avoids any animated scroll that could cause a visible jump to top.
   useLayoutEffect(() => {
     isInitialScrolledRef.current = false;
     isNearBottomRef.current = true;
     setHasUnreadBelow(false);
-  }, []);
+  }, [activeChatId]);
 
   // Scroll to bottom on initial message load.
   // useLayoutEffect fires before paint — user sees the bottom immediately.
@@ -402,7 +403,18 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
       mediaStreamRef.current = stream;
       audioChunksRef.current = [];
 
-      const recorder = new MediaRecorder(stream);
+      let options: MediaRecorderOptions = {};
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          options = { mimeType: 'audio/webm;codecs=opus' };
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          options = { mimeType: 'audio/webm' };
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          options = { mimeType: 'audio/mp4' };
+        }
+      }
+
+      const recorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -412,7 +424,8 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
       };
 
       recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const mime = recorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mime });
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64Audio = reader.result as string;

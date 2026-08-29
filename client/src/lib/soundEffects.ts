@@ -198,6 +198,25 @@ class SoundSynthesizer {
       });
     } catch (e) {}
   }
+
+  unlockAudio() {
+    try {
+      const ctx = this.getContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+    } catch (_) {}
+  }
 }
 
 export const sounds = new SoundSynthesizer();
+
+if (typeof window !== 'undefined') {
+  const unlock = () => {
+    sounds.unlockAudio();
+    window.removeEventListener('click', unlock);
+    window.removeEventListener('touchstart', unlock);
+  };
+  window.addEventListener('click', unlock, { once: true });
+  window.addEventListener('touchstart', unlock, { once: true });
+}

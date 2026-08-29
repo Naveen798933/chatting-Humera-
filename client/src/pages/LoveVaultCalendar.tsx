@@ -61,7 +61,18 @@ export const LoveVaultCalendar: React.FC = () => {
   const handleStartVaultAudioRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      let options: MediaRecorderOptions = {};
+      if (typeof MediaRecorder.isTypeSupported === 'function') {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          options = { mimeType: 'audio/webm;codecs=opus' };
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          options = { mimeType: 'audio/webm' };
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          options = { mimeType: 'audio/mp4' };
+        }
+      }
+
+      const recorder = new MediaRecorder(stream, options);
       vaultMediaRecorderRef.current = recorder;
       vaultAudioChunksRef.current = [];
 
@@ -70,7 +81,8 @@ export const LoveVaultCalendar: React.FC = () => {
       };
 
       recorder.onstop = () => {
-        const audioBlob = new Blob(vaultAudioChunksRef.current, { type: 'audio/webm' });
+        const mime = recorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(vaultAudioChunksRef.current, { type: mime });
         const reader = new FileReader();
         reader.onloadend = () => {
           setNewVaultAudioData(reader.result as string);
