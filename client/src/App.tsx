@@ -39,6 +39,7 @@ import { FriendsDrawer } from './components/FriendsDrawer';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { PrivacySettingsModal } from './components/PrivacySettingsModal';
 import { UserProfileModal } from './components/UserProfileModal';
+import { CreateGroupModal } from './components/CreateGroupModal';
 
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
@@ -61,6 +62,7 @@ const AppContent: React.FC = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
   const [currentTheme, setCurrentTheme] = useState<AppTheme>(() => {
     return (localStorage.getItem('ou_theme') as AppTheme) || 'cosmic';
@@ -99,6 +101,7 @@ const AppContent: React.FC = () => {
         if (isNotificationsOpen) { setIsNotificationsOpen(false); return; }
         if (isPrivacyOpen) { setIsPrivacyOpen(false); return; }
         if (isProfileOpen) { setIsProfileOpen(false); return; }
+        if (isCreateGroupOpen) { setIsCreateGroupOpen(false); return; }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -107,7 +110,7 @@ const AppContent: React.FC = () => {
     isAdminOpen, isThemeOpen, isDailyQuestionOpen, isLoveAIOpen,
     isSoundscapeOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen,
     isSecurityCenterOpen, isMobileHubOpen, isSearchOpen, isFriendsOpen,
-    isNotificationsOpen, isPrivacyOpen, isProfileOpen, toggleDecoyMode
+    isNotificationsOpen, isPrivacyOpen, isProfileOpen, isCreateGroupOpen, toggleDecoyMode
   ]);
 
   const [stories, setStories] = useState<StoryItem[]>(() => {
@@ -266,6 +269,11 @@ const AppContent: React.FC = () => {
       <UserProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
+      />
+      <CreateGroupModal
+        isOpen={isCreateGroupOpen}
+        onClose={() => setIsCreateGroupOpen(false)}
+        onGroupCreated={() => setActiveTab('chat')}
       />
 
       {/* Page content with Suspense fallback */}
