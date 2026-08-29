@@ -14,7 +14,7 @@ interface AuthContextType {
   isDecoyActive: boolean;
   formatLastSeen: (lastSeenIso?: string, isOnline?: boolean) => string;
   login: (identifier: string, pass: string) => Promise<boolean>;
-  signup: (email: string, pass: string, displayName: string, username: string, photoURL?: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, pass: string, displayName: string, username: string, photoURL?: string, bio?: string, city?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (updates: Partial<UserProfile>) => Promise<boolean>;
   unlockVaultWithPin: (pin: string) => boolean;
@@ -261,7 +261,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pass: string,
     displayName: string,
     username: string,
-    photoURL?: string
+    photoURL?: string,
+    bio?: string,
+    city?: string
   ): Promise<{ success: boolean; error?: string }> => {
     setLoginError(null);
     const cleanEmail = email.trim().toLowerCase();
@@ -292,7 +294,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       displayName: cleanName,
       email: cleanEmail,
       photoURL: avatar,
-      bio: "Hey there! I am using Our Universe.",
+      bio: bio?.trim() || "Hey there! I am using Our Universe.",
+      city: city?.trim() || "",
       role: 'user',
       online: true,
       lastSeen: new Date().toISOString(),
