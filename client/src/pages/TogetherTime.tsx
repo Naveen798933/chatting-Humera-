@@ -92,7 +92,7 @@ export const TogetherTime: React.FC = () => {
 
   const { isMicMuted, isCameraOff, initializeCall, toggleMic, toggleCamera, endCall: webrtcEndCall } = useWebRTC();
 
-  const [activeTab, setActiveTab] = useState<'calls' | 'watch' | 'games'>('calls');
+  const [activeTab, setActiveTab] = useState<'games' | 'watch' | 'calls'>('games');
   const [activeGame, setActiveGame] = useState<'truth' | 'would' | 'never' | 'trivia' | 'tictactoe' | 'wordle' | 'compat' | 'canvas'>('truth');
 
   // Supabase Realtime Multiplayer Session Hook

@@ -218,9 +218,19 @@ export function useWebRTC(options?: UseWebRTCOptions) {
   };
 
   // ── Main Entry: Initialize Call ─────────────────────────────────────────────
-  const initializeCall = useCallback(async (video: boolean, role: CallRole) => {
+  const initializeCall = useCallback(async (video: boolean, role: CallRole, roomId: string = 'main') => {
     roleRef.current = role;
     isVideoRef.current = video;
+
+    // Clean up any lingering WebRTC peer connection or channel before starting new
+    if (pcRef.current) {
+      try { pcRef.current.close(); } catch (_) {}
+      pcRef.current = null;
+    }
+    if (channelRef.current) {
+      try { supabase.removeChannel(channelRef.current); } catch (_) {}
+      channelRef.current = null;
+    }
 
     const stream = await acquireStream(video, facingMode);
     if (!stream) return null;
@@ -232,8 +242,11 @@ export function useWebRTC(options?: UseWebRTCOptions) {
 
     if (!isSupabaseConfigured()) return pc;
 
-    // Use WebRTC session channel
-    const channel = supabase.channel('ou_webrtc_session_v3');
+    // Use dynamic room-specific WebRTC session channel
+    const channelName = `ou_webrtc_call_${roomId}`;
+    const channel = supabase.channel(channelName, {
+      config: { broadcast: { self: false } }
+    });
     channelRef.current = channel;
 
     channel

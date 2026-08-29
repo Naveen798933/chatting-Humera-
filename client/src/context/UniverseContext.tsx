@@ -189,6 +189,57 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     refreshFriends();
   }, [refreshFriends]);
 
+  // ── Personal Channel for Incoming Realtime Calls & Instant Alerts ──
+  useEffect(() => {
+    if (!currentUser || !isSupabaseConfigured()) return;
+
+    const uChannel = supabase.channel(`ou_user_${currentUser.uid}`, {
+      config: { broadcast: { self: false } }
+    });
+
+    uChannel
+      .on('broadcast', { event: 'CALL_INCOMING' }, (payload: any) => {
+        const callData = payload.payload;
+        if (callData && callData.callerId !== currentUser.uid) {
+          setIncomingCall({
+            callerId: callData.callerId,
+            callerName: callData.callerName || 'Friend',
+            callerPhoto: callData.callerPhoto || '',
+            callType: callData.callType || 'voice'
+          });
+          sounds.playCallRingtone();
+        }
+      })
+      .on('broadcast', { event: 'CALL_ACCEPTED' }, (payload: any) => {
+        const data = payload.payload;
+        if (data && data.callerId === currentUser.uid) {
+          setIsCallActive(true);
+          setCallRole('caller');
+          setCallType(data.callType);
+          setIncomingCall(null);
+        }
+      })
+      .on('broadcast', { event: 'CALL_DECLINED' }, () => {
+        setIsCallActive(false);
+        setCallRole(null);
+        setCallType(null);
+        setIncomingCall(null);
+        toast.info('Call declined');
+      })
+      .on('broadcast', { event: 'CALL_ENDED' }, () => {
+        setIsCallActive(false);
+        setCallRole(null);
+        setCallType(null);
+        setIncomingCall(null);
+        toast.info('Call ended');
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(uChannel);
+    };
+  }, [currentUser]);
+
   // ── Load Messages for Active Chat ──
   useEffect(() => {
     if (!activeChatId) {
@@ -606,21 +657,86 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Calls
   const startCall = (type: 'voice' | 'video') => {
+    if (!currentUser) return;
     setIsCallActive(true);
     setCallType(type);
     setCallRole('caller');
-  };
 
-  const acceptCall = () => {
-    if (incomingCall) {
-      setIsCallActive(true);
-      setCallType(incomingCall.callType);
-      setCallRole('answerer');
-      setIncomingCall(null);
+    const targetUid = partnerUser?.uid;
+    const callPayload = {
+      callerId: currentUser.uid,
+      callerName: currentUser.displayName || currentUser.username || 'User',
+      callerPhoto: currentUser.photoURL || '',
+      callType: type,
+      chatId: activeChatId,
+      targetUid: targetUid
+    };
+
+    if (isSupabaseConfigured()) {
+      if (targetUid) {
+        const targetChannel = supabase.channel(`ou_user_${targetUid}`);
+        targetChannel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            targetChannel.send({
+              type: 'broadcast',
+              event: 'CALL_INCOMING',
+              payload: callPayload
+            }).catch(() => {});
+          }
+        });
+      }
+
+      if (spChatChannelRef.current) {
+        spChatChannelRef.current.send({
+          type: 'broadcast',
+          event: 'CALL_INCOMING',
+          payload: callPayload
+        }).catch(() => {});
+      }
     }
   };
 
+  const acceptCall = () => {
+    if (!incomingCall || !currentUser) return;
+    setIsCallActive(true);
+    setCallType(incomingCall.callType);
+    setCallRole('answerer');
+
+    const acceptPayload = {
+      callerId: incomingCall.callerId,
+      answererId: currentUser.uid,
+      callType: incomingCall.callType
+    };
+
+    if (isSupabaseConfigured()) {
+      const callerChannel = supabase.channel(`ou_user_${incomingCall.callerId}`);
+      callerChannel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          callerChannel.send({
+            type: 'broadcast',
+            event: 'CALL_ACCEPTED',
+            payload: acceptPayload
+          }).catch(() => {});
+        }
+      });
+    }
+
+    setIncomingCall(null);
+  };
+
   const declineCall = () => {
+    if (incomingCall && isSupabaseConfigured()) {
+      const callerChannel = supabase.channel(`ou_user_${incomingCall.callerId}`);
+      callerChannel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          callerChannel.send({
+            type: 'broadcast',
+            event: 'CALL_DECLINED',
+            payload: { callerId: incomingCall.callerId }
+          }).catch(() => {});
+        }
+      });
+    }
     setIncomingCall(null);
   };
 
@@ -629,6 +745,19 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setCallType(null);
     setCallRole(null);
     setIncomingCall(null);
+
+    if (partnerUser && isSupabaseConfigured()) {
+      const pChannel = supabase.channel(`ou_user_${partnerUser.uid}`);
+      pChannel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          pChannel.send({
+            type: 'broadcast',
+            event: 'CALL_ENDED',
+            payload: {}
+          }).catch(() => {});
+        }
+      });
+    }
   };
 
   const importDatabaseBackup = (jsonContent: string): boolean => {

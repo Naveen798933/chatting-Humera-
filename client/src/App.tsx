@@ -4,7 +4,6 @@ import { UniverseProvider, useUniverse } from './context/UniverseContext';
 import { AmbientBackground } from './components/AmbientBackground';
 import { ScreenshotBanner } from './components/ScreenshotBanner';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
-import { AnniversaryOverlay } from './components/AnniversaryOverlay';
 import { IncomingCallModal } from './components/IncomingCallModal';
 import { ActiveCallOverlay } from './components/ActiveCallOverlay';
 import { useWebRTC } from './hooks/useWebRTC';
@@ -17,44 +16,29 @@ const CoreChat      = lazy(() => import('./pages/CoreChat').then(m => ({ default
 const MemoriesGallery = lazy(() => import('./pages/MemoriesGallery').then(m => ({ default: m.MemoriesGallery })));
 const LoveVaultCalendar = lazy(() => import('./pages/LoveVaultCalendar').then(m => ({ default: m.LoveVaultCalendar })));
 const TogetherTime  = lazy(() => import('./pages/TogetherTime').then(m => ({ default: m.TogetherTime })));
-import { LoveAIAssistant } from './components/LoveAIAssistant';
-import { AmbientSoundscapeModal } from './components/AmbientSoundscape';
-import { AdminBackupModal } from './components/AdminBackupModal';
 import { DecoyCalculator } from './components/DecoyCalculator';
 import { ToastContainer } from './components/Toast';
-
 import { WhatsAppStatusModal } from './components/WhatsAppStatusModal';
 import { StoryItem } from './types';
 import { PartnerProfileDrawer } from './components/PartnerProfileDrawer';
-import { CallHistoryModal } from './components/CallHistoryModal';
-import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { toast } from './lib/toast';
 import { ThemeSelectorModal, AppTheme } from './components/ThemeSelectorModal';
-import { DailyQuestionModal } from './components/DailyQuestionModal';
 import { PrivacyShieldOverlay } from './components/PrivacyShieldOverlay';
-import { SecurityCenterModal } from './components/SecurityCenterModal';
-import { MobileQuickHubSheet } from './components/MobileQuickHubSheet';
 import { UserSearchModal } from './components/UserSearchModal';
 import { FriendsDrawer } from './components/FriendsDrawer';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { PrivacySettingsModal } from './components/PrivacySettingsModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { CreateGroupModal } from './components/CreateGroupModal';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
   const { isCallActive, callType, callRole, incomingCall, acceptCall, declineCall, endCall, startCall, messages, memories } = useUniverse();
-  const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
-  const [isCallHistoryOpen, setIsCallHistoryOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
-  const [isDailyQuestionOpen, setIsDailyQuestionOpen] = useState(false);
-  const [isLoveAIOpen, setIsLoveAIOpen] = useState(false);
-  const [isSoundscapeOpen, setIsSoundscapeOpen] = useState(false);
-  const [isSecurityCenterOpen, setIsSecurityCenterOpen] = useState(false);
-  const [isMobileHubOpen, setIsMobileHubOpen] = useState(false);
 
   // Multi-user platform modals state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -74,10 +58,9 @@ const AppContent: React.FC = () => {
     try { localStorage.setItem('ou_theme', currentTheme); } catch (_) {}
   }, [currentTheme]);
 
-  // Global Escape & Panic Shortcut listener (Alt+L or Ctrl+Shift+L triggers Stealth Decoy)
+  // Global Escape & Panic Shortcut listener
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Panic / Stealth shortcut
       if ((e.altKey && e.key.toLowerCase() === 'l') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'l')) {
         e.preventDefault();
         toast.info('Emergency Stealth mode activated!');
@@ -86,16 +69,9 @@ const AppContent: React.FC = () => {
       }
 
       if (e.key === 'Escape') {
-        if (isAdminOpen) { setIsAdminOpen(false); return; }
         if (isThemeOpen) { setIsThemeOpen(false); return; }
-        if (isDailyQuestionOpen) { setIsDailyQuestionOpen(false); return; }
-        if (isLoveAIOpen) { setIsLoveAIOpen(false); return; }
-        if (isSoundscapeOpen) { setIsSoundscapeOpen(false); return; }
         if (isStatusOpen) { setIsStatusOpen(false); return; }
         if (isProfileDrawerOpen) { setIsProfileDrawerOpen(false); return; }
-        if (isCallHistoryOpen) { setIsCallHistoryOpen(false); return; }
-        if (isSecurityCenterOpen) { setIsSecurityCenterOpen(false); return; }
-        if (isMobileHubOpen) { setIsMobileHubOpen(false); return; }
         if (isSearchOpen) { setIsSearchOpen(false); return; }
         if (isFriendsOpen) { setIsFriendsOpen(false); return; }
         if (isNotificationsOpen) { setIsNotificationsOpen(false); return; }
@@ -107,10 +83,9 @@ const AppContent: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    isAdminOpen, isThemeOpen, isDailyQuestionOpen, isLoveAIOpen,
-    isSoundscapeOpen, isStatusOpen, isProfileDrawerOpen, isCallHistoryOpen,
-    isSecurityCenterOpen, isMobileHubOpen, isSearchOpen, isFriendsOpen,
-    isNotificationsOpen, isPrivacyOpen, isProfileOpen, isCreateGroupOpen, toggleDecoyMode
+    isThemeOpen, isStatusOpen, isProfileDrawerOpen,
+    isSearchOpen, isFriendsOpen, isNotificationsOpen,
+    isPrivacyOpen, isProfileOpen, isCreateGroupOpen, toggleDecoyMode
   ]);
 
   const [stories, setStories] = useState<StoryItem[]>(() => {
@@ -199,11 +174,12 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     if (isCallActive && callType && callRole) {
-      initializeCall(callType === 'video', callRole);
+      const callRoomId = [currentUser?.uid || 'u1', partnerUser?.uid || 'u2'].sort().join('_');
+      initializeCall(callType === 'video', callRole, callRoomId);
     } else if (!isCallActive && !callRole) {
       webrtcEndCall();
     }
-  }, [isCallActive, callType, callRole]);
+  }, [isCallActive, callType, callRole, currentUser?.uid, partnerUser?.uid]);
 
   if (isDecoyActive) {
     return <DecoyCalculator onUnlockRealApp={toggleDecoyMode} />;
@@ -221,19 +197,11 @@ const AppContent: React.FC = () => {
       <PrivacyShieldOverlay />
       <ScreenshotBanner />
       <PWAInstallPrompt />
-      <AnniversaryOverlay />
       <Navigation
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenStatus={() => setIsStatusOpen(true)}
-        onOpenCallHistory={() => setIsCallHistoryOpen(true)}
         onOpenTheme={() => setIsThemeOpen(true)}
-        onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
-        onOpenLoveAI={() => setIsLoveAIOpen(true)}
-        onOpenSoundscapes={() => setIsSoundscapeOpen(true)}
-        onOpenSecurityCenter={() => setIsSecurityCenterOpen(true)}
-        onOpenMobileHub={() => setIsMobileHubOpen(true)}
         onOpenPartnerProfile={() => setIsProfileDrawerOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenFriends={() => setIsFriendsOpen(true)}
@@ -298,45 +266,11 @@ const AppContent: React.FC = () => {
         </main>
       </Suspense>
 
-      {/* Universal Space Hub Bottom Sheet for Mobile */}
-      <MobileQuickHubSheet
-        isOpen={isMobileHubOpen}
-        onClose={() => setIsMobileHubOpen(false)}
-        onOpenLoveAI={() => setIsLoveAIOpen(true)}
-        onOpenSoundscapes={() => setIsSoundscapeOpen(true)}
-        onOpenStatus={() => setIsStatusOpen(true)}
-        onOpenCallHistory={() => setIsCallHistoryOpen(true)}
-        onOpenTheme={() => setIsThemeOpen(true)}
-        onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
-        onOpenSecurityCenter={() => setIsSecurityCenterOpen(true)}
-        onOpenAdmin={() => setIsAdminOpen(true)}
-        onToggleDecoy={() => toggleDecoyMode()}
-      />
-
-      <LoveAIAssistant
-        isOpen={isLoveAIOpen}
-        onClose={() => setIsLoveAIOpen(false)}
-        isModal={true}
-      />
-      <AmbientSoundscapeModal
-        isOpen={isSoundscapeOpen}
-        onClose={() => setIsSoundscapeOpen(false)}
-      />
-      <AdminBackupModal
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-      />
       <ThemeSelectorModal
         isOpen={isThemeOpen}
         onClose={() => setIsThemeOpen(false)}
         currentTheme={currentTheme}
         onSelectTheme={(t) => { setCurrentTheme(t); setIsThemeOpen(false); }}
-      />
-      <DailyQuestionModal
-        isOpen={isDailyQuestionOpen}
-        onClose={() => setIsDailyQuestionOpen(false)}
-        currentPetName={currentUser?.petName || 'Naveen'}
-        partnerPetName={partnerUser?.petName || 'Humera'}
       />
       <WhatsAppStatusModal
         isOpen={isStatusOpen}
@@ -354,18 +288,6 @@ const AppContent: React.FC = () => {
         starredCount={starredCount}
         onStartVoiceCall={() => { setIsProfileDrawerOpen(false); startCall('voice'); }}
         onStartVideoCall={() => { setIsProfileDrawerOpen(false); startCall('video'); }}
-      />
-      <CallHistoryModal
-        isOpen={isCallHistoryOpen}
-        onClose={() => setIsCallHistoryOpen(false)}
-        messages={messages}
-        partnerUser={partnerUser}
-        onStartCall={(type) => { setIsCallHistoryOpen(false); startCall(type); }}
-      />
-      <SecurityCenterModal
-        isOpen={isSecurityCenterOpen}
-        onClose={() => setIsSecurityCenterOpen(false)}
-        onOpenDecoyCalculator={() => toggleDecoyMode()}
       />
       <IncomingCallModal
         incomingCall={incomingCall}
