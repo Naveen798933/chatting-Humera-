@@ -201,7 +201,7 @@ export const LoveVaultCalendar: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-6xl mx-auto">
+    <div className="space-y-6 px-3 sm:px-6 pb-28 sm:pb-20 max-w-6xl mx-auto">
       
       {/* Navigation Pills */}
       <div className="glass-panel p-2.5 sm:p-3 rounded-3xl border border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-none">

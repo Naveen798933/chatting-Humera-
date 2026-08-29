@@ -312,7 +312,7 @@ export const HomeDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-5 pb-20 max-w-5xl mx-auto">
+    <div className="space-y-5 px-3 sm:px-6 pb-28 sm:pb-20 max-w-5xl mx-auto">
 
       {/* ── Floating Action Notification ── */}
       <AnimatePresence>

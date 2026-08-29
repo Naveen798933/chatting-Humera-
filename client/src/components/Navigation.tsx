@@ -294,12 +294,12 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* ─── Floating Glass Bottom Nav Bar (Mobile) ──────────────────── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div
-        className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 transition-all duration-300 ease-in-out ${
-          activeTab === 'chat' || isKeyboardOpen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-3.5 transition-all duration-300 ease-in-out ${
+          isKeyboardOpen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
         }`}
         style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom, 10px))' }}
       >
-        <nav className="max-w-md mx-auto bg-space-950/95 backdrop-blur-3xl border border-white/15 rounded-3xl p-1.5 shadow-2xl shadow-black/80 flex items-center justify-around">
+        <nav className="max-w-md mx-auto bg-space-950/90 backdrop-blur-2xl border border-white/15 rounded-3xl p-1.5 shadow-2xl shadow-black/80 flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             const isBouncing = bouncingTab === item.id;

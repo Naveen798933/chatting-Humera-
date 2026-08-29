@@ -167,7 +167,7 @@ export const MemoriesGallery: React.FC = () => {
   const currentSlideMem = filteredMemories[slideshowIdx % Math.max(1, filteredMemories.length)];
 
   return (
-    <div className="space-y-6 pb-20 max-w-6xl mx-auto">
+    <div className="space-y-6 px-3 sm:px-6 pb-28 sm:pb-20 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-white/10">
         <div>
           <h2 className="text-xl font-extrabold text-white flex items-center gap-2">

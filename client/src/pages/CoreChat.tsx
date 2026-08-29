@@ -15,7 +15,7 @@ import { CreateGroupModal } from '../components/CreateGroupModal';
 import {
   Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video, Camera,
   Trash2, Star, Search, CornerUpLeft, Clock, Paperclip, Eye, Flame,
-  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical, ArrowDown, ArrowRight, ArrowLeft, Users, Menu
+  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical, ArrowDown, ArrowRight, ArrowLeft, Users, Menu, ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -491,7 +491,7 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
     : (partnerUser?.username ? `@${partnerUser.username}` : (partnerUser?.online ? 'Online' : 'Offline'));
 
   return (
-    <div className="max-w-7xl w-full mx-auto flex glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full md:h-[82vh]">
+    <div className="max-w-7xl w-full mx-auto flex glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-[calc(100dvh-64px)] md:h-[84vh]">
       
       {/* Multi-Conversation Sidebar (Desktop always visible, Mobile conditionally visible) */}
       <div className={`h-full ${mobileView === 'sidebar' ? 'block w-full' : 'hidden md:block'}`}>
@@ -510,15 +510,17 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
         mobileView === 'sidebar' ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Chat Header */}
-        <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/90 backdrop-blur-md flex-shrink-0 z-20">
+        <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/95 backdrop-blur-xl flex-shrink-0 z-20 shadow-md">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {/* Mobile Back to Sidebar Button */}
+            {/* Mobile Back to Conversations Button */}
             <button
               onClick={() => setMobileView('sidebar')}
-              className="p-1.5 rounded-xl glass-card text-slate-300 hover:text-white md:hidden shrink-0"
+              className="p-2 -ml-1.5 rounded-2xl glass-card text-pink-300 hover:text-white md:hidden shrink-0 flex items-center gap-1 font-bold text-xs active:scale-90 transition-all border border-pink-500/20"
               title="All Conversations"
+              aria-label="Back to conversations"
             >
-              <Menu className="w-4 h-4" />
+              <ChevronLeft className="w-5 h-5 text-pink-400" />
+              <span className="hidden xs:inline">Chats</span>
             </button>
 
             <div className="relative flex-shrink-0">
