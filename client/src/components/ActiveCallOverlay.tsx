@@ -141,16 +141,16 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
           <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-pink-400">
             <img
               src={partnerUser?.photoURL}
-              alt={partnerUser?.realName}
+              alt={partnerUser?.displayName || partnerUser?.username || 'Partner'}
               className="w-full h-full object-cover"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.displayName || partnerUser?.username || 'Partner')}&background=a855f7&color=fff`;
               }}
             />
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-black" />
           </div>
           <div>
-            <p className="text-xs font-bold text-white">{partnerUser?.petName}</p>
+            <p className="text-xs font-bold text-white">{partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner'}</p>
             <p className="text-[10px] text-pink-300 font-mono">{formatDuration(callDuration)}</p>
           </div>
           <button
@@ -173,14 +173,14 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
             <div className="flex items-center gap-3">
               <img
                 src={partnerUser?.photoURL}
-                alt={partnerUser?.realName}
+                alt={partnerUser?.displayName || partnerUser?.username || 'Partner'}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-pink-400 shadow-lg"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.displayName || partnerUser?.username || 'Partner')}&background=a855f7&color=fff`;
                 }}
               />
               <div>
-                <h3 className="font-extrabold text-white text-sm sm:text-base">{partnerUser?.petName || partnerUser?.realName}</h3>
+                <h3 className="font-extrabold text-white text-sm sm:text-base">{partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner'}</h3>
                 <p className="text-xs text-pink-300 font-mono flex items-center gap-1.5 flex-wrap">
                   {connectionState === 'connected' && (
                     <><span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -229,15 +229,15 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                 <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full p-1 bg-gradient-to-tr from-accent-pink to-accent-purple shadow-2xl animate-pulse-heart">
                   <img
                     src={partnerUser?.photoURL}
-                    alt={partnerUser?.realName}
+                    alt={partnerUser?.displayName || partnerUser?.username || 'Partner'}
                     className="w-full h-full rounded-full object-cover border-4 border-space-950"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.displayName || partnerUser?.username || 'Partner')}&background=a855f7&color=fff`;
                     }}
                   />
                 </div>
                 <div>
-                  <h4 className="text-xl font-extrabold text-white">{partnerUser?.petName}</h4>
+                  <h4 className="text-xl font-extrabold text-white">{partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner'}</h4>
                   <p className="text-xs text-slate-300 mt-1">Encrypted {callType === 'video' ? 'Video' : 'Voice'} Call</p>
                 </div>
               </div>
@@ -258,10 +258,10 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
                   <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-space-950">
                     <img
                       src={currentUser?.photoURL}
-                      alt={currentUser?.realName}
+                      alt={currentUser?.displayName || currentUser?.username || 'User'}
                       className="w-12 h-12 rounded-full border border-pink-400 mb-1 object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.realName || 'User')}&background=ff70a6&color=fff`;
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || currentUser?.username || 'User')}&background=ff70a6&color=fff`;
                       }}
                     />
                     <span className="text-[10px] text-slate-400">Cam Off</span>

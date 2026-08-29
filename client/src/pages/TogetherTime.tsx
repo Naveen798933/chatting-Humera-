@@ -39,10 +39,10 @@ const NEVER_HAVE_I_EVER = [
 ];
 
 const COUPLE_TRIVIA = [
-  { question: 'Where was our official first date spot?', options: ['Vijayawada Lake ☕', 'Medchal Park 🌸', 'Beach Resort 🏖️', 'Movie Theater 🍿'], answer: 0 },
-  { question: 'What is Naveen\'s favorite pet name for Humera?', options: ['Jaanu ❤️', 'Sweetheart', 'Angel', 'Honey'], answer: 0 },
-  { question: 'What is Humera\'s favorite pet name for Naveen?', options: ['Bangaram ❤️', 'Prince', 'Babe', 'Sunshine'], answer: 0 },
-  { question: 'What is our ultimate dream vacation spot?', options: ['Maldives Water Villa 🏝️', 'Paris Eiffel Tower 🗼', 'Swiss Alps 🏔️', 'Tokyo City 🌸'], answer: 0 }
+  { question: 'Where would be our ultimate dream vacation spot?', options: ['Maldives Ocean Villa 🏝️', 'Paris Eiffel Tower 🗼', 'Swiss Alps 🏔️', 'Tokyo City 🌸'], answer: 0 },
+  { question: 'What is the most memorable part of connecting online?', options: ['Late night conversations 🌙', 'Playing games together 🎮', 'Sharing photos & voice notes 📸', 'Surprise moments ✨'], answer: 0 },
+  { question: 'What is the best way to spend a free weekend?', options: ['Cozy movie marathon 🍿', 'Outdoor road trip adventure 🚗', 'Cooking tasty food together 🍳', 'Exploring new cafés ☕'], answer: 0 },
+  { question: 'What brings the biggest smile after a long day?', options: ['A sweet voice message 🎙️', 'A funny meme 😂', 'A sincere compliment 💖', 'All of the above! 🌟'], answer: 3 }
 ];
 
 const ROMANTIC_WORDLE_WORDS = [
@@ -62,24 +62,24 @@ const ROMANTIC_WORDLE_WORDS = [
 
 const COMPATIBILITY_QUESTIONS = [
   {
-    q: 'Who takes longer getting ready for a date?',
-    opts: ['Naveen 🤵', 'Humera 👸', 'Equal time! ⏱️']
+    q: 'Who takes longer getting ready before heading out?',
+    opts: ['Me! 🤵', 'My partner / friend 👸', 'Equal time! ⏱️']
   },
   {
     q: 'Who is more likely to fall asleep during a movie night?',
-    opts: ['Naveen 😴', 'Humera 💤', 'Neither, we stay up! 🍿']
+    opts: ['Me 😴', 'Partner / Friend 💤', 'Neither, we stay up! 🍿']
   },
   {
-    q: 'What is our ideal Sunday morning activity?',
-    opts: ['Cozy sleep-in & cuddling 🛌', 'Brunch & fresh coffee ☕', 'Spontaneous morning drive 🚗']
+    q: 'What is our ideal weekend activity?',
+    opts: ['Cozy sleep-in & relaxing 🛌', 'Brunch & fresh coffee ☕', 'Spontaneous drive / travel 🚗']
   },
   {
     q: 'Who sends more cute emojis and voice notes in chat?',
-    opts: ['Naveen 💕', 'Humera 💌', 'Both equal! 🌟']
+    opts: ['Me 💕', 'Partner / Friend 💌', 'Both equal! 🌟']
   },
   {
-    q: 'Who is the master chef in the relationship?',
-    opts: ['Naveen 👨‍🍳', 'Humera 👩‍🍳', 'We cook together as a team! 🍳']
+    q: 'Who is the master chef in the kitchen?',
+    opts: ['Me 👨‍🍳', 'Partner / Friend 👩‍🍳', 'We cook together as a team! 🍳']
   }
 ];
 
@@ -367,7 +367,7 @@ export const TogetherTime: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-2xl font-extrabold text-white">Private WebRTC Call</h3>
-                <p className="text-xs text-slate-300 mt-1">Start high-definition encrypted voice or video call with {partnerUser?.petName}.</p>
+                <p className="text-xs text-slate-300 mt-1">Start high-definition encrypted voice or video call with {partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'your friend'}.</p>
               </div>
 
               <div className="flex justify-center gap-4">
@@ -548,7 +548,7 @@ export const TogetherTime: React.FC = () => {
                 "{customDeck[session.todIndex % customDeck.length].text}"
               </h3>
               <button
-                onClick={nextTruthQuestion}
+                onClick={() => nextTruthQuestion(customDeck.length)}
                 className="px-6 py-2.5 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-lg active:scale-95 transition-transform"
               >
                 Next Question 🎲 (Syncs Live)
@@ -732,9 +732,9 @@ export const TogetherTime: React.FC = () => {
               ) : (
                 <div className="p-5 rounded-2xl glass-panel-glow border border-pink-400/40 text-center space-y-2 animate-fade-in">
                   <span className="text-3xl">💖</span>
-                  <h4 className="text-lg font-extrabold text-white">99.9% Soulmate Match!</h4>
+                  <h4 className="text-lg font-extrabold text-white">99.9% Synergy Match!</h4>
                   <p className="text-xs text-pink-300">
-                    Naveen and Humera are completely in tune with each other's habits and hearts! 💕
+                    You and {partnerUser?.displayName || 'your partner'} are completely in tune with each other! 💕
                   </p>
                   <button
                     onClick={() => { setCompatAnswers({}); setCompatSubmitted(false); }}
@@ -753,7 +753,7 @@ export const TogetherTime: React.FC = () => {
                 "{WOULD_YOU_RATHER[session.wyrIndex % WOULD_YOU_RATHER.length]}"
               </h3>
               <button
-                onClick={nextWouldRather}
+                onClick={() => nextWouldRather(WOULD_YOU_RATHER.length)}
                 className="px-6 py-2.5 rounded-xl bg-accent-purple text-white font-bold text-xs shadow-lg active:scale-95 transition-transform"
               >
                 Next Scenario 🔮 (Syncs Live)
@@ -770,7 +770,7 @@ export const TogetherTime: React.FC = () => {
                 "{NEVER_HAVE_I_EVER[session.nhieIndex % NEVER_HAVE_I_EVER.length]}"
               </h3>
               <button
-                onClick={nextNeverHaveIEver}
+                onClick={() => nextNeverHaveIEver(NEVER_HAVE_I_EVER.length)}
                 className="px-6 py-2.5 rounded-xl bg-accent-rose text-white font-bold text-xs shadow-lg active:scale-95 transition-transform"
               >
                 Next Card 🙈 (Syncs Live)
@@ -781,7 +781,7 @@ export const TogetherTime: React.FC = () => {
           {activeGame === 'trivia' && (
             <div className="glass-panel p-8 rounded-3xl border border-white/10 space-y-4 max-w-md mx-auto">
               <div className="flex items-center justify-between text-xs text-pink-300 font-bold">
-                <span>Couple Trivia Quiz</span>
+                <span>Trivia Quiz Challenge</span>
                 <span className="flex items-center gap-1 text-amber-300"><Trophy className="w-4 h-4"/> Score: {session.triviaScore}</span>
               </div>
               <h3 className="text-lg font-extrabold text-white text-center">
@@ -825,19 +825,19 @@ export const TogetherTime: React.FC = () => {
                   ? 'bg-emerald-500/20 border-emerald-400/60 text-emerald-300 shadow-lg shadow-emerald-500/10'
                   : 'bg-amber-500/20 border-amber-400/60 text-amber-300'
               }`}>
-                <span>{isMyTurn ? "👉 YOUR TURN (Tap square)" : `⏳ OPPONENT'S TURN (${session.currentTurn})`}</span>
+                <span>{isMyTurn ? "👉 YOUR TURN (Tap square)" : `⏳ OPPONENT'S TURN (${session.player2Name})`}</span>
                 <span className="text-[10px] opacity-80">{isMyTurn ? 'Your move' : 'Waiting...'}</span>
               </div>
 
               <div className="flex items-center justify-around bg-white/5 p-3 rounded-2xl border border-white/10 text-xs font-bold">
-                <span className="text-pink-300">Naveen ❤️: {session.xWins}</span>
+                <span className="text-pink-300">{session.player1Name} ❤️: {session.p1Wins}</span>
                 <span className="text-slate-500">|</span>
-                <span className="text-purple-300">Humera 💖: {session.oWins}</span>
+                <span className="text-purple-300">{session.player2Name} ⭐: {session.p2Wins}</span>
               </div>
 
-              {session.winner ? (
+              {session.winnerUid ? (
                 <p className="text-sm font-bold text-emerald-400 animate-bounce">
-                  Winner: {session.winner === 'Draw' ? "It's a Draw!" : `${session.winner}`} 🎉
+                  Winner: {session.winnerUid === 'draw' ? "It's a Draw!" : `${session.winnerUid === session.player1Uid ? session.player1Name : session.player2Name}`} 🎉
                 </p>
               ) : null}
 
@@ -847,7 +847,7 @@ export const TogetherTime: React.FC = () => {
                   <button
                     key={idx}
                     onClick={() => makeTicTacToeMove(idx)}
-                    disabled={!isMyTurn || Boolean(cell) || Boolean(session.winner)}
+                    disabled={!isMyTurn || Boolean(cell) || Boolean(session.winnerUid)}
                     className={`glass-card rounded-2xl text-2xl flex items-center justify-center transition-all ${
                       !cell && isMyTurn ? 'hover:bg-white/20 hover:scale-105 cursor-pointer border-pink-400/40' : 'cursor-default'
                     }`}
@@ -859,17 +859,11 @@ export const TogetherTime: React.FC = () => {
 
               <div className="flex items-center justify-center gap-2">
                 <button
-                  onClick={() => resetTicTacToe(false)}
+                  onClick={() => resetTicTacToe()}
                   className="px-4 py-2 rounded-xl bg-white/10 text-xs font-bold text-white hover:bg-white/20 flex items-center gap-1.5"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Reset Board</span>
-                </button>
-                <button
-                  onClick={() => resetTicTacToe(true)}
-                  className="px-4 py-2 rounded-xl bg-rose-500/20 text-xs font-bold text-rose-300 border border-rose-500/30 hover:bg-rose-500/30"
-                >
-                  Reset Scoreboard
                 </button>
               </div>
             </div>

@@ -11,11 +11,14 @@ export const DecoyCalculator: React.FC<DecoyCalculatorProps> = ({ onUnlockRealAp
 
   const calculateResult = (expr: string): string => {
     try {
-      // Safe math evaluator replacing eval
-      const cleanExpr = expr.replace(/[^0-9+\-*/.]/g, '');
-      const func = new Function(`return ${cleanExpr}`);
+      const cleanExpr = expr.replace(/[^0-9+\-*/.() ]/g, '').trim();
+      if (!cleanExpr) return '0';
+      const func = new Function(`return (${cleanExpr})`);
       const val = func();
-      return String(val);
+      if (typeof val === 'number' && !isNaN(val)) {
+        return Number.isFinite(val) ? String(val) : 'Infinity';
+      }
+      return String(val ?? '0');
     } catch (e) {
       return 'Error';
     }

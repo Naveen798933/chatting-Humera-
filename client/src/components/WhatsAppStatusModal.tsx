@@ -65,8 +65,8 @@ export const WhatsAppStatusModal: React.FC<WhatsAppStatusModalProps> = ({
 
     onAddStory({
       authorId: currentUser.uid,
-      authorName: currentUser.petName || currentUser.realName,
-      authorPhoto: currentUser.photoURL,
+      authorName: currentUser.petName || currentUser.realName || currentUser.displayName || 'Me',
+      authorPhoto: currentUser.photoURL || '',
       text: storyText.trim() || undefined,
       mediaUrl: storyImage.trim() || undefined,
       bgGradient: selectedGradient

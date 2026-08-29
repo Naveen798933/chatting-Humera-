@@ -195,7 +195,7 @@ export const MobileQuickHubSheet: React.FC<MobileQuickHubSheetProps> = ({
                     <Heart className="w-3.5 h-3.5 text-pink-400 fill-current animate-heartbeat" />
                   </div>
                   <p className="text-[9px] text-slate-400 mt-0.5">
-                    {currentUser?.petName} & {partnerUser?.petName}
+                    {currentUser?.petName || currentUser?.displayName || 'You'} & {partnerUser?.petName || partnerUser?.displayName || 'Partner'}
                   </p>
                 </div>
 
@@ -206,10 +206,10 @@ export const MobileQuickHubSheet: React.FC<MobileQuickHubSheetProps> = ({
                   }`}>
                     <img
                       src={partnerUser?.photoURL}
-                      alt={partnerUser?.realName}
+                      alt={partnerUser?.displayName || partnerUser?.username || 'Partner'}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'H')}&background=a855f7&color=fff`;
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.displayName || partnerUser?.username || 'Partner')}&background=a855f7&color=fff`;
                       }}
                     />
                   </div>
@@ -225,7 +225,7 @@ export const MobileQuickHubSheet: React.FC<MobileQuickHubSheetProps> = ({
                 className="btn-love w-full py-2.5 rounded-2xl text-xs"
               >
                 <span>💋</span>
-                <span>Quick Kiss to {partnerUser?.petName}</span>
+                <span>Quick Kiss to {partnerUser?.petName || partnerUser?.displayName || 'Partner'}</span>
                 <Send className="w-3.5 h-3.5 opacity-70" />
               </button>
             </div>

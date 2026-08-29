@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Home, MessageCircle, Heart, Lock, Video, Sparkles, Settings,
-  LogOut, ShieldAlert, Palette, HelpCircle, Bot, Music, Grid
+  LogOut, ShieldAlert, Palette, HelpCircle, Bot, Music, Grid,
+  Search, Users, Bell, User, Shield
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
@@ -23,6 +24,11 @@ interface NavigationProps {
   onOpenSecurityCenter?: () => void;
   onOpenMobileHub?: () => void;
   onOpenPartnerProfile?: () => void;
+  onOpenSearch?: () => void;
+  onOpenFriends?: () => void;
+  onOpenNotifications?: () => void;
+  onOpenPrivacy?: () => void;
+  onOpenProfile?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -37,10 +43,15 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenSoundscapes,
   onOpenSecurityCenter,
   onOpenMobileHub,
-  onOpenPartnerProfile
+  onOpenPartnerProfile,
+  onOpenSearch,
+  onOpenFriends,
+  onOpenNotifications,
+  onOpenPrivacy,
+  onOpenProfile
 }) => {
   const { currentUser, partnerUser, logout, toggleDecoyMode } = useAuth();
-  const { messages } = useUniverse();
+  const { messages, unreadNotificationCount, friends, pendingFriendRequests } = useUniverse();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [lastActiveTab, setLastActiveTab] = useState<TabType>(activeTab);
   const [bouncingTab, setBouncingTab] = useState<TabType | null>(null);
@@ -48,9 +59,12 @@ export const Navigation: React.FC<NavigationProps> = ({
   // Count unread messages (partner messages not yet seen)
   const unreadCount = messages.filter(m => m.senderId !== currentUser?.uid && !m.seen).length;
 
-  // Trigger bounce animation on tab switch
+  // Trigger bounce animation & haptic feedback on tab switch
   const handleTabChange = (tab: TabType) => {
     if (tab !== activeTab) {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(15); } catch (_) {}
+      }
       setBouncingTab(tab);
       setActiveTab(tab);
       setLastActiveTab(tab);
@@ -136,39 +150,20 @@ export const Navigation: React.FC<NavigationProps> = ({
                 OUR UNIVERSE
               </h1>
               <p className="hidden sm:block text-[10px] text-pink-400/80 font-medium tracking-wide truncate">
-                NAVEEN &amp; HUMERA
+                @{currentUser?.username || 'user'} • ONLINE
               </p>
             </div>
           </div>
 
-          {/* ── Center on Mobile: Partner Status Capsule ── */}
+          {/* ── Center on Mobile: Discover / Search Capsule ── */}
           <div
-            onClick={onOpenPartnerProfile}
-            className={`flex md:hidden items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/5 border cursor-pointer active:scale-95 transition-all ${
-              partnerUser?.online
-                ? 'border-emerald-500/30 hover:border-emerald-500/50'
-                : 'border-white/10 hover:border-pink-500/30'
-            }`}
+            onClick={onOpenSearch}
+            className="flex md:hidden items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-pink-500/30 cursor-pointer active:scale-95 transition-all"
           >
-            <div className="relative w-5 h-5 rounded-full overflow-hidden shrink-0 border border-pink-400 flex-shrink-0">
-              <img
-                src={partnerUser?.photoURL}
-                alt="Partner"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Partner&background=a855f7&color=fff`;
-                }}
-              />
-              <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full border border-black ${
-                partnerUser?.online ? 'bg-emerald-400 animate-presence-glow' : 'bg-slate-500'
-              }`} />
-            </div>
+            <Search className="w-3.5 h-3.5 text-pink-400" />
             <span className="text-[11px] font-bold text-pink-200 truncate max-w-[80px]">
-              {partnerUser?.petName || 'Partner'}
+              Search
             </span>
-            {partnerUser?.online && (
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-            )}
           </div>
 
           {/* ── Desktop Navigation Pills ── */}
@@ -198,59 +193,97 @@ export const Navigation: React.FC<NavigationProps> = ({
           {/* ── Controls & Quick Action Buttons ── */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
 
-            {/* Desktop Only Extra Action Buttons */}
+            {/* Desktop Only Action Buttons */}
             <div className="hidden md:flex items-center gap-1.5">
-              {onOpenLoveAI && (
+              {/* Discover People (Search) */}
+              {onOpenSearch && (
                 <button
-                  onClick={onOpenLoveAI}
-                  title="Cupid Love AI Assistant"
-                  className="p-2 rounded-xl glass-card border border-pink-500/30 text-pink-300 hover:text-white hover:border-pink-400/60 transition-all relative group"
+                  onClick={onOpenSearch}
+                  title="Search & Discover People"
+                  className="p-2 rounded-xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-95 transition-all"
                 >
-                  <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping absolute top-1 right-1" />
-                  <Bot className="w-5 h-5 text-accent-pink group-hover:scale-110 transition-transform" />
+                  <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
 
-              {onOpenSoundscapes && (
-                <button
-                  onClick={onOpenSoundscapes}
-                  title="Ambient Soundscapes & Lo-Fi"
-                  className="p-2 rounded-xl glass-card text-cyan-300 hover:text-white hover:border-cyan-400/40 transition-colors"
-                >
-                  <Music className="w-5 h-5" />
-                </button>
-              )}
-
+              {/* Theme Selector */}
               {onOpenTheme && (
                 <button
                   onClick={onOpenTheme}
-                  title="Change Color Theme"
-                  className="p-2 rounded-xl glass-card text-purple-300 hover:text-white transition-colors"
+                  title="Atmosphere & Themes"
+                  className="p-2 rounded-xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-95 transition-all relative group"
                 >
-                  <Palette className="w-5 h-5" />
+                  <Palette className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:rotate-45" />
                 </button>
               )}
 
-              {onOpenDailyQuestion && (
+              {/* Friends & Connections */}
+              {onOpenFriends && (
                 <button
-                  onClick={onOpenDailyQuestion}
-                  title="Daily Love Question"
-                  className="p-2 rounded-xl glass-card text-amber-300 hover:text-white transition-colors"
+                  onClick={onOpenFriends}
+                  title="Friends & Requests"
+                  className="p-2 rounded-xl glass-card text-purple-300 hover:text-white hover:border-purple-400/60 active:scale-95 transition-all relative"
                 >
-                  <HelpCircle className="w-5 h-5" />
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {pendingFriendRequests.length > 0 && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping absolute top-1 right-1" />
+                  )}
                 </button>
               )}
 
-              {onOpenStatus && (
+              {/* Notifications Bell */}
+              {onOpenNotifications && (
                 <button
-                  onClick={onOpenStatus}
-                  title="WhatsApp Status Stories"
-                  className="p-2 rounded-xl glass-card border border-pink-500/30 text-pink-300 hover:text-white transition-all relative"
+                  onClick={onOpenNotifications}
+                  title="Notifications"
+                  className="p-2 rounded-xl glass-card text-amber-300 hover:text-white hover:border-amber-400/60 active:scale-95 transition-all relative"
                 >
-                  <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping absolute top-1 right-1" />
-                  <Sparkles className="w-5 h-5" />
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {unreadNotificationCount > 0 && (
+                    <span className="min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center absolute -top-1 -right-1 animate-pulse shadow-md shadow-rose-500/50">
+                      {unreadNotificationCount}
+                    </span>
+                  )}
                 </button>
               )}
+
+              {/* Privacy Settings */}
+              {onOpenPrivacy && (
+                <button
+                  onClick={onOpenPrivacy}
+                  title="Privacy & Security"
+                  className="hidden sm:flex p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 active:scale-95 transition-colors"
+                >
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+
+            {/* Profile Avatar Button */}
+            {onOpenProfile && (
+              <button
+                onClick={onOpenProfile}
+                title="My Profile"
+                className="p-0.5 rounded-full border-2 border-pink-400/80 hover:border-pink-300 transition-all shrink-0"
+              >
+                <img
+                  src={currentUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || 'Me')}&background=ff70a6&color=fff`}
+                  alt="Profile"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
+                />
+              </button>
+            )}
+
+            {/* WhatsApp Status Stories */}
+            {onOpenStatus && (
+              <button
+                onClick={onOpenStatus}
+                title="Status Stories"
+                className="p-2 rounded-xl glass-card border border-pink-500/30 text-pink-300 hover:text-white transition-all relative"
+              >
+                <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping absolute top-1 right-1" />
+                <Sparkles className="w-5 h-5" />
+              </button>
+            )}
 
               {onOpenCallHistory && (
                 <button

@@ -2,25 +2,28 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { toast } from '../lib/toast';
+import { UserProfile } from '../types';
 
 export type GameType = 'tictactoe' | 'canvas' | 'trivia' | 'truth' | 'would' | 'never' | 'wordle' | 'compat';
 
 export interface RealtimeGameSession {
   sessionId: string;
   gameType: GameType;
-  player1: string; // Naveen UID or name
-  player2: string; // Humera UID or name
-  currentTurn: string; // UID or 'player1' | 'player2'
+  player1Uid: string;
+  player2Uid: string;
+  player1Name: string;
+  player2Name: string;
+  currentTurnUid: string;
   status: 'waiting' | 'active' | 'finished';
-  winner: string | null;
-  // Tic-Tac-Toe board: 9 elements ('❤️' | '💖' | null)
+  winnerUid: string | 'draw' | null;
+  // Tic-Tac-Toe board: 9 elements ('X' | 'O' | '❤️' | '⭐' | null)
   tictactoeBoard: Array<string | null>;
-  xWins: number;
-  oWins: number;
-  // Trivia
+  p1Wins: number;
+  p2Wins: number;
+  draws: number;
+  // Trivia & card indexes
   triviaIdx: number;
   triviaScore: number;
-  // Card games
   todIndex: number;
   wyrIndex: number;
   nhieIndex: number;
@@ -28,23 +31,30 @@ export interface RealtimeGameSession {
   updatedAt: string;
 }
 
-const DEFAULT_SESSION_ID = 'ou_shared_couple_game_v1';
-
-export function useRealtimeGame(activeGame: GameType) {
+export function useRealtimeGame(activeGame: GameType, opponent?: UserProfile | null) {
   const { currentUser, partnerUser } = useAuth();
+  const currentOpponent = opponent || partnerUser;
+
+  const player1Uid = currentUser?.uid || 'user_1';
+  const player2Uid = currentOpponent?.uid || 'user_2';
+  const sessionId = `game_${[player1Uid, player2Uid].sort().join('_')}`;
+
   const channelRef = useRef<any>(null);
 
   const [session, setSession] = useState<RealtimeGameSession>(() => ({
-    sessionId: DEFAULT_SESSION_ID,
+    sessionId,
     gameType: activeGame,
-    player1: currentUser?.realName || 'Naveen',
-    player2: partnerUser?.realName || 'Humera',
-    currentTurn: currentUser?.realName || 'Naveen',
+    player1Uid,
+    player2Uid,
+    player1Name: currentUser?.displayName || currentUser?.username || 'Player 1',
+    player2Name: currentOpponent?.displayName || currentOpponent?.username || 'Player 2',
+    currentTurnUid: player1Uid,
     status: 'active',
-    winner: null,
+    winnerUid: null,
     tictactoeBoard: Array(9).fill(null),
-    xWins: 0,
-    oWins: 0,
+    p1Wins: 0,
+    p2Wins: 0,
+    draws: 0,
     triviaIdx: 0,
     triviaScore: 0,
     todIndex: 0,
@@ -75,7 +85,7 @@ export function useRealtimeGame(activeGame: GameType) {
 
   // Initialize Supabase Realtime channel for game synchronization
   useEffect(() => {
-    const channelName = `game_room_${DEFAULT_SESSION_ID}`;
+    const channelName = `game_room_${sessionId}`;
     const channel = supabase.channel(channelName, {
       config: { broadcast: { self: false } },
     });
@@ -89,8 +99,8 @@ export function useRealtimeGame(activeGame: GameType) {
           setPartnerConnected(true);
         }
       })
-      .on('broadcast', { event: 'GAME_INVITE' }, ({ payload }: { payload: { gameType: GameType; sender: string } }) => {
-        toast.love(`${payload.sender} started ${payload.gameType}! 🎮`);
+      .on('broadcast', { event: 'GAME_INVITE' }, ({ payload }: { payload: { gameType: GameType; senderName: string } }) => {
+        toast.love(`${payload.senderName} invited you to play ${payload.gameType}! 🎮`);
         setPartnerConnected(true);
       })
       .on('broadcast', { event: 'CANVAS_STROKE' }, ({ payload }: { payload: any }) => {
@@ -107,7 +117,7 @@ export function useRealtimeGame(activeGame: GameType) {
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           channel.track({
-            user: currentUser?.realName || 'Player',
+            user: currentUser?.displayName || currentUser?.username || 'Player',
             onlineAt: new Date().toISOString(),
           });
         }
@@ -117,118 +127,135 @@ export function useRealtimeGame(activeGame: GameType) {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [currentUser]);
+  }, [sessionId, currentUser]);
 
-  // Tic-Tac-Toe move handler with turn enforcement
+  // Tic-Tac-Toe move handler with dynamic turn enforcement
   const makeTicTacToeMove = useCallback((idx: number) => {
-    const isMyTurn = session.currentTurn === (currentUser?.realName || 'Naveen');
+    const myUid = currentUser?.uid || 'user_1';
+    const isMyTurn = session.currentTurnUid === myUid;
     
     if (!isMyTurn) {
-      toast.info("Opponent's turn! Wait for partner to move. ⏳");
+      toast.info("Opponent's turn! Please wait. ⏳");
       return false;
     }
 
-    if (session.tictactoeBoard[idx] || session.winner) {
+    if (session.tictactoeBoard[idx] || session.winnerUid) {
       return false;
     }
 
-    const nextSymbol = currentUser?.realName?.toLowerCase().includes('naveen') ? '❤️' : '💖';
+    // Player 1 is ❤️, Player 2 is ⭐
+    const isP1 = myUid === session.player1Uid;
+    const mySymbol = isP1 ? '❤️' : '⭐';
     const nextBoard = [...session.tictactoeBoard];
-    nextBoard[idx] = nextSymbol;
+    nextBoard[idx] = mySymbol;
 
-    // Check winner
+    // Check winner lines
     const winLines = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6]
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
     ];
-    let nextWinner: string | null = null;
+
+    let winnerUid: string | 'draw' | null = null;
     for (const [a, b, c] of winLines) {
       if (nextBoard[a] && nextBoard[a] === nextBoard[b] && nextBoard[a] === nextBoard[c]) {
-        nextWinner = nextBoard[a];
+        winnerUid = myUid;
         break;
       }
     }
 
     // Check draw
-    if (!nextWinner && nextBoard.every((cell) => cell !== null)) {
-      nextWinner = 'Draw';
+    if (!winnerUid && nextBoard.every((cell) => cell !== null)) {
+      winnerUid = 'draw';
     }
 
-    const nextTurn = partnerUser?.realName || (currentUser?.realName?.toLowerCase().includes('naveen') ? 'Humera' : 'Naveen');
-    const newXWins = nextWinner === '❤️' ? session.xWins + 1 : session.xWins;
-    const newOWins = nextWinner === '💖' ? session.oWins + 1 : session.oWins;
+    const nextTurnUid = isP1 ? session.player2Uid : session.player1Uid;
+
+    let p1Wins = session.p1Wins;
+    let p2Wins = session.p2Wins;
+    let draws = session.draws;
+
+    if (winnerUid === session.player1Uid) p1Wins += 1;
+    else if (winnerUid === session.player2Uid) p2Wins += 1;
+    else if (winnerUid === 'draw') draws += 1;
 
     broadcastGameState({
       tictactoeBoard: nextBoard,
-      currentTurn: nextTurn,
-      winner: nextWinner,
-      xWins: newXWins,
-      oWins: newOWins,
-      lastMoveBy: currentUser?.realName || 'Player',
+      currentTurnUid: nextTurnUid,
+      winnerUid,
+      p1Wins,
+      p2Wins,
+      draws,
+      lastMoveBy: myUid,
     });
-
-    if (nextWinner) {
-      if (nextWinner === 'Draw') toast.info("It's a draw! 🤝");
-      else toast.love(`Game Won by ${nextWinner}! 🎉`);
-    }
 
     return true;
-  }, [session, currentUser, partnerUser, broadcastGameState]);
-
-  // Reset Tic-Tac-Toe board
-  const resetTicTacToe = useCallback((resetScore = false) => {
-    broadcastGameState({
-      tictactoeBoard: Array(9).fill(null),
-      winner: null,
-      currentTurn: currentUser?.realName || 'Naveen',
-      xWins: resetScore ? 0 : session.xWins,
-      oWins: resetScore ? 0 : session.oWins,
-    });
-    toast.info('Tic-Tac-Toe board reset for both players! 🔄');
   }, [session, currentUser, broadcastGameState]);
 
-  // Card & Trivia Sync Handlers
-  const nextTriviaQuestion = useCallback((newScore?: number) => {
+  // Reset Tic-Tac-Toe board for rematch
+  const resetTicTacToe = useCallback(() => {
     broadcastGameState({
-      triviaIdx: (session.triviaIdx + 1) % 3,
-      triviaScore: typeof newScore === 'number' ? newScore : session.triviaScore,
+      tictactoeBoard: Array(9).fill(null),
+      winnerUid: null,
+      currentTurnUid: session.player1Uid,
+      lastMoveBy: null,
     });
-  }, [session, broadcastGameState]);
+    toast.love('Rematch started! 🎮');
+  }, [session.player1Uid, broadcastGameState]);
 
-  const nextTruthQuestion = useCallback(() => {
-    broadcastGameState({ todIndex: (session.todIndex + 1) % 4 });
-  }, [session, broadcastGameState]);
+  // Sync Trivia & Card game steps
+  const nextTrivia = useCallback((isCorrect: boolean) => {
+    broadcastGameState({
+      triviaIdx: session.triviaIdx + 1,
+      triviaScore: isCorrect ? session.triviaScore + 10 : session.triviaScore,
+    });
+  }, [session.triviaIdx, session.triviaScore, broadcastGameState]);
 
-  const nextWouldRather = useCallback(() => {
-    broadcastGameState({ wyrIndex: (session.wyrIndex + 1) % 3 });
-  }, [session, broadcastGameState]);
+  const isMyTurn = session.currentTurnUid === (currentUser?.uid || 'user_1');
 
-  const nextNeverHaveIEver = useCallback(() => {
-    broadcastGameState({ nhieIndex: (session.nhieIndex + 1) % 4 });
-  }, [session, broadcastGameState]);
-
-  // Canvas Drawing Stroke Broadcast
-  const broadcastCanvasStroke = useCallback((strokeData: { x1: number; y1: number; x2: number; y2: number; color: string }) => {
-    if (channelRef.current) {
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'CANVAS_STROKE',
-        payload: strokeData,
-      });
-    }
+  const broadcastCanvasStroke = useCallback((stroke: { x1: number; y1: number; x2: number; y2: number; color?: string }) => {
+    if (!channelRef.current) return;
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'CANVAS_STROKE',
+      payload: stroke,
+    });
   }, []);
 
   const broadcastCanvasClear = useCallback(() => {
-    if (channelRef.current) {
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'CANVAS_CLEAR',
-      });
-    }
+    if (!channelRef.current) return;
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'CANVAS_CLEAR',
+      payload: {},
+    });
   }, []);
 
-  const isMyTurn = session.currentTurn === (currentUser?.realName || 'Naveen');
+  const nextTriviaQuestion = useCallback((score?: number) => {
+    broadcastGameState({
+      triviaIdx: session.triviaIdx + 1,
+      triviaScore: score !== undefined ? score : session.triviaScore,
+    });
+  }, [session.triviaIdx, session.triviaScore, broadcastGameState]);
+
+  const nextCard = useCallback((deckType: 'tod' | 'wyr' | 'nhie', maxLen: number) => {
+    const key = deckType === 'tod' ? 'todIndex' : deckType === 'wyr' ? 'wyrIndex' : 'nhieIndex';
+    const safeLen = maxLen > 0 ? maxLen : 1;
+    const nextVal = ((session[key] ?? 0) + 1) % safeLen;
+    broadcastGameState({ [key]: nextVal });
+  }, [session, broadcastGameState]);
+
+  const nextTruthQuestion = useCallback((maxLen: number) => {
+    nextCard('tod', maxLen);
+  }, [nextCard]);
+
+  const nextWouldRather = useCallback((maxLen: number) => {
+    nextCard('wyr', maxLen);
+  }, [nextCard]);
+
+  const nextNeverHaveIEver = useCallback((maxLen: number) => {
+    nextCard('nhie', maxLen);
+  }, [nextCard]);
 
   return {
     session,
@@ -236,11 +263,15 @@ export function useRealtimeGame(activeGame: GameType) {
     isMyTurn,
     makeTicTacToeMove,
     resetTicTacToe,
+    nextTrivia,
     nextTriviaQuestion,
     nextTruthQuestion,
     nextWouldRather,
     nextNeverHaveIEver,
     broadcastCanvasStroke,
     broadcastCanvasClear,
+    nextCard,
+    broadcastGameState,
   };
 }
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useUniverse } from '../context/UniverseContext';
 import { toast } from '../lib/toast';
@@ -8,7 +8,7 @@ import confetti from 'canvas-confetti';
 import {
   Heart, Sun, Moon, CloudSun, Smile, Sparkles,
   Send, Music, Gift, MapPin, Zap, MessageCircle, Image, Mic, BatteryCharging, Cookie,
-  Flame, Target, Trophy, ChevronRight
+  Flame, Target, Trophy, ChevronRight, BookHeart, Activity, Copy, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -37,6 +37,47 @@ const LOVE_CHALLENGES = [
   { emoji: "🍕", title: "Plan a date", desc: "Plan your next virtual or in-person date together — right now!" },
   { emoji: "🔮", title: "Future vision", desc: "Describe one dream you have of your future together." },
 ];
+
+const LOVE_LETTERS = [
+  "My dearest love, every sunrise reminds me of you — warm, gentle, and impossibly beautiful. The distance between us is just a number; my heart has no miles. In every heartbeat I find your name, in every star I see your smile. You are the poetry the universe wrote just for me. Forever yours. ❤️",
+  "To the one who makes ordinary days extraordinary — just thinking of your laugh fills my entire world with light. I carry you with me everywhere I go, like a secret too precious to share with anyone else. Until I hold you again, I hold you in every thought. All my love. 💕",
+  "Jaanu, time apart only makes me realize how completely you've become my home. I don't need a map when I have you — you're the direction, the destination, and everything beautiful along the way. Today, tomorrow, and every day after, I choose you. With all that I am. 🌙",
+  "My love, I've been thinking about the way you make me feel safe even from miles away. Your voice is my favourite sound, your name my favourite word. I am endlessly grateful the universe conspired to bring us together. Forever isn't long enough. Yours always. ✨",
+  "To my person — on hard days I close my eyes and picture your smile, and everything feels lighter. You are my peace in a noisy world, my warmth in every cold moment. This love we have is the greatest adventure I've ever been on. Still falling for you every single day. 💖",
+];
+
+// ── RadialProgress Component ─────────────────────────────────────────────────
+function RadialProgress({ score, size = 80 }: { score: number; size?: number }) {
+  const radius = (size - 10) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#f43f5e';
+  return (
+    <div className="radial-progress" style={{ width: size, height: size }}>
+      <svg width={size} height={size}>
+        <defs>
+          <linearGradient id="radGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ff70a6" />
+            <stop offset="100%" stopColor="#a855f7" />
+          </linearGradient>
+        </defs>
+        <circle className="radial-progress-track" cx={size/2} cy={size/2} r={radius} strokeWidth="8" />
+        <circle
+          className="radial-progress-fill"
+          cx={size/2} cy={size/2} r={radius}
+          strokeWidth="8"
+          stroke={score >= 80 ? 'url(#radGrad)' : color}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-lg font-extrabold text-white leading-none">{score}</span>
+        <span className="text-[8px] text-slate-400 uppercase tracking-wider">score</span>
+      </div>
+    </div>
+  );
+}
 
 // ── Helper: days since a date ─────────────────────────────────────────────────
 function daysSince(dateStr: string): number {
@@ -159,10 +200,30 @@ export const HomeDashboard: React.FC = () => {
   const totalVoice = messages.filter(m => m.type === 'audio').length;
   const totalStars = messages.filter(m => m.isStarred).length;
 
-  const animMessages = useAnimatedCount(totalMessages, 1000);
-  const animPhotos = useAnimatedCount(totalPhotos, 900);
-  const animVoice = useAnimatedCount(totalVoice, 800);
-  const animStars = useAnimatedCount(totalStars, 700);
+  // Memoized computed values
+  const { animMessages, animPhotos, animVoice, animStars } = {
+    animMessages: useAnimatedCount(totalMessages, 1000),
+    animPhotos:   useAnimatedCount(totalPhotos,   900),
+    animVoice:    useAnimatedCount(totalVoice,    800),
+    animStars:    useAnimatedCount(totalStars,    700),
+  };
+
+  // ── Relationship Health Score ─────────────────────────────────────────────
+  const healthScore = useMemo(() => {
+    const today = new Date().toDateString();
+    const msgToday = messages.filter(m => new Date(m.createdAt).toDateString() === today).length;
+    const msgScore  = Math.min(msgToday * 5, 30);   // up to 30pts
+    const streakScore = Math.min(loveStreak * 3, 25); // up to 25pts
+    const batteryScore = Math.round(loveBattery * 0.25); // up to 25pts
+    const challengeScore = challengeDone ? 20 : 0;   // 20pts
+    return Math.min(100, msgScore + streakScore + batteryScore + challengeScore);
+  }, [messages, loveStreak, loveBattery, challengeDone]);
+
+  // ── Love Letter State ─────────────────────────────────────────────────────
+  const [letterOpen, setLetterOpen] = useState(false);
+  const [letterCopied, setLetterCopied] = useState(false);
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const todayLetter = LOVE_LETTERS[dayOfYear % LOVE_LETTERS.length];
 
   useEffect(() => {
     const calculateTime = () => {
@@ -231,6 +292,14 @@ export const HomeDashboard: React.FC = () => {
     toast.love('🎯 Challenge completed! You two are amazing! ❤️');
   };
 
+  const handleCopyLetter = useCallback(() => {
+    navigator.clipboard.writeText(todayLetter).then(() => {
+      setLetterCopied(true);
+      toast.love('Love letter copied to clipboard 💌');
+      setTimeout(() => setLetterCopied(false), 2000);
+    });
+  }, [todayLetter]);
+
   const hour = new Date().getHours();
   const isMorning = hour >= 5 && hour < 12;
   const isAfternoon = hour >= 12 && hour < 18;
@@ -272,10 +341,12 @@ export const HomeDashboard: React.FC = () => {
               <div className={`rounded-full p-0.5 ${currentUser ? 'bg-gradient-to-tr from-pink-500 to-purple-600' : ''}`}>
                 <img
                   src={currentUser?.photoURL}
-                  alt={currentUser?.realName}
+                  alt={currentUser?.displayName}
+                  loading="eager"
+                  fetchPriority="high"
                   className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-space-950"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.realName || 'Naveen')}&background=ff70a6&color=fff`;
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || 'User')}&background=ff70a6&color=fff`;
                   }}
                 />
               </div>
@@ -289,15 +360,17 @@ export const HomeDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Partner avatar */}
+            {/* Partner avatar + status */}
             <div className="relative flex-shrink-0">
               <div className={`rounded-full p-0.5 ${partnerUser?.online ? 'bg-gradient-to-tr from-emerald-400 to-teal-500' : 'bg-gradient-to-tr from-purple-500 to-indigo-600'}`}>
                 <img
-                  src={partnerUser?.photoURL}
-                  alt={partnerUser?.realName}
+                  src={partnerUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.displayName || 'Partner')}&background=a855f7&color=fff`}
+                  alt={partnerUser?.displayName}
+                  loading="eager"
+                  fetchPriority="high"
                   className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-space-950"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Humera')}&background=a855f7&color=fff`;
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.displayName || 'Partner')}&background=a855f7&color=fff`;
                   }}
                 />
               </div>
@@ -308,14 +381,25 @@ export const HomeDashboard: React.FC = () => {
           </div>
 
           <div className="text-center sm:text-right min-w-0">
-            <h2 className="text-base sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent truncate">
-              {currentUser?.petName} & {partnerUser?.petName}
+            <h2 className="text-base sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent truncate text-balance">
+              {currentUser?.displayName || currentUser?.petName || 'You'} & {partnerUser?.displayName || partnerUser?.petName || 'Partner'}
             </h2>
             <p className="text-[10px] sm:text-xs text-slate-300 font-medium mt-1 flex flex-wrap items-center justify-center sm:justify-end gap-1">
-              <span className="truncate max-w-[140px] sm:max-w-none">{currentUser?.city}</span>
+              <span className="truncate max-w-[140px] sm:max-w-none">{currentUser?.city || 'Our Universe'}</span>
               <span>•</span>
-              <span className="truncate max-w-[140px] sm:max-w-none">{partnerUser?.city}</span>
+              <span className="truncate max-w-[140px] sm:max-w-none">{partnerUser?.city || 'Online'}</span>
             </p>
+            {/* Partner online status pill */}
+            <div className="mt-1.5 flex items-center justify-center sm:justify-end gap-1.5">
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                partnerUser?.online
+                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-slate-500/15 text-slate-400 border border-slate-500/30'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${partnerUser?.online ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                {partnerUser?.online ? 'Online now' : 'Away'}
+              </span>
+            </div>
             <div className="mt-2 flex items-center justify-center sm:justify-end gap-2">
               <span className="tag-pill bg-pink-500/15 text-pink-300 border-pink-500/30">
                 <Heart className="w-2.5 h-2.5 fill-current" />
@@ -473,6 +557,87 @@ export const HomeDashboard: React.FC = () => {
             <p className="text-xs text-amber-300 text-center">🏆 Set your anniversary date to unlock milestones!</p>
           </div>
         )}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── Relationship Health Score + Love Letter of the Day ──────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {/* 💚 Relationship Health Score */}
+        <div className="glass-panel card-glow-hover p-5 rounded-3xl border border-emerald-500/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none" />
+          <div className="relative z-10 flex items-center gap-4">
+            <RadialProgress score={healthScore} size={80} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">Relationship Health</p>
+              </div>
+              <p className="text-sm font-bold text-white">
+                {healthScore >= 80 ? '💚 Thriving Together!' : healthScore >= 60 ? '💛 Pretty Good!' : '❤️ Keep Nurturing!'}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                Based on messages, streak, battery & challenge
+              </p>
+              <div className="mt-2 flex gap-1">
+                {['msgs','streak','battery','challenge'].map((k, i) => (
+                  <div key={k} className={`h-1 flex-1 rounded-full ${
+                    i === 0 ? 'bg-pink-500/60' :
+                    i === 1 ? 'bg-orange-500/60' :
+                    i === 2 ? 'bg-emerald-500/60' : 'bg-purple-500/60'
+                  }`} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 💌 Love Letter of the Day */}
+        <div className="love-letter-card glass-panel card-glow-hover p-5 rounded-3xl relative">
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                <BookHeart className="w-3.5 h-3.5 text-pink-400" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-pink-300">Love Letter of the Day</p>
+              </div>
+              <button
+                onClick={() => setLetterOpen(!letterOpen)}
+                className="text-[10px] px-2.5 py-1 rounded-full bg-pink-500/15 border border-pink-500/30 text-pink-300 font-semibold hover:bg-pink-500/25 transition-all"
+                aria-label={letterOpen ? 'Close love letter' : 'Open love letter'}
+              >
+                {letterOpen ? 'Close ✕' : 'Open 💌'}
+              </button>
+            </div>
+            <AnimatePresence>
+              {letterOpen ? (
+                <motion.div className="space-y-3">
+                  <div className="p-4 rounded-2xl bg-pink-500/8 border border-pink-400/20">
+                    <p className="text-xs text-pink-100 leading-relaxed italic font-serif">
+                      "{todayLetter}"
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCopyLetter}
+                    className="flex items-center gap-1.5 text-[10px] text-pink-300 hover:text-white transition-colors font-semibold"
+                    aria-label="Copy love letter"
+                  >
+                    {letterCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    {letterCopied ? 'Copied!' : 'Copy to send'}
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
+                  <span className="text-3xl animate-float-slow">💌</span>
+                  <div>
+                    <p className="text-xs font-bold text-white">Your daily love letter awaits</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Tap to reveal today's romantic letter</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
@@ -679,17 +844,17 @@ export const HomeDashboard: React.FC = () => {
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="glass-card p-4 rounded-2xl space-y-1 border border-pink-500/20 card-hover-lift">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl animate-bounce">{currentUser?.mood.emoji || '💖'}</span>
-                  <span className="text-xs font-bold text-pink-200">{currentUser?.petName}</span>
+                  <span className="text-2xl animate-bounce">{currentUser?.mood?.emoji || '💖'}</span>
+                  <span className="text-xs font-bold text-pink-200">{currentUser?.petName || currentUser?.displayName || 'You'}</span>
                 </div>
-                <p className="text-xs text-slate-300 italic">"{currentUser?.mood.text || 'Thinking of you'}"</p>
+                <p className="text-xs text-slate-300 italic">"{currentUser?.mood?.text || 'Thinking of you'}"</p>
               </div>
               <div className="glass-card p-4 rounded-2xl space-y-1 border border-purple-500/20 card-hover-lift">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl animate-bounce" style={{ animationDelay: '0.2s' }}>{partnerUser?.mood.emoji || '💕'}</span>
-                  <span className="text-xs font-bold text-purple-200">{partnerUser?.petName}</span>
+                  <span className="text-2xl animate-bounce" style={{ animationDelay: '0.2s' }}>{partnerUser?.mood?.emoji || '💕'}</span>
+                  <span className="text-xs font-bold text-purple-200">{partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner'}</span>
                 </div>
-                <p className="text-xs text-slate-300 italic">"{partnerUser?.mood.text || 'Loving you always'}"</p>
+                <p className="text-xs text-slate-300 italic">"{partnerUser?.mood?.text || 'Loving you always'}"</p>
               </div>
             </div>
           ) : (

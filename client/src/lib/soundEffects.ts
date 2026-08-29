@@ -6,13 +6,15 @@
 class SoundSynthesizer {
   private ctx: AudioContext | null = null;
 
-  private getContext(): AudioContext {
+  private getContext(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return null;
       this.ctx = new AudioCtx();
     }
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
     }
     return this.ctx;
   }
@@ -21,6 +23,7 @@ class SoundSynthesizer {
   playKissSound() {
     try {
       const ctx = this.getContext();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -43,6 +46,7 @@ class SoundSynthesizer {
   playHugSound() {
     try {
       const ctx = this.getContext();
+      if (!ctx) return;
       [523.25, 659.25, 783.99].forEach((freq, idx) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -66,6 +70,7 @@ class SoundSynthesizer {
   playHeartbeatSound() {
     try {
       const ctx = this.getContext();
+      if (!ctx) return;
       
       // Thump 1
       const osc1 = ctx.createOscillator();
@@ -97,6 +102,7 @@ class SoundSynthesizer {
   playMessageSentSound() {
     try {
       const ctx = this.getContext();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -115,10 +121,15 @@ class SoundSynthesizer {
     } catch (e) {}
   }
 
+  playMessageSend() {
+    this.playMessageSentSound();
+  }
+
   // Play Message Received sound
   playMessageReceivedSound() {
     try {
       const ctx = this.getContext();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -137,10 +148,15 @@ class SoundSynthesizer {
     } catch (e) {}
   }
 
+  playMessageReceive() {
+    this.playMessageReceivedSound();
+  }
+
   // Play Secret Burn Sound
   playSecretBurnSound() {
     try {
       const ctx = this.getContext();
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -163,6 +179,7 @@ class SoundSynthesizer {
   playCallRingtone() {
     try {
       const ctx = this.getContext();
+      if (!ctx) return;
       [440, 480].forEach(freq => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();

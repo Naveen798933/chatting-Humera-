@@ -206,12 +206,17 @@ export const MemoriesGallery: React.FC = () => {
           {albumsList.map((alb) => {
             const isActive = activeAlbum === alb;
             const isHidden = alb === 'Hidden';
+            const count = alb === 'All'
+              ? memories.filter(m => m.album !== 'Hidden').length
+              : alb === 'Favorites'
+                ? memories.filter(m => m.isFavorite).length
+                : memories.filter(m => m.album === alb).length;
 
             return (
               <button
                 key={alb}
                 onClick={() => handleOpenAlbum(alb)}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[40px] ${
+                className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 min-h-[40px] ${
                   isActive
                     ? 'bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/25 scale-105'
                     : 'glass-card text-slate-300 hover:text-white active:scale-95'
@@ -219,6 +224,11 @@ export const MemoriesGallery: React.FC = () => {
               >
                 {isHidden && <Lock className="w-3.5 h-3.5 text-pink-300" />}
                 <span>{alb}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-400'
+                }`}>
+                  {count}
+                </span>
               </button>
             );
           })}

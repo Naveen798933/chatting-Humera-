@@ -3,7 +3,7 @@ import { X, Palette, Check, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from './motion';
 import { toast } from '../lib/toast';
 
-export type AppTheme = 'cosmic' | 'rose' | 'emerald' | 'ocean' | 'amoled';
+export type AppTheme = 'cosmic' | 'rose' | 'emerald' | 'ocean' | 'amoled' | 'sunset' | 'galaxy';
 
 interface ThemeSelectorModalProps {
   isOpen: boolean;
@@ -32,6 +32,20 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
       gradient: 'from-rose-950 via-red-950 to-space-950',
       accentColor: '#f43f5e',
       desc: 'Romantic crimson red & velvet rose'
+    },
+    {
+      id: 'sunset',
+      name: 'Sunset Glow',
+      gradient: 'from-orange-950 via-rose-950 to-amber-950',
+      accentColor: '#fb923c',
+      desc: 'Warm golden sunset & romantic orange'
+    },
+    {
+      id: 'galaxy',
+      name: 'Deep Galaxy',
+      gradient: 'from-indigo-950 via-purple-950 to-black',
+      accentColor: '#818cf8',
+      desc: 'Starlit nebula indigo & cosmos blue'
     },
     {
       id: 'emerald',
@@ -80,7 +94,7 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
               Customize the ambient atmosphere of Our Universe 💕
             </p>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
               {themes.map((t) => {
                 const isSelected = currentTheme === t.id;
                 return (
@@ -88,30 +102,39 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
                     key={t.id}
                     onClick={() => {
                       onSelectTheme(t.id);
-                      toast.love(`Theme changed to ${t.name}! ✨`);
+                      toast.love(`Atmosphere changed to ${t.name}! ✨`);
                     }}
-                    className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all ${
+                    className={`w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all duration-200 group active:scale-[0.98] ${
                       isSelected
-                        ? 'bg-white/10 border-pink-400/60 shadow-lg shadow-pink-500/20'
-                        : 'glass-card border-white/10 hover:border-white/20'
+                        ? 'bg-white/12 border-pink-400/80 shadow-lg shadow-pink-500/25 ring-1 ring-pink-400/40'
+                        : 'glass-card border-white/10 hover:border-white/25 hover:bg-white/8'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3.5">
                       <div
-                        className={`w-8 h-8 rounded-xl bg-gradient-to-tr ${t.gradient} border border-white/20 flex items-center justify-center shadow-md`}
+                        className={`w-10 h-10 rounded-2xl bg-gradient-to-tr ${t.gradient} border border-white/20 flex items-center justify-center shadow-lg flex-shrink-0 transition-transform group-hover:scale-105`}
+                        style={{ boxShadow: isSelected ? `0 0 20px ${t.accentColor}55` : undefined }}
                       >
-                        <Sparkles className="w-4 h-4 text-white" />
+                        <Sparkles className="w-4 h-4 text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.8)]" />
                       </div>
                       <div>
-                        <p className="font-bold text-xs text-white">{t.name}</p>
-                        <p className="text-[10px] text-slate-400">{t.desc}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-extrabold text-xs sm:text-sm text-white tracking-wide">{t.name}</p>
+                          <span
+                            className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0"
+                            style={{ backgroundColor: t.accentColor, boxShadow: `0 0 8px ${t.accentColor}` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-300 font-medium mt-0.5">{t.desc}</p>
                       </div>
                     </div>
 
-                    {isSelected && (
-                      <div className="w-6 h-6 rounded-full bg-pink-500 text-white flex items-center justify-center">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    {isSelected ? (
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-accent-pink to-accent-purple text-white flex items-center justify-center shadow-md shadow-pink-500/40 flex-shrink-0">
+                        <Check className="w-4 h-4 stroke-[3]" />
                       </div>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border border-white/20 group-hover:border-white/40 flex-shrink-0" />
                     )}
                   </button>
                 );
@@ -120,9 +143,9 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs mt-2"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-accent-pink to-accent-purple text-white font-extrabold text-xs shadow-lg shadow-pink-500/30 hover:opacity-90 active:scale-95 transition-all mt-2"
             >
-              Apply & Close
+              Done
             </button>
           </motion.div>
         </div>

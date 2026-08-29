@@ -70,10 +70,10 @@ export const LoveAIAssistant: React.FC<LoveAIAssistantProps> = ({
   isModal = true
 }) => {
   const { currentUser, partnerUser } = useAuth();
-  const { memories, messages, sendMessage } = useUniverse();
+  const { anniversaryDate, memories, messages, sendMessage } = useUniverse();
 
-  const n = currentUser?.petName ?? 'Naveen';
-  const h = partnerUser?.petName ?? 'Humera';
+  const n = currentUser?.petName || currentUser?.displayName || 'User';
+  const h = partnerUser?.petName || partnerUser?.displayName || 'Partner';
 
   const [prompt, setPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState<string | null>(null);
@@ -81,12 +81,17 @@ export const LoveAIAssistant: React.FC<LoveAIAssistantProps> = ({
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const daysTogether = Math.floor(
-    (Date.now() - new Date('2024-02-14').getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const startMs = new Date(anniversaryDate || '2024-02-14').getTime();
+  const daysTogether = Math.max(0, Math.floor((Date.now() - (isNaN(startMs) ? new Date('2024-02-14').getTime() : startMs)) / (1000 * 60 * 60 * 24)));
   const healthScore = getHealthScore(messages.length, memories.length);
 
   const typingIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+    };
+  }, []);
 
   const respond = (text: string, action: string) => {
     setLoading(true);

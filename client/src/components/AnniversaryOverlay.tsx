@@ -60,7 +60,7 @@ export const AnniversaryOverlay: React.FC = () => {
           </span>
 
           <h2 className="text-2xl font-black bg-gradient-to-r from-pink-200 via-purple-100 to-indigo-200 bg-clip-text text-transparent">
-            {currentUser?.petName} & {partnerUser?.petName}
+            {currentUser?.petName || currentUser?.displayName || 'You'} & {partnerUser?.petName || partnerUser?.displayName || 'Partner'}
           </h2>
 
           <p className="text-xs text-slate-200 leading-relaxed italic">

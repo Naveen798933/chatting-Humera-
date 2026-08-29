@@ -19,6 +19,27 @@ async function getEncryptionKey(): Promise<CryptoKey> {
   );
 }
 
+// Helper to safely convert Uint8Array to Base64 without call stack overflow
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const len = bytes.byteLength;
+  const chunkSize = 0x8000;
+  for (let i = 0; i < len; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, Math.min(i + chunkSize, len))));
+  }
+  return btoa(binary);
+}
+
+// Helper to safely convert Base64 to Uint8Array
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 /**
  * Encrypt plain text payload
  */
@@ -40,7 +61,7 @@ export async function encryptPayload(plainText: string): Promise<string> {
     combined.set(iv, 0);
     combined.set(new Uint8Array(ciphertext), iv.length);
 
-    return btoa(String.fromCharCode(...combined));
+    return uint8ArrayToBase64(combined);
   } catch (error) {
     console.warn('Encryption fallback to plain string:', error);
     return plainText;
@@ -53,11 +74,8 @@ export async function encryptPayload(plainText: string): Promise<string> {
 export async function decryptPayload(cipherTextBase64: string): Promise<string> {
   try {
     const key = await getEncryptionKey();
-    const binary = atob(cipherTextBase64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
+    const bytes = base64ToUint8Array(cipherTextBase64);
+    if (bytes.length < 12) return cipherTextBase64;
 
     const iv = bytes.slice(0, 12);
     const ciphertext = bytes.slice(12);
@@ -75,3 +93,4 @@ export async function decryptPayload(cipherTextBase64: string): Promise<string> 
     return cipherTextBase64;
   }
 }
+

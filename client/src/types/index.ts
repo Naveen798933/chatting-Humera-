@@ -1,22 +1,38 @@
-export type UserRole = 'owner' | 'partner';
-export type UserUid = 'naveen_uid_798933' | 'humera_uid_140299';
+export type UserRole = 'owner' | 'admin' | 'partner' | 'member' | 'user';
+export type UserUid = string;
+
+export interface PrivacySettings {
+  whoCanMessage: 'everyone' | 'friends' | 'nobody';
+  whoCanAdd: 'everyone' | 'friends_of_friends' | 'nobody';
+  showOnline: boolean;
+  showReadReceipts: boolean;
+  showLastSeen: boolean;
+  whoCanSeeProfile: 'everyone' | 'friends' | 'nobody';
+}
 
 export interface UserProfile {
   uid: UserUid;
+  username: string; // e.g. "naveen_dev"
+  displayName: string;
   email: string;
-  realName: string;
-  nickname: string;
-  petName: string;
-  role: UserRole;
   photoURL: string;
-  city: string;
-  mood: {
+  bio?: string;
+  role?: UserRole;
+  realName?: string; // legacy support
+  nickname?: string;
+  petName?: string;
+  city?: string;
+  mood?: {
     emoji: string;
     text: string;
     updatedAt: string;
   };
-  online: boolean;
-  lastSeen: string;
+  online?: boolean;
+  lastSeen?: string;
+  isVerified?: boolean;
+  privacySettings?: PrivacySettings;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface StoryItem {
@@ -32,15 +48,38 @@ export interface StoryItem {
 
 export type AmbientEffect = 'hearts' | 'stars' | 'galaxy' | 'rain' | 'snow' | 'none';
 
-export interface RelationshipConfig {
-  anniversaryDate: string; // ISO string e.g. "2024-02-14T00:00:00.000Z"
-  theme: string;
-  ambientEffect: AmbientEffect;
-  secretChatTimeout: number; // in seconds
-  vaultPinHash: string; // "1402" or "7989"
+export type ChatType = 'direct' | 'group';
+
+export interface ChatParticipant {
+  uid: UserUid;
+  displayName: string;
+  username: string;
+  photoURL: string;
+  online?: boolean;
+  lastSeen?: string;
 }
 
-export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'location' | 'contact';
+export interface Chat {
+  id: string;
+  type: ChatType;
+  name?: string; // For group chats
+  description?: string;
+  photoURL?: string;
+  ownerId?: UserUid;
+  admins?: UserUid[];
+  participants: UserUid[];
+  participantDetails?: Record<UserUid, ChatParticipant>;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  lastSenderId?: UserUid;
+  unreadCount?: number;
+  isPinned?: boolean;
+  isMuted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'location' | 'contact' | 'document';
 
 export interface MessageReaction {
   emoji: string;
@@ -49,27 +88,121 @@ export interface MessageReaction {
 
 export interface Message {
   id: string;
+  chatId?: string;
   senderId: UserUid;
+  receiverId?: UserUid;
   type: MessageType;
-  content: string; // Encrypted / plain content
+  content: string; // Encrypted or plain content
   mediaUrl?: string;
   mediaName?: string;
+  thumbnailUrl?: string;
+  fileName?: string;
+  fileSize?: number;
   replyTo?: {
     id: string;
     senderId: UserUid;
+    senderName?: string;
     excerpt: string;
   };
   reactions: Record<string, UserUid[]>; // emoji -> array of UIDs
   delivered: boolean;
   seen?: boolean;
+  seenBy?: UserUid[];
   seenAt?: string;
   isEdited?: boolean;
   isStarred?: boolean;
   isSecret?: boolean;
   isViewOnce?: boolean;
+  viewedBy?: UserUid[];
   viewedOnce?: boolean;
+  deletedFor?: UserUid[];
+  isDeleted?: boolean;
+  pinned?: boolean;
   expiresAt?: string; // ISO timestamp for secret disappearing messages
   createdAt: string;
+}
+
+export type FriendRequestStatus = 'pending' | 'accepted' | 'rejected' | 'blocked';
+
+export interface FriendRequest {
+  id: string;
+  senderId: UserUid;
+  senderProfile?: UserProfile;
+  receiverId: UserUid;
+  receiverProfile?: UserProfile;
+  status: FriendRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserBlock {
+  id: string;
+  blockerId: UserUid;
+  blockedId: UserUid;
+  createdAt: string;
+}
+
+export interface UserReport {
+  id: string;
+  reporterId: UserUid;
+  targetId: UserUid;
+  targetType: 'user' | 'message' | 'group';
+  reason: 'spam' | 'harassment' | 'abuse' | 'fake_account' | 'inappropriate' | 'scam' | 'other';
+  details?: string;
+  status: 'pending' | 'reviewed' | 'resolved';
+  createdAt: string;
+}
+
+export type NotificationType =
+  | 'message'
+  | 'friend_request'
+  | 'request_accepted'
+  | 'game_invite'
+  | 'group_invite'
+  | 'reaction'
+  | 'miss_you'
+  | 'kiss'
+  | 'hug'
+  | 'surprise';
+
+export interface AppNotification {
+  id: string;
+  recipientId: UserUid;
+  senderId: UserUid;
+  senderProfile?: Partial<UserProfile>;
+  type: NotificationType;
+  data?: {
+    chatId?: string;
+    gameId?: string;
+    gameType?: 'tictactoe' | 'rps' | 'quiz';
+    groupId?: string;
+    groupName?: string;
+    messageText?: string;
+  };
+  read: boolean;
+  createdAt: string;
+}
+
+export type GameType = 'tictactoe' | 'rps' | 'quiz';
+
+export interface GameSession {
+  id: string;
+  gameType: GameType;
+  player1Id: UserUid;
+  player2Id: UserUid;
+  player1Profile?: UserProfile;
+  player2Profile?: UserProfile;
+  status: 'pending' | 'active' | 'completed' | 'declined';
+  currentTurn: UserUid;
+  boardState: any;
+  scores: {
+    player1: number;
+    player2: number;
+    draws: number;
+  };
+  winnerId?: UserUid | 'draw' | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Memory {
@@ -90,7 +223,7 @@ export interface VaultNote {
   id: string;
   title: string;
   content: string;
-  unlockDate?: string; // If set, locked until this ISO date
+  unlockDate?: string;
   isLocked: boolean;
   createdBy: UserUid;
   createdAt: string;
@@ -99,8 +232,8 @@ export interface VaultNote {
 export interface CalendarEvent {
   id: string;
   title: string;
-  date: string; // YYYY-MM-DD
-  category: 'anniversary' | 'birthday' | 'date' | 'milestone' | 'trip';
+  date: string;
+  category: 'anniversary' | 'birthday' | 'date' | 'milestone' | 'trip' | 'event';
   description?: string;
   createdBy: UserUid;
 }

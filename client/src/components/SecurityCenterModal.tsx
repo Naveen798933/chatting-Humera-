@@ -210,7 +210,7 @@ export const SecurityCenterModal: React.FC<SecurityCenterModalProps> = ({
                   <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-xs flex items-center gap-3">
                     <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0" />
                     <p className="leading-relaxed text-[11px]">
-                      Zero-Trust E2E Encryption Active between <strong>{currentUser?.petName}</strong> &amp; <strong>{partnerUser?.petName}</strong>.
+                      Zero-Trust E2E Encryption Active between <strong>{currentUser?.petName || currentUser?.displayName || 'You'}</strong> &amp; <strong>{partnerUser?.petName || partnerUser?.displayName || 'Partner'}</strong>.
                     </p>
                   </div>
                 </div>

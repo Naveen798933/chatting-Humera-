@@ -53,22 +53,27 @@ export const PartnerProfileDrawer: React.FC<PartnerProfileDrawerProps> = ({
               <div className="relative w-28 h-28 mx-auto rounded-full p-1 bg-gradient-to-tr from-accent-pink to-accent-purple shadow-2xl">
                 <img
                   src={partnerUser.photoURL}
-                  alt={partnerUser.realName}
+                  alt={partnerUser.displayName || partnerUser.username}
                   className="w-full h-full rounded-full object-cover border-4 border-space-950"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser.realName)}&background=a855f7&color=fff`;
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser.displayName || partnerUser.username || 'Partner')}&background=a855f7&color=fff`;
                   }}
                 />
                 <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-space-950 ${partnerUser.online ? 'bg-emerald-400' : 'bg-slate-500'}`} />
               </div>
 
               <div>
-                <h2 className="text-xl font-extrabold text-white">{partnerUser.petName}</h2>
-                <p className="text-xs text-pink-300 font-medium">({partnerUser.realName})</p>
-                <p className="text-[11px] text-slate-400 mt-1 flex items-center justify-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-pink-400" />
-                  <span>{partnerUser.city}</span>
-                </p>
+                <h2 className="text-xl font-extrabold text-white">{partnerUser.petName || partnerUser.displayName}</h2>
+                {partnerUser.realName && partnerUser.realName !== partnerUser.petName && (
+                  <p className="text-xs text-pink-300 font-medium">({partnerUser.realName})</p>
+                )}
+                <p className="text-xs text-pink-300/80 font-mono mt-0.5">@{partnerUser.username}</p>
+                {partnerUser.city && (
+                  <p className="text-[11px] text-slate-400 mt-1 flex items-center justify-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-pink-400" />
+                    <span>{partnerUser.city}</span>
+                  </p>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -104,7 +109,7 @@ export const PartnerProfileDrawer: React.FC<PartnerProfileDrawerProps> = ({
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">About & Mood</p>
               <div className="flex items-center gap-2 pt-1">
                 <span className="text-2xl">{partnerUser.mood?.emoji || '💕'}</span>
-                <p className="text-xs font-semibold text-white italic">"{partnerUser.mood?.text || 'Loving you always'}"</p>
+                <p className="text-xs font-semibold text-white italic">"{partnerUser.bio || partnerUser.mood?.text || 'Available on Our Universe'}"</p>
               </div>
             </div>
 

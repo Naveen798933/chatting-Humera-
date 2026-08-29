@@ -88,7 +88,7 @@ export async function emergencyNukeLocalData() {
 
     // 2. Clear IndexedDB databases if available
     if (typeof window !== 'undefined' && window.indexedDB) {
-      const dbs = ['our_universe_cache', 'our_universe_db', 'keyval-store'];
+      const dbs = ['OurUniverseOfflineDB', 'our_universe_cache', 'our_universe_db', 'keyval-store'];
       dbs.forEach(name => {
         try { window.indexedDB.deleteDatabase(name); } catch {}
       });

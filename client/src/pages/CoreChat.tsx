@@ -5,14 +5,17 @@ import { useUniverse } from '../context/UniverseContext';
 import { useScreenSize } from '../hooks/useScreenSize';
 import { sounds } from '../lib/soundEffects';
 import { toast } from '../lib/toast';
-import { Message } from '../types';
+import { Message, UserProfile } from '../types';
 import { EmojiGifPicker } from '../components/EmojiGifPicker';
 import { VoiceNotePlayer } from '../components/VoiceNotePlayer';
 import { ViewOnceModal } from '../components/ViewOnceModal';
+import { ChatListSidebar } from '../components/ChatListSidebar';
+import { UserSearchModal } from '../components/UserSearchModal';
+import { CreateGroupModal } from '../components/CreateGroupModal';
 import {
   Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video, Camera,
   Trash2, Star, Search, CornerUpLeft, Clock, Paperclip, Eye, Flame,
-  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical, ArrowDown, ArrowRight
+  CheckCheck, Sparkles, X, StopCircle, MapPin, User, Forward, Edit3, Check, MessageCircle, MoreVertical, ArrowDown, ArrowRight, ArrowLeft, Users, Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from '../components/motion';
 
@@ -25,6 +28,7 @@ interface CoreChatProps {
 export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
   const { currentUser, partnerUser, toggleDecoyMode } = useAuth();
   const {
+    chats, activeChatId, activeChat, setActiveChatId,
     messages, sendMessage, burnViewOnceMessage, deleteMessage, editMessage, markMessagesAsSeen,
     toggleStarMessage, addReaction, isPartnerTyping, setTypingStatus, startCall
   } = useUniverse();
@@ -47,6 +51,11 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
   const [activeReactionMsgId, setActiveReactionMsgId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [activeViewOnce, setActiveViewOnce] = useState<{ id: string; url: string } | null>(null);
+
+  // Modals state
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [mobileView, setMobileView] = useState<'sidebar' | 'chat'>('chat');
 
   const { isMobile } = useScreenSize();
 
@@ -276,7 +285,8 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
   };
 
   const handleSendLocation = () => {
-    sendMessage(`📍 Shared live location: ${currentUser?.city}`, 'location', undefined, replyingTo?.id, isSecretMode, secretTimeout);
+    const locText = currentUser?.city ? `📍 Shared live location: ${currentUser.city}` : '📍 Shared live location';
+    sendMessage(locText, 'location', undefined, replyingTo?.id, isSecretMode, secretTimeout);
     toast.success('Location shared!');
   };
 
@@ -458,70 +468,115 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
     return m.content.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const isGroup = activeChat?.type === 'group';
+  const chatTitle = isGroup ? (activeChat?.name || 'Group Chat') : (partnerUser?.displayName || partnerUser?.realName || 'Direct Chat');
+  const chatAvatar = isGroup
+    ? (activeChat?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeChat?.name || 'G')}&background=a855f7&color=fff`)
+    : (partnerUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(chatTitle)}&background=ff70a6&color=fff`);
+  const chatSubtitle = isGroup
+    ? `${activeChat?.participants.length || 0} members`
+    : (partnerUser?.username ? `@${partnerUser.username}` : (partnerUser?.online ? 'Online' : 'Offline'));
+
   return (
-    <div className="max-w-4xl w-full mx-auto flex flex-col glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full md:h-[82vh]">
+    <div className="max-w-7xl w-full mx-auto flex glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full md:h-[82vh]">
       
-      {/* Chat Header */}
-      <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/90 backdrop-blur-md flex-shrink-0 z-20">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="relative flex-shrink-0">
-            <img
-              src={partnerUser?.photoURL}
-              alt={partnerUser?.realName}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-accent-pink shadow-md"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.realName || 'Partner')}&background=a855f7&color=fff`;
-              }}
-            />
-            <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-space-950 rounded-full ${
-              partnerUser?.online ? 'bg-emerald-500' : 'bg-slate-500'
-            }`} />
-          </div>
-          <div className="min-w-0">
-            <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1 truncate">
-              <span className="truncate">{partnerUser?.petName}</span>
-              <span className="text-[10px] text-pink-300/70 font-normal hidden sm:inline">({partnerUser?.realName})</span>
-            </h3>
-            {isPartnerTyping ? (
-              <p className="text-[9px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1.5 animate-pulse">
-                <span className="flex gap-1 items-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </span>
-                <span>{partnerUser?.petName || 'Partner'} is typing...</span>
-              </p>
-            ) : (
-              <p className={`text-[9px] sm:text-[10px] font-medium flex items-center gap-1 ${
-                partnerUser?.online ? 'text-emerald-400' : 'text-slate-400'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                  partnerUser?.online ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
+      {/* Multi-Conversation Sidebar (Desktop always visible, Mobile conditionally visible) */}
+      <div className={`h-full ${mobileView === 'sidebar' ? 'block w-full' : 'hidden md:block'}`}>
+        <ChatListSidebar
+          onOpenSearch={() => setShowSearchModal(true)}
+          onOpenCreateGroup={() => setShowCreateGroupModal(true)}
+          onSelectChat={(id) => {
+            setActiveChatId(id);
+            setMobileView('chat');
+          }}
+        />
+      </div>
+
+      {/* Main Active Conversation Window */}
+      <div className={`flex-1 flex flex-col h-full overflow-hidden bg-space-950/40 ${
+        mobileView === 'sidebar' ? 'hidden md:flex' : 'flex'
+      }`}>
+        {/* Chat Header */}
+        <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/90 backdrop-blur-md flex-shrink-0 z-20">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Mobile Back to Sidebar Button */}
+            <button
+              onClick={() => setMobileView('sidebar')}
+              className="p-1.5 rounded-xl glass-card text-slate-300 hover:text-white md:hidden shrink-0"
+              title="All Conversations"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            <div className="relative flex-shrink-0">
+              <img
+                src={chatAvatar}
+                alt={chatTitle}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-accent-pink shadow-md"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(chatTitle)}&background=a855f7&color=fff`;
+                }}
+              />
+              {!isGroup && (
+                <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-space-950 rounded-full ${
+                  partnerUser?.online ? 'bg-emerald-500' : 'bg-slate-500'
                 }`} />
-                <span>{formatLastSeen(partnerUser?.lastSeen, partnerUser?.online)}</span>
-              </p>
-            )}
+              )}
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
+                <span className="truncate">{chatTitle}</span>
+                {isGroup && (
+                  <span className="text-[9px] px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 font-bold rounded-md shrink-0">
+                    Group
+                  </span>
+                )}
+              </h3>
+              {isPartnerTyping ? (
+                <p className="text-[9px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1.5 animate-pulse">
+                  <span className="flex gap-1 items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </span>
+                  <span>{chatTitle} is typing...</span>
+                </p>
+              ) : (
+                <p className={`text-[9px] sm:text-[10px] font-medium flex items-center gap-1 ${
+                  partnerUser?.online && !isGroup ? 'text-emerald-400' : 'text-slate-400'
+                }`}>
+                  {!isGroup && (
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                      partnerUser?.online ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
+                    }`} />
+                  )}
+                  <span>{isGroup ? chatSubtitle : formatLastSeen(partnerUser?.lastSeen, partnerUser?.online)}</span>
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-          {/* Quick Voice Call Button */}
-          <button
-            onClick={() => { startCall('voice'); toast.love('Starting Voice Call... 📞'); }}
-            title="Start Voice Call"
-            className="p-1.5 sm:p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors"
-          >
-            <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            {/* Quick Voice Call Button */}
+            {!isGroup && (
+              <button
+                onClick={() => { startCall('voice'); toast.love('Starting Voice Call... 📞'); }}
+                title="Start Voice Call"
+                className="p-1.5 sm:p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors"
+              >
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
 
-          {/* Quick Video Call Button */}
-          <button
-            onClick={() => { startCall('video'); toast.love('Starting Video Call... 📹'); }}
-            title="Start Video Call"
-            className="p-1.5 sm:p-2 rounded-xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-colors"
-          >
-            <Video className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+            {!isGroup && (
+              <button
+                onClick={() => { startCall('video'); toast.love('Starting Video Call... 📹'); }}
+                title="Start Video Call"
+                className="p-1.5 sm:p-2 rounded-xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-colors"
+              >
+                <Video className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
 
           <button
             onClick={() => setIsSecretMode(!isSecretMode)}
@@ -566,7 +621,9 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
                       setShowMoreMenu(false);
                       // Enhanced HTML export — styled, readable, with timestamps
                       const htmlRows = messages.map(m => {
-                        const author = m.senderId === currentUser?.uid ? currentUser?.petName : partnerUser?.petName;
+                        const author = m.senderId === currentUser?.uid 
+                          ? (currentUser?.petName || currentUser?.displayName || currentUser?.username || 'Me')
+                          : (partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner');
                         const time = new Date(m.createdAt).toLocaleString();
                         const isMe = m.senderId === currentUser?.uid;
                         const bgColor = isMe ? '#ff70a6' : '#2d1b69';
@@ -764,7 +821,7 @@ ${htmlRows}
             </div>
             <div>
               <p className="text-sm font-bold text-white/80">Start Your Universe</p>
-              <p className="text-xs text-slate-400 mt-1">Send the first message to {partnerUser?.petName} 💕</p>
+              <p className="text-xs text-slate-400 mt-1">Send the first message to {partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'your friend'} 💕</p>
             </div>
           </div>
         )}
@@ -964,13 +1021,13 @@ ${htmlRows}
           <div className="flex items-center gap-2 text-xs text-pink-300 italic mb-2 px-2">
             <img
               src={partnerUser?.photoURL}
-              alt={partnerUser?.realName}
+              alt={partnerUser?.displayName || partnerUser?.username || 'Partner'}
               className="w-5 h-5 rounded-full object-cover border border-pink-400/40"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Partner&background=a855f7&color=fff`;
               }}
             />
-            <span>{partnerUser?.petName || partnerUser?.realName} is typing</span>
+            <span>{partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Someone'} is typing</span>
             <span className="inline-flex gap-1 items-center">
               <span className="typing-dot w-1.5 h-1.5 rounded-full bg-pink-400" />
               <span className="typing-dot w-1.5 h-1.5 rounded-full bg-purple-400" />
@@ -1117,7 +1174,7 @@ ${htmlRows}
                   setActiveReactionMsgId(null);
                 }
               }}
-              placeholder={isSecretMode ? '🔒 Disappearing message...' : `Message ${partnerUser?.petName ?? ''}...`}
+              placeholder={isSecretMode ? '🔒 Disappearing message...' : `Message ${partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'chat'}...`}
               rows={1}
               className="flex-1 min-w-0 px-2 py-1.5 bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm resize-none overflow-y-auto max-h-24 leading-relaxed focus:outline-none scrollbar-none"
               style={{ touchAction: 'manipulation', WebkitUserSelect: 'text', userSelect: 'text' }}
@@ -1199,11 +1256,17 @@ ${htmlRows}
               <button
                 type="button"
                 onClick={handleStopRecording}
-                className="h-11 px-3.5 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 animate-pulse shadow-lg shadow-rose-500/40"
+                className="h-11 px-3.5 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center gap-2 animate-pulse shadow-lg shadow-rose-500/40"
                 title="Stop & Send Voice Note"
                 aria-label="Stop recording and send voice note"
               >
-                <StopCircle className="w-5 h-5" />
+                <div className="flex items-center gap-0.5 h-4">
+                  <span className="w-0.5 h-3 bg-white rounded-full wave-bar-active" />
+                  <span className="w-0.5 h-4 bg-white rounded-full wave-bar-active" />
+                  <span className="w-0.5 h-2 bg-white rounded-full wave-bar-active" />
+                  <span className="w-0.5 h-4 bg-white rounded-full wave-bar-active" />
+                </div>
+                <StopCircle className="w-4 h-4" />
                 <span>{recordingTime}s</span>
               </button>
             )}
@@ -1248,6 +1311,18 @@ ${htmlRows}
           </div>
         )}
       </AnimatePresence>
+
+      {/* Modals */}
+      <UserSearchModal
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+      />
+
+      <CreateGroupModal
+        isOpen={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+      />
+      </div>
     </div>
   );
 };
