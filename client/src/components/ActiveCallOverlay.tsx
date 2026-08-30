@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, RefreshCw, Maximize2, Minimize2, MonitorUp, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, RefreshCw, Maximize2, Minimize2, MonitorUp, Volume2, VolumeX, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from './motion';
 import { UserProfile } from '../types';
 
@@ -169,18 +169,31 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
           className="fixed inset-0 z-50 bg-space-950 flex flex-col justify-between p-4 sm:p-6 overflow-hidden"
         >
           {/* Header Controls */}
-          <div className="flex items-center justify-between z-20">
-            <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center justify-between z-20 gap-3"
+            style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))' }}
+          >
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              {/* Back to Chat / Minimize Call Button */}
+              <button
+                onClick={() => setIsMinimized(true)}
+                className="p-2 rounded-2xl glass-card text-pink-300 hover:text-white border border-pink-500/30 flex items-center justify-center min-w-[38px] min-h-[38px] active:scale-90 transition-all shrink-0"
+                title="Back to Chat (Keep Call Active)"
+                aria-label="Back to chat"
+              >
+                <ChevronLeft className="w-5 h-5 text-pink-400" />
+              </button>
+
               <img
                 src={partnerUser?.photoURL}
                 alt={partnerUser?.displayName || partnerUser?.username || 'Partner'}
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-pink-400 shadow-lg"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-pink-400 shadow-lg shrink-0"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerUser?.displayName || partnerUser?.username || 'Partner')}&background=a855f7&color=fff`;
                 }}
               />
-              <div>
-                <h3 className="font-extrabold text-white text-sm sm:text-base">{partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner'}</h3>
+              <div className="min-w-0">
+                <h3 className="font-extrabold text-white text-sm sm:text-base truncate">{partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner'}</h3>
                 <p className="text-xs text-pink-300 font-mono flex items-center gap-1.5 flex-wrap">
                   {connectionState === 'connected' && (
                     <><span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -195,10 +208,11 @@ export const ActiveCallOverlay: React.FC<ActiveCallOverlayProps> = ({
 
             <button
               onClick={() => setIsMinimized(true)}
-              className="p-2.5 rounded-full glass-card text-slate-300 hover:text-white"
+              className="p-2 rounded-2xl glass-card text-slate-300 hover:text-white min-w-[38px] min-h-[38px] flex items-center justify-center active:scale-95 transition-all shrink-0"
               title="Minimize Call"
+              aria-label="Minimize Call"
             >
-              <Minimize2 className="w-5 h-5" />
+              <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
 

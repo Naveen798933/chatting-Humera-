@@ -766,7 +766,7 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
                         }}
                         className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-pink-300 hover:text-white hover:bg-pink-500/15 flex items-center gap-2.5 font-semibold md:hidden border-t border-white/10 mt-1"
                       >
-                        <ArrowRight className="w-4 h-4 text-pink-400" />
+                        <ArrowLeft className="w-4 h-4 text-pink-400" />
                         <span>Back to Dashboard</span>
                       </button>
                     )}
@@ -783,7 +783,7 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
                 aria-label="Back to Home"
                 className="p-2 rounded-xl glass-card border border-pink-500/40 text-pink-300 hover:text-white hover:bg-pink-500/20 active:scale-95 transition-all items-center justify-center shadow-md shadow-pink-500/10 ml-1 hidden md:flex min-w-[36px] min-h-[36px]"
               >
-                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                <ArrowLeft className="w-4 h-4" />
               </button>
             )}
           </div>
