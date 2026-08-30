@@ -3,7 +3,7 @@ import { X, Palette, Check, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from './motion';
 import { toast } from '../lib/toast';
 
-export type AppTheme = 'cosmic' | 'rose' | 'emerald' | 'ocean' | 'amoled' | 'sunset' | 'galaxy';
+export type AppTheme = 'cosmic' | 'rose' | 'galaxy' | 'amoled';
 
 interface ThemeSelectorModalProps {
   isOpen: boolean;
@@ -34,32 +34,11 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
       desc: 'Romantic crimson red & velvet rose'
     },
     {
-      id: 'sunset',
-      name: 'Sunset Glow',
-      gradient: 'from-orange-950 via-rose-950 to-amber-950',
-      accentColor: '#fb923c',
-      desc: 'Warm golden sunset & romantic orange'
-    },
-    {
       id: 'galaxy',
       name: 'Deep Galaxy',
       gradient: 'from-indigo-950 via-purple-950 to-black',
       accentColor: '#818cf8',
       desc: 'Starlit nebula indigo & cosmos blue'
-    },
-    {
-      id: 'emerald',
-      name: 'Emerald Aurora',
-      gradient: 'from-emerald-950 via-teal-950 to-space-950',
-      accentColor: '#10b981',
-      desc: 'Lush aurora green & mint glow'
-    },
-    {
-      id: 'ocean',
-      name: 'Ocean Cyan',
-      gradient: 'from-cyan-950 via-blue-950 to-space-950',
-      accentColor: '#06b6d4',
-      desc: 'Deep ocean cyan & sapphire'
     },
     {
       id: 'amoled',
@@ -78,7 +57,7 @@ export const ThemeSelectorModal: React.FC<ThemeSelectorModalProps> = ({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-6 relative space-y-4"
+            className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-5 sm:p-6 relative space-y-4 max-h-[90dvh] overflow-y-auto scrollbar-none"
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">

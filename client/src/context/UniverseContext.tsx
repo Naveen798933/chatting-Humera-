@@ -9,7 +9,7 @@ import { sounds } from '../lib/soundEffects';
 import { toast } from '../lib/toast';
 import confetti from 'canvas-confetti';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { chatApi, messageApi, friendApi, notificationApi, safetyApi } from '../lib/api';
+import { userApi, chatApi, messageApi, friendApi, notificationApi, safetyApi } from '../lib/api';
 
 // Local-only keys (fallback)
 const LS_MEMS  = 'ou_shared_memories';
@@ -262,17 +262,25 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Set partnerUser to the other participant in direct chats
     if (activeChat && activeChat.type === 'direct' && currentUser) {
       const otherUid = activeChat.participants.find(p => p !== currentUser.uid);
-      if (otherUid && activeChat.participantDetails?.[otherUid]) {
-        const pd = activeChat.participantDetails[otherUid];
-        setPartnerUser({
-          uid: pd.uid,
-          username: pd.username,
-          displayName: pd.displayName,
-          email: `${pd.username}@ouruniverse.app`,
-          photoURL: pd.photoURL,
-          online: pd.online,
-          lastSeen: pd.lastSeen
-        });
+      if (otherUid) {
+        if (activeChat.participantDetails?.[otherUid]) {
+          const pd = activeChat.participantDetails[otherUid];
+          setPartnerUser({
+            uid: pd.uid,
+            username: pd.username,
+            displayName: pd.displayName,
+            email: `${pd.username}@ouruniverse.app`,
+            photoURL: pd.photoURL,
+            online: pd.online,
+            lastSeen: pd.lastSeen
+          });
+        } else {
+          userApi.getProfile(otherUid).then((prof: UserProfile | null) => {
+            if (prof && isMounted) {
+              setPartnerUser(prof);
+            }
+          });
+        }
       }
     }
 

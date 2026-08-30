@@ -126,7 +126,7 @@ export const MemoriesGallery: React.FC = () => {
       album,
       date: new Date().toISOString().split('T')[0],
       isFavorite: album === 'Favorites',
-      createdBy: currentUser?.uid ?? 'naveen_uid_798933'
+      createdBy: currentUser?.uid || 'user_1'
     });
 
     toast.love('Memory saved! 📸');

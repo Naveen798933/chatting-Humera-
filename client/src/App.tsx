@@ -18,8 +18,6 @@ const LoveVaultCalendar = lazy(() => import('./pages/LoveVaultCalendar').then(m 
 const TogetherTime  = lazy(() => import('./pages/TogetherTime').then(m => ({ default: m.TogetherTime })));
 import { DecoyCalculator } from './components/DecoyCalculator';
 import { ToastContainer } from './components/Toast';
-import { WhatsAppStatusModal } from './components/WhatsAppStatusModal';
-import { StoryItem } from './types';
 import { PartnerProfileDrawer } from './components/PartnerProfileDrawer';
 import { toast } from './lib/toast';
 import { ThemeSelectorModal, AppTheme } from './components/ThemeSelectorModal';
@@ -27,16 +25,17 @@ import { PrivacyShieldOverlay } from './components/PrivacyShieldOverlay';
 import { UserSearchModal } from './components/UserSearchModal';
 import { FriendsDrawer } from './components/FriendsDrawer';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
-import { PrivacySettingsModal } from './components/PrivacySettingsModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { CreateGroupModal } from './components/CreateGroupModal';
-import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
-  const { isCallActive, callType, callRole, incomingCall, acceptCall, declineCall, endCall, startCall, messages, memories } = useUniverse();
+  const {
+    isCallActive, callType, callRole, incomingCall,
+    acceptCall, declineCall, endCall, startCall,
+    messages, memories, startDirectChatWithUser, setActiveChatId
+  } = useUniverse();
   const [activeTab, setActiveTab] = useState<TabType>('chat');
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
 
@@ -44,7 +43,6 @@ const AppContent: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFriendsOpen, setIsFriendsOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
@@ -70,12 +68,10 @@ const AppContent: React.FC = () => {
 
       if (e.key === 'Escape') {
         if (isThemeOpen) { setIsThemeOpen(false); return; }
-        if (isStatusOpen) { setIsStatusOpen(false); return; }
         if (isProfileDrawerOpen) { setIsProfileDrawerOpen(false); return; }
         if (isSearchOpen) { setIsSearchOpen(false); return; }
         if (isFriendsOpen) { setIsFriendsOpen(false); return; }
         if (isNotificationsOpen) { setIsNotificationsOpen(false); return; }
-        if (isPrivacyOpen) { setIsPrivacyOpen(false); return; }
         if (isProfileOpen) { setIsProfileOpen(false); return; }
         if (isCreateGroupOpen) { setIsCreateGroupOpen(false); return; }
       }
@@ -83,93 +79,18 @@ const AppContent: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    isThemeOpen, isStatusOpen, isProfileDrawerOpen,
+    isThemeOpen, isProfileDrawerOpen,
     isSearchOpen, isFriendsOpen, isNotificationsOpen,
-    isPrivacyOpen, isProfileOpen, isCreateGroupOpen, toggleDecoyMode
+    isProfileOpen, isCreateGroupOpen, toggleDecoyMode
   ]);
 
-  const [stories, setStories] = useState<StoryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('ou_shared_stories');
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-    return [
-      {
-        id: 'story_seed_1',
-        authorId: partnerUser?.uid || 'humera_uid_140299',
-        authorName: partnerUser?.petName || 'Humera (Jaanu ❤️)',
-        authorPhoto: partnerUser?.photoURL || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80',
-        text: 'Stargazing tonight thinking of you Bangaram! 💕',
-        bgGradient: 'from-pink-600 to-purple-800',
-        createdAt: new Date().toISOString()
-      }
-    ];
-  });
-
-  const storyChannelRef = React.useRef<any>(null);
-
-  const handleAddStory = (st: Omit<StoryItem, 'id' | 'createdAt'>) => {
-    const newStory: StoryItem = {
-      ...st,
-      id: `story_${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    setStories(prev => {
-      const updated = [newStory, ...prev];
-      try { localStorage.setItem('ou_shared_stories', JSON.stringify(updated)); } catch (_) {}
-      return updated;
-    });
-
-    if (isSupabaseConfigured() && storyChannelRef.current) {
-      try {
-        storyChannelRef.current.send({
-          type: 'broadcast',
-          event: 'NEW_STORY',
-          payload: { story: newStory }
-        }).catch(() => {});
-      } catch (_) {}
-    }
-  };
-
-  React.useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-    const channel = supabase.channel('ou_story_broadcast');
-    storyChannelRef.current = channel;
-    channel.on('broadcast', { event: 'NEW_STORY' }, (payload: any) => {
-      const { story } = payload.payload || {};
-      if (story && story.authorId !== currentUser?.uid) {
-        setStories(prev => {
-          if (prev.some(s => s.id === story.id)) return prev;
-          const updated = [story, ...prev];
-          try { localStorage.setItem('ou_shared_stories', JSON.stringify(updated)); } catch (_) {}
-          return updated;
-        });
-        toast.love(`New status update from ${story.authorName}! 🌸`);
-      }
-    }).subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-      storyChannelRef.current = null;
-    };
-  }, [currentUser]);
-
+  // WebRTC Audio/Video setup
   const {
-    localStream,
-    remoteStream,
-    isMicMuted,
-    isCameraOff,
-    isScreenSharing,
-    isSpeakerOn,
-    supportsAudioOutputSelection,
-    connectionState,
-    initializeCall,
-    toggleMic,
-    toggleCamera,
-    switchCamera,
-    toggleAudioOutput,
-    toggleScreenShare,
-    endCall: webrtcEndCall
+    localStream, remoteStream,
+    connectionState, isMicMuted, isCameraOff,
+    isScreenSharing, isSpeakerOn, supportsAudioOutputSelection,
+    initializeCall, toggleMic, toggleCamera, switchCamera,
+    toggleScreenShare, toggleAudioOutput, endCall: webrtcEndCall
   } = useWebRTC();
 
   React.useEffect(() => {
@@ -200,13 +121,11 @@ const AppContent: React.FC = () => {
       <Navigation
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenStatus={() => setIsStatusOpen(true)}
         onOpenTheme={() => setIsThemeOpen(true)}
         onOpenPartnerProfile={() => setIsProfileDrawerOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenFriends={() => setIsFriendsOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
-        onOpenPrivacy={() => setIsPrivacyOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
       />
 
@@ -214,34 +133,44 @@ const AppContent: React.FC = () => {
       <UserSearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
-        onSelectUserForChat={() => setActiveTab('chat')}
+        onSelectUserForChat={(user) => {
+          if (user) startDirectChatWithUser(user);
+          setActiveTab('chat');
+        }}
       />
       <FriendsDrawer
         isOpen={isFriendsOpen}
         onClose={() => setIsFriendsOpen(false)}
         onOpenSearch={() => setIsSearchOpen(true)}
-        onStartChat={() => setActiveTab('chat')}
+        onStartChat={(friend) => {
+          if (friend) startDirectChatWithUser(friend);
+          setActiveTab('chat');
+        }}
         onStartGame={() => setActiveTab('together')}
       />
       <NotificationCenterModal
         isOpen={isNotificationsOpen}
         onClose={() => setIsNotificationsOpen(false)}
-        onSelectChat={() => setActiveTab('chat')}
+        onSelectChat={(chatId) => {
+          if (chatId) setActiveChatId(chatId);
+          setActiveTab('chat');
+        }}
         onOpenGames={() => setActiveTab('together')}
         onOpenFriends={() => setIsFriendsOpen(true)}
-      />
-      <PrivacySettingsModal
-        isOpen={isPrivacyOpen}
-        onClose={() => setIsPrivacyOpen(false)}
       />
       <UserProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
+        currentTheme={currentTheme}
+        onSelectTheme={(t) => setCurrentTheme(t)}
       />
       <CreateGroupModal
         isOpen={isCreateGroupOpen}
         onClose={() => setIsCreateGroupOpen(false)}
-        onGroupCreated={() => setActiveTab('chat')}
+        onGroupCreated={(groupId) => {
+          if (groupId) setActiveChatId(groupId);
+          setActiveTab('chat');
+        }}
       />
 
       {/* Page content with Suspense fallback */}
@@ -256,7 +185,7 @@ const AppContent: React.FC = () => {
         <main className={`flex-1 w-full overflow-x-hidden min-h-0 ${
           activeTab === 'chat'
             ? 'max-w-7xl mx-auto px-0 sm:px-4 md:px-8 pt-0 sm:pt-4 md:pt-6 pb-0 md:pb-6 flex flex-col overflow-hidden'
-            : 'max-w-7xl mx-auto px-2.5 sm:px-6 md:px-8 pt-3 sm:pt-6 pb-28 md:pb-10 overflow-y-auto'
+            : 'max-w-7xl mx-auto px-2 xs:px-3 sm:px-6 md:px-8 pt-2.5 sm:pt-6 pb-mobile-safe md:pb-10 overflow-y-auto'
         }`}>
           {activeTab === 'home'     && <HomeDashboard />}
           {activeTab === 'chat'     && <CoreChat onBackToHome={() => setActiveTab('home')} />}
@@ -271,14 +200,6 @@ const AppContent: React.FC = () => {
         onClose={() => setIsThemeOpen(false)}
         currentTheme={currentTheme}
         onSelectTheme={(t) => { setCurrentTheme(t); setIsThemeOpen(false); }}
-      />
-      <WhatsAppStatusModal
-        isOpen={isStatusOpen}
-        onClose={() => setIsStatusOpen(false)}
-        currentUser={currentUser}
-        partnerUser={partnerUser}
-        stories={stories}
-        onAddStory={handleAddStory}
       />
       <PartnerProfileDrawer
         isOpen={isProfileDrawerOpen}
@@ -313,11 +234,9 @@ const AppContent: React.FC = () => {
         onSwitchCamera={switchCamera}
         onToggleScreenShare={toggleScreenShare}
         onToggleAudioOutput={toggleAudioOutput}
-        onEndCall={() => {
-          endCall();
-          webrtcEndCall();
-        }}
+        onEndCall={endCall}
       />
+
       <ToastContainer />
     </div>
   );

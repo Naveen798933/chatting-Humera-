@@ -96,10 +96,11 @@ export const Navigation: React.FC<NavigationProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const navItems: { id: TabType; label: string; shortLabel: string; icon: React.ReactNode }[] = [
-    { id: 'chat',     label: 'Chats',     shortLabel: 'Chats',     icon: <MessageCircle className="w-5 h-5" /> },
-    { id: 'home',     label: 'Dashboard', shortLabel: 'Home',      icon: <Home className="w-5 h-5" /> },
-    { id: 'together', label: 'Activities', shortLabel: 'Play',     icon: <Sparkles className="w-5 h-5 text-pink-400" /> },
-    { id: 'memories', label: 'Memories',  shortLabel: 'Gallery',   icon: <Heart className="w-5 h-5" /> },
+    { id: 'chat',     label: 'Chats',       shortLabel: 'Chats',     icon: <MessageCircle className="w-5 h-5" /> },
+    { id: 'home',     label: 'Dashboard',   shortLabel: 'Home',      icon: <Home className="w-5 h-5" /> },
+    { id: 'together', label: 'Activities',  shortLabel: 'Play',      icon: <Sparkles className="w-5 h-5 text-pink-400" /> },
+    { id: 'memories', label: 'Memories',    shortLabel: 'Gallery',   icon: <Heart className="w-5 h-5" /> },
+    { id: 'vault',    label: 'Love Vault',  shortLabel: 'Vault',     icon: <Lock className="w-5 h-5" /> },
   ];
 
   const handleLogout = () => {
@@ -166,15 +167,15 @@ export const Navigation: React.FC<NavigationProps> = ({
           </nav>
 
           {/* ── Action Icons & Profile ── */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 flex-shrink-0">
             {/* Search Users Button */}
             {onOpenSearch && (
               <button
                 onClick={onOpenSearch}
                 title="Search Users & Start Chat"
-                className="p-2 rounded-xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-95 transition-all"
+                className="p-1.5 xs:p-2 rounded-xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-95 transition-all min-w-[32px] min-h-[32px] xs:min-w-[36px] xs:min-h-[36px] flex items-center justify-center"
               >
-                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Search className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
               </button>
             )}
 
@@ -183,11 +184,11 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 onClick={onOpenFriends}
                 title="Friends List & Requests"
-                className="p-2 rounded-xl glass-card text-purple-300 hover:text-white hover:border-purple-400/60 active:scale-95 transition-all relative"
+                className="p-1.5 xs:p-2 rounded-xl glass-card text-purple-300 hover:text-white hover:border-purple-400/60 active:scale-95 transition-all relative min-w-[32px] min-h-[32px] xs:min-w-[36px] xs:min-h-[36px] flex items-center justify-center"
               >
-                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Users className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
                 {pendingFriendRequests.length > 0 && (
-                  <span className="w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping absolute top-1 right-1" />
+                  <span className="w-2 h-2 xs:w-2.5 xs:h-2.5 rounded-full bg-pink-500 animate-ping absolute top-0.5 right-0.5" />
                 )}
               </button>
             )}
@@ -197,11 +198,11 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 onClick={onOpenNotifications}
                 title="Notifications"
-                className="p-2 rounded-xl glass-card text-amber-300 hover:text-white hover:border-amber-400/60 active:scale-95 transition-all relative"
+                className="p-1.5 xs:p-2 rounded-xl glass-card text-amber-300 hover:text-white hover:border-amber-400/60 active:scale-95 transition-all relative min-w-[32px] min-h-[32px] xs:min-w-[36px] xs:min-h-[36px] flex items-center justify-center"
               >
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Bell className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
                 {unreadNotificationCount > 0 && (
-                  <span className="min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center absolute -top-1 -right-1 animate-pulse shadow-md shadow-rose-500/50">
+                  <span className="min-w-[14px] h-3.5 px-0.5 rounded-full bg-rose-500 text-white text-[8px] font-extrabold flex items-center justify-center absolute -top-1 -right-1 animate-pulse shadow-md shadow-rose-500/50">
                     {unreadNotificationCount}
                   </span>
                 )}
@@ -213,9 +214,9 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 onClick={onOpenTheme}
                 title="Theme & Atmosphere"
-                className="p-2 rounded-xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-95 transition-all"
+                className="p-1.5 xs:p-2 rounded-xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-95 transition-all min-w-[32px] min-h-[32px] xs:min-w-[36px] xs:min-h-[36px] flex items-center justify-center"
               >
-                <Palette className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Palette className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
               </button>
             )}
 
@@ -224,12 +225,12 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 title="My Account"
-                className="p-0.5 rounded-full border-2 border-pink-400/80 hover:border-pink-300 transition-all flex items-center gap-1.5 active:scale-95"
+                className="p-0.5 rounded-full border-2 border-pink-400/80 hover:border-pink-300 transition-all flex items-center gap-1 active:scale-95"
               >
                 <img
                   src={currentUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || 'Me')}&background=ff70a6&color=fff`}
                   alt="Profile"
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
+                  className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full object-cover"
                 />
               </button>
 
@@ -249,28 +250,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                       onClick={onOpenProfile}
                       className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"
                     >
-                      <User className="w-4 h-4 text-pink-400" />
-                      <span>Edit Profile</span>
-                    </button>
-                  )}
-
-                  {onOpenStatus && (
-                    <button
-                      onClick={onOpenStatus}
-                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"
-                    >
-                      <Sparkles className="w-4 h-4 text-purple-400" />
-                      <span>Status Stories</span>
-                    </button>
-                  )}
-
-                  {onOpenPrivacy && (
-                    <button
-                      onClick={onOpenPrivacy}
-                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"
-                    >
-                      <Shield className="w-4 h-4 text-emerald-400" />
-                      <span>Privacy &amp; Security</span>
+                      <Settings className="w-4 h-4 text-pink-400" />
+                      <span>Account &amp; Settings</span>
                     </button>
                   )}
 
@@ -294,12 +275,12 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* ─── Floating Glass Bottom Nav Bar (Mobile) ──────────────────── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div
-        className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-3.5 transition-all duration-300 ease-in-out ${
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-2 xs:px-3.5 transition-all duration-300 ease-in-out ${
           isKeyboardOpen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
         }`}
-        style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom, 10px))' }}
+        style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))' }}
       >
-        <nav className="max-w-md mx-auto bg-space-950/90 backdrop-blur-2xl border border-white/15 rounded-3xl p-1.5 shadow-2xl shadow-black/80 flex items-center justify-around">
+        <nav className="max-w-md mx-auto bg-space-950/92 backdrop-blur-2xl border border-white/15 rounded-3xl p-1 xs:p-1.5 shadow-2xl shadow-black/80 flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             const isBouncing = bouncingTab === item.id;
@@ -307,7 +288,7 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleTabChange(item.id)}
-                className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 relative min-h-[48px] ${
+                className={`flex-1 flex flex-col items-center justify-center py-1.5 px-0.5 xs:px-1 rounded-2xl transition-all duration-200 relative min-h-[44px] ${
                   isActive
                     ? 'text-pink-300'
                     : 'text-slate-400 hover:text-slate-200 active:scale-90'
@@ -323,12 +304,12 @@ export const Navigation: React.FC<NavigationProps> = ({
                 >
                   {item.icon}
                   {item.id === 'chat' && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-rose-500 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center px-0.5 shadow-lg shadow-rose-500/40 border border-space-950 animate-pulse">
+                    <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 bg-rose-500 text-white text-[7px] xs:text-[8px] font-extrabold rounded-full flex items-center justify-center px-0.5 shadow-lg shadow-rose-500/40 border border-space-950 animate-pulse">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
                 </div>
-                <span className={`text-[10px] font-semibold tracking-tight truncate max-w-[50px] relative z-10 mt-0.5 ${isActive ? 'text-pink-300 font-extrabold' : ''}`}>
+                <span className={`text-[8.5px] xs:text-[10px] font-semibold tracking-tight truncate max-w-[46px] xs:max-w-[56px] relative z-10 mt-0.5 ${isActive ? 'text-pink-300 font-extrabold' : ''}`}>
                   {item.shortLabel}
                 </span>
               </button>

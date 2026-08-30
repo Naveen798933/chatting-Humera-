@@ -1247,4 +1247,42 @@ mark.search-highlight {
   }
 }
 
+/* ─── Mobile-First Touch & Responsive Viewport Helpers ───────────────────── */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pb-mobile-safe {
+  padding-bottom: max(6.5rem, calc(5rem + env(safe-area-inset-bottom, 20px)));
+}
+
+.pt-mobile-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+}
+
+.word-break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* ─── Ultra-compact Screens (≤375px) Adaptive Styling ────────────────────── */
+@media (max-width: 375px) {
+  .hero-timer-cell {
+    padding: 0.5rem 0.25rem !important;
+  }
+  .hero-timer-number {
+    font-size: 1.125rem !important;
+    line-height: 1.25rem !important;
+  }
+  .hero-timer-label {
+    font-size: 0.5rem !important;
+    letter-spacing: 0.05em !important;
+  }
+}
+
 

@@ -44,7 +44,7 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="glass-panel w-full max-w-md rounded-3xl border border-white/10 p-5 sm:p-6 shadow-2xl space-y-4"
+          className="glass-panel w-full max-w-md rounded-3xl border border-white/10 p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto scrollbar-none"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-3 border-b border-white/10">

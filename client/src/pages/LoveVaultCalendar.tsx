@@ -151,7 +151,7 @@ export const LoveVaultCalendar: React.FC = () => {
       content: fullContent,
       unlockDate: newVaultFutureDate ? newVaultFutureDate : undefined,
       isLocked: Boolean(newVaultFutureDate),
-      createdBy: currentUser?.uid ?? 'naveen_uid_798933'
+      createdBy: currentUser?.uid || 'user_1'
     });
 
     toast.love('Vault letter & capsule saved! 🔒');
@@ -169,7 +169,7 @@ export const LoveVaultCalendar: React.FC = () => {
       title: newCalTitle.trim(),
       date: newCalDate,
       category: newCalCategory,
-      createdBy: currentUser?.uid ?? 'naveen_uid_798933'
+      createdBy: currentUser?.uid || 'user_1'
     });
 
     toast.love('Calendar milestone added! 🗓️');

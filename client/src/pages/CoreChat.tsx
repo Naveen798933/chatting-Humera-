@@ -538,26 +538,26 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
                 }`} />
               )}
             </div>
-            <div className="min-w-0">
-              <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-none">
                 <span className="truncate">{chatTitle}</span>
                 {isGroup && (
-                  <span className="text-[9px] px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 font-bold rounded-md shrink-0">
+                  <span className="text-[8px] xs:text-[9px] px-1 py-0.2 bg-cyan-500/20 text-cyan-300 font-bold rounded-md shrink-0">
                     Group
                   </span>
                 )}
               </h3>
               {isPartnerTyping ? (
-                <p className="text-[9px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1.5 animate-pulse">
-                  <span className="flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <p className="text-[8.5px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1 animate-pulse truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none">
+                  <span className="flex gap-0.5 items-center">
+                    <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                   </span>
-                  <span>{chatTitle} is typing...</span>
+                  <span className="truncate">{chatTitle} is typing...</span>
                 </p>
               ) : (
-                <p className={`text-[9px] sm:text-[10px] font-medium flex items-center gap-1 ${
+                <p className={`text-[8.5px] sm:text-[10px] font-medium flex items-center gap-1 truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none ${
                   partnerUser?.online && !isGroup ? 'text-emerald-400' : 'text-slate-400'
                 }`}>
                   {!isGroup && (
@@ -565,21 +565,21 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
                       partnerUser?.online ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
                     }`} />
                   )}
-                  <span>{isGroup ? chatSubtitle : formatLastSeen(partnerUser?.lastSeen, partnerUser?.online)}</span>
+                  <span className="truncate">{isGroup ? chatSubtitle : formatLastSeen(partnerUser?.lastSeen, partnerUser?.online)}</span>
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
             {/* Quick Voice Call Button */}
             {!isGroup && (
               <button
                 onClick={() => { startCall('voice'); toast.love('Starting Voice Call... 📞'); }}
                 title="Start Voice Call"
-                className="p-1.5 sm:p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors"
+                className="p-1.5 sm:p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors min-w-[30px] min-h-[30px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center"
               >
-                <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             )}
 
@@ -587,31 +587,32 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
               <button
                 onClick={() => { startCall('video'); toast.love('Starting Video Call... 📹'); }}
                 title="Start Video Call"
-                className="p-1.5 sm:p-2 rounded-xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-colors"
+                className="p-1.5 sm:p-2 rounded-xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-colors min-w-[30px] min-h-[30px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center"
               >
-                <Video className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Video className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             )}
 
-          <button
-            onClick={() => setIsSecretMode(!isSecretMode)}
-            className={`px-2 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold flex items-center gap-1 transition-all ${
-              isSecretMode
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-lg shadow-rose-500/20 animate-pulse'
-                : 'glass-card text-slate-300 hover:text-white'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">{isSecretMode ? 'Secret ON' : 'Secret'}</span>
-          </button>
+            <button
+              onClick={() => setIsSecretMode(!isSecretMode)}
+              className={`px-2 sm:px-2.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold flex items-center gap-1 transition-all min-h-[30px] sm:min-h-[36px] ${
+                isSecretMode
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-lg shadow-rose-500/20 animate-pulse'
+                  : 'glass-card text-slate-300 hover:text-white hidden xs:flex'
+              }`}
+              title="Disappearing secret messages"
+            >
+              <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline">{isSecretMode ? 'Secret ON' : 'Secret'}</span>
+            </button>
 
-          <button
-            onClick={() => setShowSearch(!showSearch)}
-            className="p-1.5 sm:p-2 rounded-xl glass-card text-slate-300 hover:text-white"
-            title="Search in chat"
-          >
-            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              className="p-1.5 sm:p-2 rounded-xl glass-card text-slate-300 hover:text-white min-w-[30px] min-h-[30px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center"
+              title="Search in chat"
+            >
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </button>
 
           {/* More Options (3 Dots) Menu */}
           <div className="relative">
@@ -683,15 +684,6 @@ ${htmlRows}
                     className="w-full text-left px-3 py-2 rounded-xl text-xs text-white hover:bg-white/10 flex items-center gap-2"
                   >
                     <span>🔒</span> {isSecretMode ? 'Turn Off Secret Mode' : 'Secret Mode (Burn Timer)'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowMoreMenu(false);
-                      toggleDecoyMode();
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs text-rose-300 hover:bg-rose-500/20 flex items-center gap-2"
-                  >
-                    <span>🛡️</span> Panic Disguise Mode
                   </button>
                 </motion.div>
               )}

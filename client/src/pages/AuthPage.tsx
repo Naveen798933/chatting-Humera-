@@ -216,7 +216,7 @@ export const AuthPage: React.FC = () => {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="aurora-border w-full max-w-lg glass-panel-aurora p-6 sm:p-8 rounded-3xl shadow-2xl relative z-10 my-4"
+        className="aurora-border w-full max-w-lg glass-panel-aurora p-4 xs:p-5 sm:p-8 rounded-3xl shadow-2xl relative z-10 my-2 xs:my-4 max-h-[96dvh] overflow-y-auto scrollbar-none"
       >
         <div className="text-center mb-6">
           {/* Brand Icon */}
