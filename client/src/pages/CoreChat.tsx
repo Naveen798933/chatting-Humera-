@@ -517,90 +517,90 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
       <div className={`w-full min-w-0 flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-space-950/40 ${
         mobileView === 'sidebar' ? 'hidden md:flex' : 'flex'
       }`}>
-        {/* Chat Header — Clean, Native Mobile First Layout */}
+        {/* Section 1: MobileChatHeader (FIXED HEIGHT / flex: 0 0 auto) */}
         <div 
-          className="w-full px-2.5 xs:px-3 sm:px-5 py-2 xs:py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/95 backdrop-blur-xl shrink-0 z-20 shadow-md min-h-[56px] xs:min-h-[60px] sm:min-h-[64px]"
+          className="w-full shrink-0 z-30 bg-space-900/98 backdrop-blur-2xl border-b border-white/10 shadow-md flex items-center justify-between px-2.5 xs:px-3 sm:px-5 py-2 xs:py-2.5 gap-2"
           style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))' }}
         >
           
-          {/* Left: Back Button + Avatar + Name & Subtitle */}
-          <div className="flex-1 min-w-0 flex items-center gap-2 xs:gap-2.5 sm:gap-3 mr-2">
-            {/* Mobile Back to Conversations Button */}
+          {/* HeaderLeft: Back Button (fixed) + Chat Info (flexible min-w-0) */}
+          <div className="flex-1 min-w-0 flex items-center gap-2 xs:gap-2.5 overflow-hidden">
+            {/* Back to Conversations Button (Strict Fixed 38x38px) */}
             <button
               onClick={() => setMobileView('sidebar')}
-              className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-pink-300 hover:text-white md:hidden shrink-0 flex items-center justify-center active:scale-90 transition-all border border-pink-500/25 shadow-sm"
+              className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-pink-300 hover:text-white md:hidden shrink-0 flex items-center justify-center active:scale-90 transition-all border border-pink-500/25 shadow-sm"
               title="All Conversations"
               aria-label="Back to conversations"
             >
               <ChevronLeft className="w-5 h-5 text-pink-400" />
             </button>
 
-            {/* Avatar */}
+            {/* Chat Info (Avatar + Title + Subtitle) */}
             <div 
               onClick={() => { if (!isGroup && onOpenPartnerProfile) onOpenPartnerProfile(); }}
-              className={`w-9 h-9 xs:w-10 xs:h-10 relative shrink-0 ${!isGroup && onOpenPartnerProfile ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
+              className={`flex-1 min-w-0 flex items-center gap-2 xs:gap-2.5 overflow-hidden ${!isGroup && onOpenPartnerProfile ? 'cursor-pointer active:scale-98 transition-transform' : ''}`}
               title={!isGroup ? 'View Profile' : undefined}
             >
-              <img
-                src={chatAvatar}
-                alt={chatTitle}
-                className="w-full h-full rounded-full object-cover border-2 border-accent-pink shadow-md"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(chatTitle)}&background=a855f7&color=fff`;
-                }}
-              />
-              {!isGroup && (
-                <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-space-950 rounded-full ${
-                  partnerUser?.online ? 'bg-emerald-500' : 'bg-slate-500'
-                }`} />
-              )}
-            </div>
-
-            {/* Title & Status */}
-            <div 
-              onClick={() => { if (!isGroup && onOpenPartnerProfile) onOpenPartnerProfile(); }}
-              className={`min-w-0 flex-1 flex flex-col justify-center overflow-hidden ${!isGroup && onOpenPartnerProfile ? 'cursor-pointer' : ''}`}
-            >
-              <h3 className="font-bold text-xs xs:text-sm text-white flex items-center gap-1.5 truncate leading-tight">
-                <span className="truncate">{chatTitle}</span>
-                {isGroup && (
-                  <span className="text-[8px] xs:text-[9px] px-1 py-0.2 bg-cyan-500/20 text-cyan-300 font-bold rounded-md shrink-0">
-                    Group
-                  </span>
+              {/* Avatar */}
+              <div className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] relative shrink-0">
+                <img
+                  src={chatAvatar}
+                  alt={chatTitle}
+                  className="w-full h-full rounded-full object-cover border-2 border-accent-pink shadow-md"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(chatTitle)}&background=a855f7&color=fff`;
+                  }}
+                />
+                {!isGroup && (
+                  <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-space-950 rounded-full ${
+                    partnerUser?.online ? 'bg-emerald-500' : 'bg-slate-500'
+                  }`} />
                 )}
-              </h3>
-              {isPartnerTyping ? (
-                <p className="text-[8.5px] xs:text-[9.5px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1 animate-pulse truncate leading-tight mt-0.5">
-                  <span className="flex gap-0.5 items-center shrink-0">
-                    <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </span>
-                  <span className="truncate">{chatTitle} is typing...</span>
-                </p>
-              ) : (
-                <p className={`text-[8.5px] xs:text-[9.5px] sm:text-[10px] font-medium flex items-center gap-1 truncate leading-tight mt-0.5 ${
-                  partnerUser?.online && !isGroup ? 'text-emerald-400' : 'text-slate-400'
-                }`}>
-                  {!isGroup && (
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      partnerUser?.online ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
-                    }`} />
+              </div>
+
+              {/* Title & Status */}
+              <div className="min-w-0 flex-1 flex flex-col justify-center overflow-hidden">
+                <h3 className="font-bold text-xs xs:text-sm text-white flex items-center gap-1.5 truncate leading-tight">
+                  <span className="truncate">{chatTitle}</span>
+                  {isGroup && (
+                    <span className="text-[8px] xs:text-[9px] px-1 py-0.2 bg-cyan-500/20 text-cyan-300 font-bold rounded-md shrink-0">
+                      Group
+                    </span>
                   )}
-                  <span className="truncate">{isGroup ? chatSubtitle : formatLastSeen(partnerUser?.lastSeen, partnerUser?.online)}</span>
-                </p>
-              )}
+                </h3>
+                {isPartnerTyping ? (
+                  <p className="text-[8.5px] xs:text-[9.5px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1 animate-pulse truncate leading-tight mt-0.5">
+                    <span className="flex gap-0.5 items-center shrink-0">
+                      <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </span>
+                    <span className="truncate">{chatTitle} is typing...</span>
+                  </p>
+                ) : (
+                  <p className={`text-[8.5px] xs:text-[9.5px] sm:text-[10px] font-medium flex items-center gap-1 truncate leading-tight mt-0.5 ${
+                    partnerUser?.online && !isGroup ? 'text-emerald-400' : 'text-slate-400'
+                  }`}>
+                    {!isGroup && (
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        partnerUser?.online ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
+                      }`} />
+                    )}
+                    <span className="truncate">{isGroup ? chatSubtitle : formatLastSeen(partnerUser?.lastSeen, partnerUser?.online)}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right: Primary Actions (Rigid fixed sizes, collision-proof) */}
+          {/* HeaderActions: Strict Fixed 38x38px Action Buttons */}
           <div className="flex items-center gap-1.5 xs:gap-2 shrink-0">
-            {/* Quick Voice Call Button (Always Visible if not group) */}
+            {/* Quick Voice Call Button */}
             {!isGroup && (
               <button
                 onClick={() => { startCall('voice'); toast.love('Starting Voice Call... 📞'); }}
                 title="Start Voice Call"
-                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-all shrink-0 flex items-center justify-center active:scale-90 border border-emerald-500/25 shadow-sm"
+                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-all shrink-0 flex items-center justify-center active:scale-90 border border-emerald-500/25 shadow-sm"
               >
                 <Phone className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
               </button>
@@ -611,7 +611,7 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
               <button
                 onClick={() => { startCall('video'); toast.love('Starting Video Call... 📹'); }}
                 title="Start Video Call"
-                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-all shrink-0 items-center justify-center hidden md:flex active:scale-90 border border-pink-500/25 shadow-sm"
+                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-all shrink-0 items-center justify-center hidden md:flex active:scale-90 border border-pink-500/25 shadow-sm"
               >
                 <Video className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
               </button>
@@ -620,7 +620,7 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
             {/* Desktop-Only Secret Mode Button */}
             <button
               onClick={() => setIsSecretMode(!isSecretMode)}
-              className={`h-9 xs:h-10 px-3 rounded-2xl text-xs font-semibold items-center gap-1.5 transition-all shrink-0 hidden md:flex ${
+              className={`h-[38px] px-3 rounded-2xl text-xs font-semibold items-center gap-1.5 transition-all shrink-0 hidden md:flex ${
                 isSecretMode
                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-lg shadow-rose-500/20 animate-pulse'
                   : 'glass-card text-slate-300 hover:text-white'
@@ -634,17 +634,17 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
             {/* Desktop-Only Search Button */}
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-slate-300 hover:text-white shrink-0 items-center justify-center hidden md:flex active:scale-90 transition-all"
+              className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-slate-300 hover:text-white shrink-0 items-center justify-center hidden md:flex active:scale-90 transition-all"
               title="Search in chat"
             >
               <Search className="w-4 h-4" />
             </button>
 
-            {/* More Options (3 Dots) Menu — Hosts secondary actions on mobile */}
+            {/* More Options (3 Dots) Menu Button */}
             <div className="relative shrink-0">
               <button
                 onClick={() => setShowMoreMenu(!showMoreMenu)}
-                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-slate-300 hover:text-white shrink-0 flex items-center justify-center active:scale-90 transition-all border border-white/15 shadow-sm"
+                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-slate-300 hover:text-white shrink-0 flex items-center justify-center active:scale-90 transition-all border border-white/15 shadow-sm"
                 title="More options"
                 aria-label="More options"
               >
@@ -783,7 +783,7 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
                 onClick={onBackToHome}
                 title="Return to Home Dashboard"
                 aria-label="Back to Home"
-                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card border border-pink-500/40 text-pink-300 hover:text-white hover:bg-pink-500/20 active:scale-90 transition-all items-center justify-center shadow-md shadow-pink-500/10 shrink-0 hidden md:flex"
+                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card border border-pink-500/40 text-pink-300 hover:text-white hover:bg-pink-500/20 active:scale-90 transition-all items-center justify-center shadow-md shadow-pink-500/10 shrink-0 hidden md:flex"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>

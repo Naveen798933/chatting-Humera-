@@ -102,11 +102,9 @@ body {
 }
 
 /* ─── Hardware Acceleration for 60-120 FPS Animations ────────────────────── */
-.glass-panel, .glass-card, .glass-dock, .chat-bubble-sender, .chat-bubble-receiver, button, img {
+.glass-panel, .glass-card, .glass-dock, .chat-bubble-sender, .chat-bubble-receiver {
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
 }
 
 /* ─── Mobile Smooth Touch Momentum Scrolling ──────────────────────────────── */
