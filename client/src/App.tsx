@@ -188,7 +188,12 @@ const AppContent: React.FC = () => {
             : 'max-w-7xl mx-auto px-2 xs:px-3 sm:px-6 md:px-8 pt-2.5 sm:pt-6 pb-mobile-safe md:pb-10 overflow-y-auto'
         }`}>
           {activeTab === 'home'     && <HomeDashboard />}
-          {activeTab === 'chat'     && <CoreChat onBackToHome={() => setActiveTab('home')} />}
+          {activeTab === 'chat'     && (
+            <CoreChat
+              onBackToHome={() => setActiveTab('home')}
+              onOpenPartnerProfile={() => setIsProfileDrawerOpen(true)}
+            />
+          )}
           {activeTab === 'together' && <TogetherTime />}
           {activeTab === 'memories' && <MemoriesGallery />}
           {activeTab === 'vault'    && <LoveVaultCalendar />}

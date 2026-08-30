@@ -114,7 +114,9 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* ─── Top Header Bar ─────────────────────────────────────────── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <header
-        className="sticky top-0 z-40 w-full bg-space-950/95 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-6 shadow-2xl shadow-black/60 select-none"
+        className={`sticky top-0 z-40 w-full bg-space-950/95 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-6 shadow-2xl shadow-black/60 select-none ${
+          activeTab === 'chat' ? 'hidden md:block' : 'block'
+        }`}
         style={{
           paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))',
           paddingBottom: '0.5rem'

@@ -23,9 +23,10 @@ const QUICK_REACTIONS = ['❤️', '🔥', '😂', '😍', '👏', '💋'];
 
 interface CoreChatProps {
   onBackToHome?: () => void;
+  onOpenPartnerProfile?: () => void;
 }
 
-export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
+export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerProfile }) => {
   const { currentUser, partnerUser, toggleDecoyMode } = useAuth();
   const {
     chats, activeChatId, activeChat, setActiveChatId,
@@ -56,6 +57,13 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [mobileView, setMobileView] = useState<'sidebar' | 'chat'>('chat');
+
+  // Deterministically switch to active chat view whenever activeChatId changes
+  useEffect(() => {
+    if (activeChatId) {
+      setMobileView('chat');
+    }
+  }, [activeChatId]);
 
   const { isMobile } = useScreenSize();
 
@@ -510,7 +518,10 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
         mobileView === 'sidebar' ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Chat Header — Clean, Native Mobile First Layout */}
-        <div className="px-2.5 xs:px-3 sm:px-6 py-2 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/95 backdrop-blur-xl shrink-0 z-20 shadow-md min-h-[54px] sm:min-h-[64px]">
+        <div 
+          className="px-2.5 xs:px-3 sm:px-6 py-2 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/95 backdrop-blur-xl shrink-0 z-20 shadow-md min-h-[54px] sm:min-h-[64px]"
+          style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))' }}
+        >
           
           {/* Left: Back Button + Avatar + Name & Subtitle */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -524,7 +535,11 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
               <ChevronLeft className="w-5 h-5 text-pink-400" />
             </button>
 
-            <div className="relative flex-shrink-0">
+            <div 
+              onClick={() => { if (!isGroup && onOpenPartnerProfile) onOpenPartnerProfile(); }}
+              className={`relative flex-shrink-0 ${!isGroup && onOpenPartnerProfile ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
+              title={!isGroup ? 'View Profile' : undefined}
+            >
               <img
                 src={chatAvatar}
                 alt={chatTitle}
@@ -540,7 +555,10 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
               )}
             </div>
 
-            <div className="min-w-0 flex-1 pr-1">
+            <div 
+              onClick={() => { if (!isGroup && onOpenPartnerProfile) onOpenPartnerProfile(); }}
+              className={`min-w-0 flex-1 pr-1 ${!isGroup && onOpenPartnerProfile ? 'cursor-pointer' : ''}`}
+            >
               <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
                 <span className="truncate max-w-[110px] xs:max-w-[150px] sm:max-w-[240px] md:max-w-none">{chatTitle}</span>
                 {isGroup && (
@@ -639,6 +657,20 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     className="absolute right-0 top-12 z-50 w-52 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1"
                   >
+                    {/* View Profile */}
+                    {!isGroup && onOpenPartnerProfile && (
+                      <button
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          onOpenPartnerProfile();
+                        }}
+                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 font-semibold"
+                      >
+                        <User className="w-4 h-4 text-purple-400" />
+                        <span>View Contact Info</span>
+                      </button>
+                    )}
+
                     {/* Mobile Video Call item */}
                     {!isGroup && (
                       <button

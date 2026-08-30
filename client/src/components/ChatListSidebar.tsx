@@ -79,7 +79,10 @@ export const ChatListSidebar: React.FC<ChatListSidebarProps> = ({
   return (
     <div className="w-full md:w-80 lg:w-96 flex flex-col h-full bg-space-950/70 border-r border-white/10 shrink-0">
       {/* Top action bar */}
-      <div className="p-3.5 border-b border-white/10 space-y-3">
+      <div 
+        className="p-3.5 border-b border-white/10 space-y-3"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
+      >
         <div className="flex items-center justify-between">
           <h2 className="font-extrabold text-white text-base flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-pink-400" />
