@@ -340,6 +340,143 @@ export const HomeDashboard: React.FC = () => {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── 1.5. LIVE LOVE PULSES & INSTANT ROMANTIC TOUCH ───────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-pink-500/20 shadow-xl space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-pink-400 animate-pulse" />
+            <h3 className="font-extrabold text-xs sm:text-sm text-white tracking-wide uppercase">Send Love Pulse</h3>
+          </div>
+          <span className="text-[10px] text-pink-300/80 font-medium">Instant romantic haptic ping ✨</span>
+        </div>
+
+        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+          {[
+            { id: 'kiss', emoji: '💋', label: 'Kiss', toastMsg: 'Sent a sweet kiss! 💋' },
+            { id: 'hug', emoji: '🤗', label: 'Warm Hug', toastMsg: 'Sent a warm tight hug! 🤗' },
+            { id: 'heart', emoji: '💓', label: 'Heartbeat', toastMsg: 'Sent your live heartbeat! 💓' },
+            { id: 'miss_you', emoji: '🥺', label: 'Miss You', toastMsg: 'Told them you miss them! 🥺' },
+            { id: 'thinking_of_you', emoji: '💭', label: 'Thinking', toastMsg: 'Sent thinking of you! 💭' },
+          ].map((action) => (
+            <button
+              key={action.id}
+              onClick={() => {
+                sendQuickAction(action.id as any);
+                toast.love(action.toastMsg);
+              }}
+              className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl glass-card border border-white/10 hover:border-pink-400/60 hover:bg-pink-500/15 active:scale-90 transition-all group"
+            >
+              <span className="text-xl sm:text-2xl group-hover:scale-125 transition-transform">{action.emoji}</span>
+              <span className="text-[9px] xs:text-[10px] font-bold text-slate-300 group-hover:text-pink-300 mt-1 truncate max-w-full">
+                {action.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── 1.6. LIVE MOOD & STATUS SHARING ──────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Partner's Mood Card */}
+        <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-purple-500/20 flex items-center justify-between">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-2xl shrink-0 shadow-lg">
+              {partnerUser?.mood?.emoji || '💖'}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold text-purple-300 uppercase tracking-wide">
+                {partnerUser?.petName || partnerUser?.displayName || 'Partner'}'s Live Mood
+              </p>
+              <p className="font-bold text-xs sm:text-sm text-white truncate mt-0.5">
+                {partnerUser?.mood?.text || 'Happy & Thinking of You 💕'}
+              </p>
+            </div>
+          </div>
+          <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 font-semibold shrink-0">
+            Live
+          </span>
+        </div>
+
+        {/* My Mood Card with Editor */}
+        <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-pink-500/20 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-2xl shrink-0 shadow-lg">
+                {currentUser?.mood?.emoji || moodEmoji}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-extrabold text-pink-300 uppercase tracking-wide">My Current Mood</p>
+                <p className="font-bold text-xs sm:text-sm text-white truncate mt-0.5">
+                  {currentUser?.mood?.text || 'In Love With You ✨'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setEditingMood(!editingMood)}
+              className="text-[10px] px-2.5 py-1 rounded-full bg-pink-500/15 border border-pink-500/30 text-pink-300 font-semibold hover:bg-pink-500/25 transition-all shrink-0"
+            >
+              {editingMood ? 'Cancel ✕' : 'Update ✏️'}
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {editingMood && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <form
+                  onSubmit={handleSaveMood}
+                  className="mt-3 pt-3 border-t border-white/10 space-y-2"
+                >
+                  <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
+                    {['💖 In Love', '🥰 Happy', '😴 Sleepy', '🥺 Missing You', '🌟 Excited', '☕ Cozy'].map((item) => {
+                      const [emoji, ...textParts] = item.split(' ');
+                      const label = textParts.join(' ');
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => {
+                            setMoodEmoji(emoji);
+                            setMoodText(label);
+                          }}
+                          className={`px-2 py-1 rounded-xl text-[10px] font-bold shrink-0 transition-all flex items-center gap-1 ${
+                            moodEmoji === emoji ? 'bg-pink-500 text-white shadow-md' : 'glass-card text-slate-300'
+                          }`}
+                        >
+                          <span>{emoji}</span>
+                          <span>{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={moodText}
+                      onChange={(e) => setMoodText(e.target.value)}
+                      placeholder="Share what you're feeling..."
+                      className="flex-1 px-3 py-1.5 rounded-xl glass-input text-xs text-white"
+                      required
+                    />
+                    <button type="submit" className="px-3.5 py-1.5 rounded-xl bg-accent-pink text-white font-bold text-xs shadow-md">
+                      Set Mood
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* ─── 2. DAILY MOMENT & LOVE LETTER OF THE DAY ────────────────────── */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
