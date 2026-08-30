@@ -491,7 +491,7 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
     : (partnerUser?.username ? `@${partnerUser.username}` : (partnerUser?.online ? 'Online' : 'Offline'));
 
   return (
-    <div className="max-w-7xl w-full mx-auto flex glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-[calc(100dvh-64px)] md:h-[84vh]">
+    <div className="max-w-7xl w-full mx-auto flex-1 min-h-0 flex glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full">
       
       {/* Multi-Conversation Sidebar (Desktop always visible, Mobile conditionally visible) */}
       <div className={`h-full ${mobileView === 'sidebar' ? 'block w-full' : 'hidden md:block'}`}>
@@ -506,28 +506,29 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
       </div>
 
       {/* Main Active Conversation Window */}
-      <div className={`flex-1 flex flex-col h-full overflow-hidden bg-space-950/40 ${
+      <div className={`flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-space-950/40 ${
         mobileView === 'sidebar' ? 'hidden md:flex' : 'flex'
       }`}>
-        {/* Chat Header */}
-        <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/95 backdrop-blur-xl flex-shrink-0 z-20 shadow-md">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Chat Header — Clean, Native Mobile First Layout */}
+        <div className="px-2.5 xs:px-3 sm:px-6 py-2 sm:py-3.5 border-b border-white/10 flex items-center justify-between bg-space-900/95 backdrop-blur-xl shrink-0 z-20 shadow-md min-h-[54px] sm:min-h-[64px]">
+          
+          {/* Left: Back Button + Avatar + Name & Subtitle */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             {/* Mobile Back to Conversations Button */}
             <button
               onClick={() => setMobileView('sidebar')}
-              className="p-2 -ml-1.5 rounded-2xl glass-card text-pink-300 hover:text-white md:hidden shrink-0 flex items-center gap-1 font-bold text-xs active:scale-90 transition-all border border-pink-500/20"
+              className="p-1.5 xs:p-2 -ml-1 rounded-2xl glass-card text-pink-300 hover:text-white md:hidden shrink-0 flex items-center gap-0.5 font-bold text-xs active:scale-90 transition-all border border-pink-500/25 min-h-[38px] min-w-[38px] justify-center"
               title="All Conversations"
               aria-label="Back to conversations"
             >
               <ChevronLeft className="w-5 h-5 text-pink-400" />
-              <span className="hidden xs:inline">Chats</span>
             </button>
 
             <div className="relative flex-shrink-0">
               <img
                 src={chatAvatar}
                 alt={chatTitle}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-accent-pink shadow-md"
+                className="w-8 h-8 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-accent-pink shadow-md"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(chatTitle)}&background=a855f7&color=fff`;
                 }}
@@ -538,9 +539,10 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
                 }`} />
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate max-w-[100px] xs:max-w-[150px] sm:max-w-none">
-                <span className="truncate">{chatTitle}</span>
+
+            <div className="min-w-0 flex-1 pr-1">
+              <h3 className="font-bold text-xs sm:text-sm text-white flex items-center gap-1.5 truncate">
+                <span className="truncate max-w-[110px] xs:max-w-[150px] sm:max-w-[240px] md:max-w-none">{chatTitle}</span>
                 {isGroup && (
                   <span className="text-[8px] xs:text-[9px] px-1 py-0.2 bg-cyan-500/20 text-cyan-300 font-bold rounded-md shrink-0">
                     Group
@@ -548,8 +550,8 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
                 )}
               </h3>
               {isPartnerTyping ? (
-                <p className="text-[8.5px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1 animate-pulse truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none">
-                  <span className="flex gap-0.5 items-center">
+                <p className="text-[8.5px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1 animate-pulse truncate max-w-[120px] xs:max-w-[160px] sm:max-w-none">
+                  <span className="flex gap-0.5 items-center shrink-0">
                     <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                     <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -557,11 +559,11 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
                   <span className="truncate">{chatTitle} is typing...</span>
                 </p>
               ) : (
-                <p className={`text-[8.5px] sm:text-[10px] font-medium flex items-center gap-1 truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none ${
+                <p className={`text-[8.5px] sm:text-[10px] font-medium flex items-center gap-1 truncate max-w-[120px] xs:max-w-[160px] sm:max-w-none ${
                   partnerUser?.online && !isGroup ? 'text-emerald-400' : 'text-slate-400'
                 }`}>
                   {!isGroup && (
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                       partnerUser?.online ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
                     }`} />
                   )}
@@ -571,136 +573,189 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome }) => {
             </div>
           </div>
 
+          {/* Right: Primary Mobile Actions + Desktop Extended Toolbar */}
           <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-            {/* Quick Voice Call Button */}
+            {/* Quick Voice Call Button (Always Visible if not group) */}
             {!isGroup && (
               <button
                 onClick={() => { startCall('voice'); toast.love('Starting Voice Call... 📞'); }}
                 title="Start Voice Call"
-                className="p-1.5 sm:p-2 rounded-xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors min-w-[30px] min-h-[30px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center"
+                className="p-2 rounded-2xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-colors min-w-[38px] min-h-[38px] flex items-center justify-center active:scale-95 border border-emerald-500/25"
               >
-                <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Phone className="w-4 h-4" />
               </button>
             )}
 
+            {/* Desktop-Only Video Call Button */}
             {!isGroup && (
               <button
                 onClick={() => { startCall('video'); toast.love('Starting Video Call... 📹'); }}
                 title="Start Video Call"
-                className="p-1.5 sm:p-2 rounded-xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-colors min-w-[30px] min-h-[30px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center"
+                className="p-2 rounded-xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-colors min-w-[36px] min-h-[36px] items-center justify-center hidden md:flex"
               >
-                <Video className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Video className="w-4 h-4" />
               </button>
             )}
 
+            {/* Desktop-Only Secret Mode Button */}
             <button
               onClick={() => setIsSecretMode(!isSecretMode)}
-              className={`px-2 sm:px-2.5 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold flex items-center gap-1 transition-all min-h-[30px] sm:min-h-[36px] ${
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold items-center gap-1 transition-all min-h-[36px] hidden md:flex ${
                 isSecretMode
                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-lg shadow-rose-500/20 animate-pulse'
-                  : 'glass-card text-slate-300 hover:text-white hidden xs:flex'
+                  : 'glass-card text-slate-300 hover:text-white'
               }`}
               title="Disappearing secret messages"
             >
-              <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden sm:inline">{isSecretMode ? 'Secret ON' : 'Secret'}</span>
+              <Lock className="w-3.5 h-3.5" />
+              <span>{isSecretMode ? 'Secret ON' : 'Secret'}</span>
             </button>
 
+            {/* Desktop-Only Search Button */}
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className="p-1.5 sm:p-2 rounded-xl glass-card text-slate-300 hover:text-white min-w-[30px] min-h-[30px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center"
+              className="p-2 rounded-xl glass-card text-slate-300 hover:text-white min-w-[36px] min-h-[36px] items-center justify-center hidden md:flex"
               title="Search in chat"
             >
-              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Search className="w-4 h-4" />
             </button>
 
-          {/* More Options (3 Dots) Menu */}
-          <div className="relative">
-            <button
-              onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="p-1.5 sm:p-2 rounded-xl glass-card text-slate-300 hover:text-white"
-              title="More options"
-            >
-              <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+            {/* More Options (3 Dots) Menu — Hosts secondary actions on mobile */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="p-2 rounded-2xl glass-card text-slate-300 hover:text-white min-w-[38px] min-h-[38px] flex items-center justify-center active:scale-95 transition-all border border-white/15"
+                title="More options"
+                aria-label="More options"
+              >
+                <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
 
-            <AnimatePresence>
-              {showMoreMenu && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 top-11 z-50 w-48 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1"
-                >
-                  <button
-                    onClick={() => {
-                      setShowMoreMenu(false);
-                      // Enhanced HTML export — styled, readable, with timestamps
-                      const htmlRows = messages.map(m => {
-                        const author = m.senderId === currentUser?.uid 
-                          ? (currentUser?.petName || currentUser?.displayName || currentUser?.username || 'Me')
-                          : (partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner');
-                        const time = new Date(m.createdAt).toLocaleString();
-                        const isMe = m.senderId === currentUser?.uid;
-                        const bgColor = isMe ? '#ff70a6' : '#2d1b69';
-                        const align = isMe ? 'right' : 'left';
-                        return `<div style="text-align:${align};margin:8px 0;">
-  <span style="display:inline-block;max-width:70%;background:${bgColor};color:white;padding:8px 14px;border-radius:18px;font-size:13px;">
-    <strong>${author}</strong><br/>${m.content}
-    <div style="font-size:10px;opacity:0.7;margin-top:4px;">${time}</div>
-  </span>
-</div>`;
-                      }).join('');
-                      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Our Universe Chat</title>
-<style>body{font-family:system-ui,sans-serif;background:#0b071a;color:#f1f5f9;max-width:700px;margin:auto;padding:24px;}
-h1{text-align:center;background:linear-gradient(135deg,#ff70a6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-p.sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:24px;}
-</style></head><body>
-<h1>💕 Our Universe Chat</h1>
-<p class="sub">Naveen & Humera — exported ${new Date().toLocaleString()}</p>
-${htmlRows}
-</body></html>`;
-                      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.html`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      // Revoke object URL to free memory (was missing before — memory leak fixed)
-                      setTimeout(() => URL.revokeObjectURL(url), 1000);
-                      toast.love('Chat exported as HTML! 📄');
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs text-white hover:bg-white/10 flex items-center gap-2"
+              <AnimatePresence>
+                {showMoreMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    className="absolute right-0 top-12 z-50 w-52 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1"
                   >
-                    <span>📄</span> Export Chat TXT
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowMoreMenu(false);
-                      setIsSecretMode(!isSecretMode);
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-xs text-white hover:bg-white/10 flex items-center gap-2"
-                  >
-                    <span>🔒</span> {isSecretMode ? 'Turn Off Secret Mode' : 'Secret Mode (Burn Timer)'}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    {/* Mobile Video Call item */}
+                    {!isGroup && (
+                      <button
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          startCall('video');
+                          toast.love('Starting Video Call... 📹');
+                        }}
+                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-pink-300 hover:text-pink-200 hover:bg-pink-500/15 flex items-center gap-2.5 font-semibold md:hidden"
+                      >
+                        <Video className="w-4 h-4 text-pink-400" />
+                        <span>Start Video Call</span>
+                      </button>
+                    )}
+
+                    {/* Mobile Search item */}
+                    <button
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        setShowSearch(!showSearch);
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 font-semibold md:hidden"
+                    >
+                      <Search className="w-4 h-4 text-purple-400" />
+                      <span>Search Messages</span>
+                    </button>
+
+                    {/* Secret Mode toggle */}
+                    <button
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        setIsSecretMode(!isSecretMode);
+                        if (!isSecretMode) toast.love('Secret Disappearing Mode Activated 🔒');
+                        else toast.info('Secret Mode Disabled');
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 font-semibold"
+                    >
+                      <Lock className="w-4 h-4 text-rose-400" />
+                      <span>{isSecretMode ? 'Turn Off Secret Mode' : 'Secret Burn Mode'}</span>
+                    </button>
+
+                    {/* Export Chat */}
+                    <button
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        const htmlRows = messages.map(m => {
+                          const author = m.senderId === currentUser?.uid 
+                            ? (currentUser?.petName || currentUser?.displayName || currentUser?.username || 'Me')
+                            : (partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner');
+                          const time = new Date(m.createdAt).toLocaleString();
+                          const isMe = m.senderId === currentUser?.uid;
+                          const bgColor = isMe ? '#ff70a6' : '#2d1b69';
+                          const align = isMe ? 'right' : 'left';
+                          return `<div style="text-align:${align};margin:8px 0;">
+    <span style="display:inline-block;max-width:70%;background:${bgColor};color:white;padding:8px 14px;border-radius:18px;font-size:13px;">
+      <strong>${author}</strong><br/>${m.content}
+      <div style="font-size:10px;opacity:0.7;margin-top:4px;">${time}</div>
+    </span>
+  </div>`;
+                        }).join('');
+                        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Our Universe Chat</title>
+  <style>body{font-family:system-ui,sans-serif;background:#0b071a;color:#f1f5f9;max-width:700px;margin:auto;padding:24px;}
+  h1{text-align:center;background:linear-gradient(135deg,#ff70a6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  p.sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:24px;}
+  </style></head><body>
+  <h1>💕 Our Universe Chat</h1>
+  <p class="sub">Naveen & Humera — exported ${new Date().toLocaleString()}</p>
+  ${htmlRows}
+  </body></html>`;
+                        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                        toast.love('Chat exported as HTML! 📄');
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 font-semibold"
+                    >
+                      <Paperclip className="w-4 h-4 text-emerald-400" />
+                      <span>Export Chat (HTML)</span>
+                    </button>
+
+                    {/* Mobile Home Return Button */}
+                    {onBackToHome && (
+                      <button
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          onBackToHome();
+                        }}
+                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-pink-300 hover:text-white hover:bg-pink-500/15 flex items-center gap-2.5 font-semibold md:hidden border-t border-white/10 mt-1"
+                      >
+                        <ArrowRight className="w-4 h-4 text-pink-400" />
+                        <span>Back to Dashboard</span>
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Desktop-Only Return to Home Arrow Button */}
+            {onBackToHome && (
+              <button
+                onClick={onBackToHome}
+                title="Return to Home Dashboard"
+                aria-label="Back to Home"
+                className="p-2 rounded-xl glass-card border border-pink-500/40 text-pink-300 hover:text-white hover:bg-pink-500/20 active:scale-95 transition-all items-center justify-center shadow-md shadow-pink-500/10 ml-1 hidden md:flex min-w-[36px] min-h-[36px]"
+              >
+                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            )}
           </div>
-
-          {/* Right-Side Back to Home Arrow Button (→) */}
-          <button
-            onClick={onBackToHome}
-            title="Return to Home Dashboard"
-            aria-label="Back to Home"
-            className="p-1.5 sm:p-2 rounded-xl glass-card border border-pink-500/40 text-pink-300 hover:text-white hover:bg-pink-500/20 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-pink-500/10 ml-0.5"
-          >
-            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-          </button>
         </div>
-      </div>
 
       {/* Secret Mode Banner */}
       <AnimatePresence>

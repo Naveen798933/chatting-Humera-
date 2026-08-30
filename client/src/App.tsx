@@ -113,7 +113,7 @@ const AppContent: React.FC = () => {
   const starredCount = messages.filter(m => m.isStarred).length;
 
   return (
-    <div className="min-h-screen h-full flex flex-col relative z-10">
+    <div className={`h-[100dvh] max-h-[100dvh] flex flex-col relative z-10 ${activeTab === 'chat' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
       {/* App Switcher Multitasking Privacy Mask Shield */}
       <PrivacyShieldOverlay />
       <ScreenshotBanner />
@@ -182,9 +182,9 @@ const AppContent: React.FC = () => {
           </div>
         </div>
       }>
-        <main className={`flex-1 w-full overflow-x-hidden min-h-0 ${
+        <main className={`flex-1 w-full min-h-0 flex flex-col ${
           activeTab === 'chat'
-            ? 'max-w-7xl mx-auto px-0 sm:px-4 md:px-8 pt-0 sm:pt-4 md:pt-6 pb-0 md:pb-6 flex flex-col overflow-hidden'
+            ? 'max-w-7xl mx-auto px-0 sm:px-4 md:px-8 pt-0 sm:pt-2 md:pt-4 pb-[72px] md:pb-4 overflow-hidden h-full'
             : 'max-w-7xl mx-auto px-2 xs:px-3 sm:px-6 md:px-8 pt-2.5 sm:pt-6 pb-mobile-safe md:pb-10 overflow-y-auto'
         }`}>
           {activeTab === 'home'     && <HomeDashboard />}
