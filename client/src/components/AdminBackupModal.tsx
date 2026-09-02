@@ -87,12 +87,12 @@ export const AdminBackupModal: React.FC<AdminBackupModalProps> = ({ isOpen, onCl
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 xs:p-4">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="glass-panel-glow p-6 sm:p-8 rounded-3xl max-w-lg w-full border border-pink-400/40 space-y-6 relative overflow-hidden max-h-[90vh] overflow-y-auto"
+            className="glass-panel-glow p-4 sm:p-7 rounded-3xl max-w-lg w-full border border-pink-400/40 space-y-4 sm:space-y-6 relative overflow-hidden max-h-[92dvh] overflow-y-auto scrollbar-none"
           >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

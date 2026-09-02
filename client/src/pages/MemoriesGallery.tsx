@@ -246,13 +246,13 @@ export const MemoriesGallery: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 xs:gap-4 sm:gap-6">
         {filteredMemories.map((mem) => (
           <motion.div
             key={mem.id}
-            className="glass-card rounded-3xl overflow-hidden border border-white/10 flex flex-col group hover:border-pink-400/40 transition-all"
+            className="glass-card rounded-2xl xs:rounded-3xl overflow-hidden border border-white/10 flex flex-col group hover:border-pink-400/40 transition-all"
           >
-            <div className="relative h-56 overflow-hidden cursor-pointer" onClick={() => setLightboxMem(mem)}>
+            <div className="relative h-44 xs:h-48 sm:h-56 overflow-hidden cursor-pointer" onClick={() => setLightboxMem(mem)}>
               <img
                 src={mem.mediaUrls[0]}
                 alt={mem.title}
@@ -271,19 +271,19 @@ export const MemoriesGallery: React.FC = () => {
                 </div>
               </div>
 
-              <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-bold bg-space-950/80 backdrop-blur-md text-pink-300 border border-white/10">
+              <span className="absolute top-2.5 left-2.5 xs:top-3 xs:left-3 px-2.5 py-0.5 xs:px-3 xs:py-1 rounded-full text-[9px] xs:text-[10px] font-bold bg-space-950/80 backdrop-blur-md text-pink-300 border border-white/10">
                 {mem.album}
               </span>
 
               <button
                 onClick={(e) => { e.stopPropagation(); toggleFavoriteMemory(mem.id); }}
-                className="absolute top-3 right-3 p-2 rounded-full bg-space-950/80 backdrop-blur-md text-amber-300 hover:scale-110 transition-transform"
+                className="absolute top-2.5 right-2.5 xs:top-3 xs:right-3 p-1.5 xs:p-2 rounded-full bg-space-950/80 backdrop-blur-md text-amber-300 hover:scale-110 transition-transform"
               >
-                <Star className={`w-4 h-4 ${mem.isFavorite ? 'fill-current' : ''}`} />
+                <Star className={`w-3.5 h-3.5 xs:w-4 xs:h-4 ${mem.isFavorite ? 'fill-current' : ''}`} />
               </button>
             </div>
 
-            <div className="p-5 flex-1 flex flex-col justify-between space-y-2">
+            <div className="p-3 xs:p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-2">
               <div>
                 <h4 className="font-bold text-sm text-white group-hover:text-pink-300 transition-colors">
                   {mem.title}

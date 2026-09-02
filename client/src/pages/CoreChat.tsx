@@ -97,6 +97,9 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
       clearTimeout(clickTimerRef.current);
       clickTimerRef.current = null;
       // Double tap -> React with ❤️
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(25); } catch (_) {}
+      }
       addReaction(msg.id, '❤️');
       sounds.playKissSound();
       toast.love('Reacted with ❤️');
@@ -264,6 +267,9 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputContent.trim()) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(15); } catch (_) {}
+    }
     setTypingStatus(false);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     sendMessage(inputContent.trim(), 'text', undefined, replyingTo?.id, isSecretMode, secretTimeout);
@@ -606,12 +612,12 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
               </button>
             )}
 
-            {/* Desktop-Only Video Call Button */}
+            {/* Video Call Button */}
             {!isGroup && (
               <button
                 onClick={() => { startCall('video'); toast.love('Starting Video Call... 📹'); }}
                 title="Start Video Call"
-                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-all shrink-0 items-center justify-center hidden md:flex active:scale-90 border border-pink-500/25 shadow-sm"
+                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-all shrink-0 flex items-center justify-center active:scale-90 border border-pink-500/25 shadow-sm"
               >
                 <Video className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
               </button>

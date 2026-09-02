@@ -27,6 +27,17 @@ import { FriendsDrawer } from './components/FriendsDrawer';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { CreateGroupModal } from './components/CreateGroupModal';
+import { MobileQuickHubSheet } from './components/MobileQuickHubSheet';
+import { LoveAIAssistant } from './components/LoveAIAssistant';
+import { AmbientSoundscapeModal } from './components/AmbientSoundscape';
+import { WhatsAppStatusModal } from './components/WhatsAppStatusModal';
+import { CallHistoryModal } from './components/CallHistoryModal';
+import { DailyQuestionModal } from './components/DailyQuestionModal';
+import { SecurityCenterModal } from './components/SecurityCenterModal';
+import { AdminBackupModal } from './components/AdminBackupModal';
+import { PrivacySettingsModal } from './components/PrivacySettingsModal';
+import { AnniversaryOverlay } from './components/AnniversaryOverlay';
+import { StoryItem } from './types';
 
 const AppContent: React.FC = () => {
   const { currentUser, partnerUser, isAuthenticated, isDecoyActive, toggleDecoyMode } = useAuth();
@@ -45,6 +56,49 @@ const AppContent: React.FC = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+
+  // Couple Hub & Extended Feature Modals
+  const [isMobileHubOpen, setIsMobileHubOpen] = useState(false);
+  const [isLoveAIOpen, setIsLoveAIOpen] = useState(false);
+  const [isSoundscapesOpen, setIsSoundscapesOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isCallHistoryOpen, setIsCallHistoryOpen] = useState(false);
+  const [isDailyQuestionOpen, setIsDailyQuestionOpen] = useState(false);
+  const [isSecurityCenterOpen, setIsSecurityCenterOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+
+  // Status Stories state
+  const [stories, setStories] = useState<StoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('ou_stories');
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return [
+      {
+        id: 'story_1',
+        authorId: partnerUser?.uid || 'partner',
+        authorName: partnerUser?.petName || partnerUser?.displayName || 'Partner',
+        authorPhoto: partnerUser?.photoURL || '',
+        text: 'Missing my favorite person in the whole universe today! ❤️✨',
+        bgGradient: 'from-pink-600 to-purple-800',
+        createdAt: new Date().toISOString()
+      }
+    ];
+  });
+
+  const handleAddStory = (newStory: Omit<StoryItem, 'id' | 'createdAt'>) => {
+    const item: StoryItem = {
+      ...newStory,
+      id: `story_${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+    setStories(prev => {
+      const updated = [item, ...prev];
+      try { localStorage.setItem('ou_stories', JSON.stringify(updated)); } catch (_) {}
+      return updated;
+    });
+  };
 
   const [currentTheme, setCurrentTheme] = useState<AppTheme>(() => {
     return (localStorage.getItem('ou_theme') as AppTheme) || 'cosmic';
@@ -67,6 +121,15 @@ const AppContent: React.FC = () => {
       }
 
       if (e.key === 'Escape') {
+        if (isMobileHubOpen) { setIsMobileHubOpen(false); return; }
+        if (isLoveAIOpen) { setIsLoveAIOpen(false); return; }
+        if (isSoundscapesOpen) { setIsSoundscapesOpen(false); return; }
+        if (isStatusOpen) { setIsStatusOpen(false); return; }
+        if (isCallHistoryOpen) { setIsCallHistoryOpen(false); return; }
+        if (isDailyQuestionOpen) { setIsDailyQuestionOpen(false); return; }
+        if (isSecurityCenterOpen) { setIsSecurityCenterOpen(false); return; }
+        if (isAdminOpen) { setIsAdminOpen(false); return; }
+        if (isPrivacyOpen) { setIsPrivacyOpen(false); return; }
         if (isThemeOpen) { setIsThemeOpen(false); return; }
         if (isProfileDrawerOpen) { setIsProfileDrawerOpen(false); return; }
         if (isSearchOpen) { setIsSearchOpen(false); return; }
@@ -79,7 +142,9 @@ const AppContent: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    isThemeOpen, isProfileDrawerOpen,
+    isMobileHubOpen, isLoveAIOpen, isSoundscapesOpen, isStatusOpen,
+    isCallHistoryOpen, isDailyQuestionOpen, isSecurityCenterOpen,
+    isAdminOpen, isPrivacyOpen, isThemeOpen, isProfileDrawerOpen,
     isSearchOpen, isFriendsOpen, isNotificationsOpen,
     isProfileOpen, isCreateGroupOpen, toggleDecoyMode
   ]);
@@ -127,6 +192,8 @@ const AppContent: React.FC = () => {
         onOpenFriends={() => setIsFriendsOpen(true)}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenPrivacy={() => setIsPrivacyOpen(true)}
+        onOpenMobileHub={() => setIsMobileHubOpen(true)}
       />
 
       {/* Multi-User Modals */}
@@ -199,6 +266,67 @@ const AppContent: React.FC = () => {
           {activeTab === 'vault'    && <LoveVaultCalendar />}
         </main>
       </Suspense>
+
+      {/* Couple Magic, Extended Feature & Security Modals */}
+      <MobileQuickHubSheet
+        isOpen={isMobileHubOpen}
+        onClose={() => setIsMobileHubOpen(false)}
+        onOpenLoveAI={() => setIsLoveAIOpen(true)}
+        onOpenSoundscapes={() => setIsSoundscapesOpen(true)}
+        onOpenStatus={() => setIsStatusOpen(true)}
+        onOpenCallHistory={() => setIsCallHistoryOpen(true)}
+        onOpenTheme={() => setIsThemeOpen(true)}
+        onOpenDailyQuestion={() => setIsDailyQuestionOpen(true)}
+        onOpenSecurityCenter={() => setIsSecurityCenterOpen(true)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
+        onToggleDecoy={toggleDecoyMode}
+      />
+      <LoveAIAssistant
+        isOpen={isLoveAIOpen}
+        onClose={() => setIsLoveAIOpen(false)}
+        isModal={true}
+      />
+      <AmbientSoundscapeModal
+        isOpen={isSoundscapesOpen}
+        onClose={() => setIsSoundscapesOpen(false)}
+      />
+      <WhatsAppStatusModal
+        isOpen={isStatusOpen}
+        onClose={() => setIsStatusOpen(false)}
+        currentUser={currentUser}
+        partnerUser={partnerUser}
+        stories={stories}
+        onAddStory={handleAddStory}
+      />
+      <CallHistoryModal
+        isOpen={isCallHistoryOpen}
+        onClose={() => setIsCallHistoryOpen(false)}
+        messages={messages}
+        partnerUser={partnerUser}
+        onStartCall={(type) => startCall(type)}
+      />
+      <DailyQuestionModal
+        isOpen={isDailyQuestionOpen}
+        onClose={() => setIsDailyQuestionOpen(false)}
+        currentPetName={currentUser?.petName || currentUser?.displayName || 'Me'}
+        partnerPetName={partnerUser?.petName || partnerUser?.displayName || 'Partner'}
+      />
+      <SecurityCenterModal
+        isOpen={isSecurityCenterOpen}
+        onClose={() => setIsSecurityCenterOpen(false)}
+        onOpenDecoyCalculator={toggleDecoyMode}
+      />
+      {currentUser?.role === 'owner' && (
+        <AdminBackupModal
+          isOpen={isAdminOpen}
+          onClose={() => setIsAdminOpen(false)}
+        />
+      )}
+      <PrivacySettingsModal
+        isOpen={isPrivacyOpen}
+        onClose={() => setIsPrivacyOpen(false)}
+      />
+      <AnniversaryOverlay />
 
       <ThemeSelectorModal
         isOpen={isThemeOpen}

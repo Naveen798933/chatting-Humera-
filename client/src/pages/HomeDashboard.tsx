@@ -362,13 +362,16 @@ export const HomeDashboard: React.FC = () => {
             <button
               key={action.id}
               onClick={() => {
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate(20); } catch (_) {}
+                }
                 sendQuickAction(action.id as any);
                 toast.love(action.toastMsg);
               }}
-              className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl glass-card border border-white/10 hover:border-pink-400/60 hover:bg-pink-500/15 active:scale-90 transition-all group"
+              className="flex flex-col items-center justify-center p-2 xs:p-2.5 sm:p-3 rounded-2xl glass-card border border-white/10 hover:border-pink-400/60 hover:bg-pink-500/15 active:scale-90 transition-all group min-h-[58px]"
             >
               <span className="text-xl sm:text-2xl group-hover:scale-125 transition-transform">{action.emoji}</span>
-              <span className="text-[9px] xs:text-[10px] font-bold text-slate-300 group-hover:text-pink-300 mt-1 truncate max-w-full">
+              <span className="text-[8.5px] xs:text-[10px] font-bold text-slate-300 group-hover:text-pink-300 mt-1 truncate max-w-full">
                 {action.label}
               </span>
             </button>

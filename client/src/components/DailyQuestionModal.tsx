@@ -33,12 +33,12 @@ export const DailyQuestionModal: React.FC<DailyQuestionModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-3 xs:p-4">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-panel max-w-md w-full rounded-3xl border border-pink-500/30 p-6 relative space-y-4 shadow-2xl"
+          className="glass-panel max-w-md w-full rounded-3xl border border-pink-500/30 p-4 sm:p-6 relative space-y-4 shadow-2xl max-h-[90dvh] overflow-y-auto scrollbar-none"
         >
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <div className="flex items-center gap-2">

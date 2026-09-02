@@ -41,7 +41,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   onOpenFriends,
   onOpenNotifications,
   onOpenPrivacy,
-  onOpenProfile
+  onOpenProfile,
+  onOpenMobileHub
 }) => {
   const { currentUser, partnerUser, logout, toggleDecoyMode } = useAuth();
   const { messages, unreadNotificationCount, friends, pendingFriendRequests } = useUniverse();
@@ -114,12 +115,12 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* ─── Top Header Bar ─────────────────────────────────────────── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <header
-        className={`sticky top-0 z-40 w-full bg-space-950/95 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-6 shadow-2xl shadow-black/60 select-none ${
+        className={`sticky top-0 z-40 w-full bg-space-950/92 backdrop-blur-2xl border-b border-white/10 px-3 sm:px-6 shadow-2xl shadow-black/70 select-none ${
           activeTab === 'chat' ? 'hidden md:block' : 'block'
         }`}
         style={{
-          paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))',
-          paddingBottom: '0.5rem'
+          paddingTop: 'max(0.6rem, env(safe-area-inset-top, 0.6rem))',
+          paddingBottom: '0.6rem'
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
@@ -127,10 +128,10 @@ export const Navigation: React.FC<NavigationProps> = ({
           {/* ── Brand Logo & Title ── */}
           <div
             onClick={() => handleTabChange('chat')}
-            className="flex items-center gap-2.5 cursor-pointer group select-none flex-shrink-0"
+            className="flex items-center gap-2.5 cursor-pointer group select-none flex-shrink-0 active:scale-95 transition-transform"
           >
             <div className="relative flex-shrink-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-accent-rose via-accent-pink to-accent-purple p-0.5 shadow-lg shadow-pink-500/25 group-hover:scale-105 transition-transform flex items-center justify-center">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-accent-rose via-accent-pink to-accent-purple p-0.5 shadow-lg shadow-pink-500/30 group-hover:scale-105 transition-transform flex items-center justify-center">
                 <div className="w-full h-full bg-space-950 rounded-[14px] flex items-center justify-center">
                   <span className="text-sm sm:text-base animate-heartbeat">❤️</span>
                 </div>
@@ -138,7 +139,7 @@ export const Navigation: React.FC<NavigationProps> = ({
             </div>
 
             <div className="min-w-0">
-              <h1 className="font-extrabold text-sm sm:text-base tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent truncate">
+              <h1 className="font-black text-sm sm:text-base tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent truncate">
                 OUR UNIVERSE
               </h1>
               <p className="hidden sm:block text-[10px] text-pink-400/80 font-medium tracking-wide truncate">
@@ -169,15 +170,15 @@ export const Navigation: React.FC<NavigationProps> = ({
           </nav>
 
           {/* ── Action Icons & Profile ── */}
-          <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-2.5 flex-shrink-0">
             {/* Search Users Button */}
             {onOpenSearch && (
               <button
                 onClick={onOpenSearch}
                 title="Search Users & Start Chat"
-                className="p-1.5 xs:p-2 rounded-xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-95 transition-all min-w-[32px] min-h-[32px] xs:min-w-[36px] xs:min-h-[36px] flex items-center justify-center"
+                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-90 transition-all flex items-center justify-center border border-white/10 shadow-sm"
               >
-                <Search className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
+                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
 
@@ -186,11 +187,11 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 onClick={onOpenFriends}
                 title="Friends List & Requests"
-                className="p-1.5 xs:p-2 rounded-xl glass-card text-purple-300 hover:text-white hover:border-purple-400/60 active:scale-95 transition-all relative min-w-[32px] min-h-[32px] xs:min-w-[36px] xs:min-h-[36px] flex items-center justify-center"
+                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-purple-300 hover:text-white hover:border-purple-400/60 active:scale-90 transition-all relative flex items-center justify-center border border-white/10 shadow-sm"
               >
-                <Users className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                 {pendingFriendRequests.length > 0 && (
-                  <span className="w-2 h-2 xs:w-2.5 xs:h-2.5 rounded-full bg-pink-500 animate-ping absolute top-0.5 right-0.5" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping absolute top-1 right-1" />
                 )}
               </button>
             )}
@@ -200,14 +201,25 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 onClick={onOpenNotifications}
                 title="Notifications"
-                className="p-1.5 xs:p-2 rounded-xl glass-card text-amber-300 hover:text-white hover:border-amber-400/60 active:scale-95 transition-all relative min-w-[32px] min-h-[32px] xs:min-w-[36px] xs:min-h-[36px] flex items-center justify-center"
+                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-amber-300 hover:text-white hover:border-amber-400/60 active:scale-90 transition-all relative flex items-center justify-center border border-white/10 shadow-sm"
               >
-                <Bell className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                 {unreadNotificationCount > 0 && (
-                  <span className="min-w-[14px] h-3.5 px-0.5 rounded-full bg-rose-500 text-white text-[8px] font-extrabold flex items-center justify-center absolute -top-1 -right-1 animate-pulse shadow-md shadow-rose-500/50">
+                  <span className="min-w-[15px] h-4 px-1 rounded-full bg-rose-500 text-white text-[8px] font-extrabold flex items-center justify-center absolute -top-1 -right-1 animate-pulse shadow-md shadow-rose-500/50">
                     {unreadNotificationCount}
                   </span>
                 )}
+              </button>
+            )}
+
+            {/* Couple Quick Hub Trigger */}
+            {onOpenMobileHub && (
+              <button
+                onClick={onOpenMobileHub}
+                title="Quick Hub & Couple Tools"
+                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-90 transition-all flex items-center justify-center border border-pink-500/30 shadow-sm shadow-pink-500/20"
+              >
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-accent-pink animate-pulse" />
               </button>
             )}
 
@@ -216,9 +228,9 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 onClick={onOpenTheme}
                 title="Theme & Atmosphere"
-                className="p-1.5 xs:p-2 rounded-xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-95 transition-all min-w-[32px] min-h-[32px] xs:min-w-[36px] xs:min-h-[36px] flex items-center justify-center"
+                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl glass-card text-pink-300 hover:text-white hover:border-pink-400/60 active:scale-90 transition-all flex items-center justify-center border border-white/10 shadow-sm"
               >
-                <Palette className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5" />
+                <Palette className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
 
@@ -227,19 +239,19 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 title="My Account"
-                className="p-0.5 rounded-full border-2 border-pink-400/80 hover:border-pink-300 transition-all flex items-center gap-1 active:scale-95"
+                className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl border-2 border-pink-400/80 hover:border-pink-300 transition-all flex items-center justify-center active:scale-90 overflow-hidden shadow-md shadow-pink-500/20"
               >
                 <img
                   src={currentUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || 'Me')}&background=ff70a6&color=fff`}
                   alt="Profile"
-                  className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-full object-cover"
+                  className="w-full h-full object-cover"
                 />
               </button>
 
               {/* Profile Dropdown Menu */}
               {isUserMenuOpen && (
                 <div
-                  className="absolute right-0 top-11 z-50 w-52 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1"
+                  className="absolute right-0 top-12 z-50 w-56 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1 animate-slide-up"
                   onClick={() => setIsUserMenuOpen(false)}
                 >
                   <div className="p-2.5 border-b border-white/10">
@@ -247,13 +259,33 @@ export const Navigation: React.FC<NavigationProps> = ({
                     <p className="text-[10px] text-pink-300 truncate">@{currentUser?.username}</p>
                   </div>
 
+                  {onOpenMobileHub && (
+                    <button
+                      onClick={onOpenMobileHub}
+                      className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-pink-300 hover:text-white hover:bg-pink-500/15 flex items-center gap-2.5 transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4 text-pink-400" />
+                      <span>Quick Hub &amp; Tools</span>
+                    </button>
+                  )}
+
                   {onOpenProfile && (
                     <button
                       onClick={onOpenProfile}
-                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"
+                      className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
                     >
                       <Settings className="w-4 h-4 text-pink-400" />
                       <span>Account &amp; Settings</span>
+                    </button>
+                  )}
+
+                  {onOpenPrivacy && (
+                    <button
+                      onClick={onOpenPrivacy}
+                      className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors"
+                    >
+                      <Shield className="w-4 h-4 text-emerald-400" />
+                      <span>Privacy &amp; Security</span>
                     </button>
                   )}
 
@@ -261,7 +293,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
                   <button
                     onClick={handleLogout}
-                    className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2 transition-colors"
+                    className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Log Out</span>
@@ -277,12 +309,12 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* ─── Floating Glass Bottom Nav Bar (Mobile) ──────────────────── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       <div
-        className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-2 xs:px-3.5 transition-all duration-300 ease-in-out ${
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 xs:px-4 transition-all duration-300 ease-in-out ${
           isKeyboardOpen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
         }`}
-        style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))' }}
+        style={{ paddingBottom: 'max(10px, env(safe-area-inset-bottom, 10px))' }}
       >
-        <nav className="max-w-md mx-auto bg-space-950/92 backdrop-blur-2xl border border-white/15 rounded-3xl p-1 xs:p-1.5 shadow-2xl shadow-black/80 flex items-center justify-around">
+        <nav className="max-w-md mx-auto mobile-nav-dock rounded-[28px] p-1.5 shadow-2xl flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             const isBouncing = bouncingTab === item.id;
@@ -290,30 +322,35 @@ export const Navigation: React.FC<NavigationProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleTabChange(item.id)}
-                className={`flex-1 flex flex-col items-center justify-center py-1.5 px-0.5 xs:px-1 rounded-2xl transition-all duration-200 relative min-h-[44px] ${
+                className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-200 relative min-h-[48px] ${
                   isActive
-                    ? 'text-pink-300'
+                    ? 'text-pink-300 font-black'
                     : 'text-slate-400 hover:text-slate-200 active:scale-90'
                 }`}
               >
                 {isActive && (
-                  <span className="absolute inset-0 rounded-2xl bg-gradient-to-b from-accent-pink/20 to-accent-purple/15 border border-pink-500/30 shadow-inner" />
+                  <span className="absolute inset-0 rounded-2xl mobile-nav-pill-active" />
                 )}
                 <div
-                  className={`relative z-10 ${isActive ? 'text-pink-400 drop-shadow-[0_0_8px_rgba(255,112,166,0.9)]' : ''} ${
-                    isBouncing ? 'animate-nav-bounce' : isActive ? 'scale-110' : ''
-                  }`}
+                  className={`relative z-10 transition-transform duration-200 ${
+                    isActive ? 'text-pink-400 drop-shadow-[0_0_10px_rgba(255,112,166,0.9)] scale-110' : 'scale-100'
+                  } ${isBouncing ? 'animate-nav-bounce' : ''}`}
                 >
                   {item.icon}
                   {item.id === 'chat' && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 bg-rose-500 text-white text-[7px] xs:text-[8px] font-extrabold rounded-full flex items-center justify-center px-0.5 shadow-lg shadow-rose-500/40 border border-space-950 animate-pulse">
+                    <span className="absolute -top-1 -right-1 min-w-[15px] h-4 bg-rose-500 text-white text-[7.5px] xs:text-[8px] font-black rounded-full flex items-center justify-center px-0.5 shadow-lg shadow-rose-500/50 border border-space-950 animate-pulse">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
                 </div>
-                <span className={`text-[8.5px] xs:text-[10px] font-semibold tracking-tight truncate max-w-[46px] xs:max-w-[56px] relative z-10 mt-0.5 ${isActive ? 'text-pink-300 font-extrabold' : ''}`}>
+                <span className={`text-[9px] xs:text-[10px] font-bold tracking-tight truncate max-w-[52px] xs:max-w-[60px] relative z-10 mt-0.5 ${
+                  isActive ? 'text-pink-300 font-black text-glow-pink' : 'text-slate-400'
+                }`}>
                   {item.shortLabel}
                 </span>
+                {isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-pink-400 absolute -bottom-0.5 shadow-sm shadow-pink-500" />
+                )}
               </button>
             );
           })}
@@ -322,3 +359,4 @@ export const Navigation: React.FC<NavigationProps> = ({
     </>
   );
 };
+

@@ -33,12 +33,12 @@ export const CallHistoryModal: React.FC<CallHistoryModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-3 xs:p-4">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-6 relative flex flex-col max-h-[85dvh]"
+          className="glass-panel max-w-md w-full rounded-3xl border border-white/10 p-4 sm:p-6 relative flex flex-col max-h-[90dvh] sm:max-h-[85dvh]"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">

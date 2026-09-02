@@ -1255,7 +1255,7 @@ mark.search-highlight {
 }
 
 .pb-mobile-safe {
-  padding-bottom: max(6.5rem, calc(5rem + env(safe-area-inset-bottom, 20px)));
+  padding-bottom: max(6rem, calc(5.25rem + env(safe-area-inset-bottom, 16px)));
 }
 
 .pt-mobile-safe {
@@ -1268,19 +1268,48 @@ mark.search-highlight {
   hyphens: auto;
 }
 
+/* Mobile Bottom Navigation Dock Styling */
+.mobile-nav-dock {
+  background: rgba(8, 4, 18, 0.88);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.75), 0 0 20px 0 rgba(255, 112, 166, 0.15);
+}
+
+.mobile-nav-pill-active {
+  background: linear-gradient(135deg, rgba(255, 112, 166, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%);
+  border: 1px solid rgba(255, 112, 166, 0.4);
+  box-shadow: 0 0 15px rgba(255, 112, 166, 0.25), inset 0 0 10px rgba(168, 85, 247, 0.15);
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 auto 0.75rem auto;
+}
+
+/* Touch Action Utility */
+.touch-none {
+  touch-action: none;
+}
+
 /* ─── Ultra-compact Screens (≤375px) Adaptive Styling ────────────────────── */
 @media (max-width: 375px) {
   .hero-timer-cell {
-    padding: 0.5rem 0.25rem !important;
+    padding: 0.35rem 0.15rem !important;
   }
   .hero-timer-number {
-    font-size: 1.125rem !important;
-    line-height: 1.25rem !important;
+    font-size: 1rem !important;
+    line-height: 1.15rem !important;
   }
   .hero-timer-label {
-    font-size: 0.5rem !important;
-    letter-spacing: 0.05em !important;
+    font-size: 0.45rem !important;
+    letter-spacing: 0.04em !important;
   }
 }
+
 
 

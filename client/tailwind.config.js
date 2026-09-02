@@ -9,6 +9,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        'xs': '380px',
+      },
       colors: {
         space: {
           950: '#06030d',
