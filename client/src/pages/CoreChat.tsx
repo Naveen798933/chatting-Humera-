@@ -507,8 +507,8 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
   return (
     <div className="w-full max-w-7xl mx-auto flex-1 min-h-0 flex glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full">
       
-      {/* Multi-Conversation Sidebar (Desktop always visible, Mobile conditionally visible) */}
-      <div className={`h-full shrink-0 ${mobileView === 'sidebar' ? 'w-full block' : 'hidden md:block md:w-80 lg:w-96'}`}>
+      {/* Multi-Conversation Sidebar (Desktop always visible at fixed width, Mobile conditionally full width) */}
+      <div className={`h-full shrink-0 border-r border-white/10 ${mobileView === 'sidebar' ? 'w-full block md:w-80 lg:w-96' : 'hidden md:block md:w-80 lg:w-96'}`}>
         <ChatListSidebar
           onOpenSearch={() => setShowSearchModal(true)}
           onOpenCreateGroup={() => setShowCreateGroupModal(true)}
