@@ -8,7 +8,12 @@ import {
   GameSession,
   UserBlock,
   UserReport,
-  UserUid
+  UserUid,
+  Memory,
+  VaultNote,
+  CalendarEvent,
+  SharedListItem,
+  LoveMapPin
 } from '../types';
 
 // ============================================================================
@@ -21,7 +26,12 @@ const CACHE_KEYS = {
   FRIENDS: 'ou_friends_cache',
   NOTIFICATIONS: 'ou_notifications_cache',
   GAMES: 'ou_games_cache',
-  BLOCKS: 'ou_blocks_cache'
+  BLOCKS: 'ou_blocks_cache',
+  MEMORIES: 'ou_shared_memories',
+  VAULT: 'ou_shared_vault',
+  CALENDAR: 'ou_shared_calendar',
+  TODOS: 'ou_shared_todos',
+  MAP_PINS: 'ou_shared_mappins'
 };
 
 // ============================================================================
@@ -907,3 +917,392 @@ export const safetyApi = {
     return true;
   }
 };
+
+// ============================================================================
+// 10. Memories API (Cloud Sync + Offline Cache)
+// ============================================================================
+export const memoryApi = {
+  getCached(): Memory[] {
+    try {
+      const data = localStorage.getItem(CACHE_KEYS.MEMORIES);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  setCached(memories: Memory[]): void {
+    try {
+      localStorage.setItem(CACHE_KEYS.MEMORIES, JSON.stringify(memories));
+    } catch {}
+  },
+
+  async getMemories(): Promise<Memory[]> {
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('memories')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (data && !error) {
+          const memories: Memory[] = data.map(m => ({
+            id: m.id,
+            title: m.title,
+            description: m.description || '',
+            album: m.album || 'Random',
+            mediaUrls: m.media_urls || [],
+            type: 'photo',
+            date: m.date || new Date(m.created_at).toISOString().split('T')[0],
+            isFavorite: m.is_favorite ?? false,
+            createdBy: m.user_id,
+            createdAt: m.created_at
+          }));
+          memoryApi.setCached(memories);
+          return memories;
+        }
+      } catch (err) {
+        console.warn('[memoryApi] Failed to fetch memories from Supabase:', err);
+      }
+    }
+    return memoryApi.getCached();
+  },
+
+  async addMemory(mem: Omit<Memory, 'id' | 'createdAt'>, uid: string): Promise<Memory> {
+    const id = `mem_${Date.now()}`;
+    const createdAt = new Date().toISOString();
+    const item: Memory = { ...mem, id, createdBy: uid, createdAt };
+
+    const current = memoryApi.getCached();
+    memoryApi.setCached([item, ...current]);
+
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('memories').insert({
+          id,
+          user_id: uid,
+          title: mem.title,
+          description: mem.description,
+          album: mem.album,
+          media_urls: mem.mediaUrls,
+          is_favorite: mem.isFavorite,
+          date: mem.date,
+          created_at: createdAt
+        });
+      } catch (err) {
+        console.warn('[memoryApi] Supabase insert failed:', err);
+      }
+    }
+    return item;
+  },
+
+  async deleteMemory(id: string): Promise<boolean> {
+    const current = memoryApi.getCached();
+    memoryApi.setCached(current.filter(m => m.id !== id));
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase.from('memories').delete().eq('id', id);
+        return !error;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  async toggleFavorite(id: string, isFavorite: boolean): Promise<boolean> {
+    const current = memoryApi.getCached();
+    memoryApi.setCached(current.map(m => m.id === id ? { ...m, isFavorite } : m));
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase.from('memories').update({ is_favorite: isFavorite }).eq('id', id);
+        return !error;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+// ============================================================================
+// 11. Vault Notes API (Cloud Sync + Offline Cache)
+// ============================================================================
+export const vaultApi = {
+  getCached(): VaultNote[] {
+    try {
+      const data = localStorage.getItem(CACHE_KEYS.VAULT);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  setCached(notes: VaultNote[]): void {
+    try {
+      localStorage.setItem(CACHE_KEYS.VAULT, JSON.stringify(notes));
+    } catch {}
+  },
+
+  async getNotes(): Promise<VaultNote[]> {
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('vault_notes')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (data && !error) {
+          const notes: VaultNote[] = data.map(n => ({
+            id: n.id,
+            title: n.title,
+            content: n.content,
+            isLocked: n.is_locked ?? true,
+            createdBy: n.user_id,
+            createdAt: n.created_at
+          }));
+          vaultApi.setCached(notes);
+          return notes;
+        }
+      } catch (err) {
+        console.warn('[vaultApi] Failed to fetch vault notes:', err);
+      }
+    }
+    return vaultApi.getCached();
+  },
+
+  async addNote(note: Omit<VaultNote, 'id' | 'createdAt'>, uid: string): Promise<VaultNote> {
+    const id = `vault_${Date.now()}`;
+    const createdAt = new Date().toISOString();
+    const item: VaultNote = { ...note, id, createdBy: uid, createdAt };
+
+    const current = vaultApi.getCached();
+    vaultApi.setCached([item, ...current]);
+
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('vault_notes').insert({
+          id,
+          user_id: uid,
+          title: note.title,
+          content: note.content,
+          is_locked: note.isLocked,
+          created_at: createdAt
+        });
+      } catch (err) {
+        console.warn('[vaultApi] Supabase insert failed:', err);
+      }
+    }
+    return item;
+  },
+
+  async deleteNote(id: string): Promise<boolean> {
+    const current = vaultApi.getCached();
+    vaultApi.setCached(current.filter(n => n.id !== id));
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase.from('vault_notes').delete().eq('id', id);
+        return !error;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+// ============================================================================
+// 12. Calendar Events API (Cloud Sync + Offline Cache)
+// ============================================================================
+export const calendarApi = {
+  getCached(): CalendarEvent[] {
+    try {
+      const data = localStorage.getItem(CACHE_KEYS.CALENDAR);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  setCached(events: CalendarEvent[]): void {
+    try {
+      localStorage.setItem(CACHE_KEYS.CALENDAR, JSON.stringify(events));
+    } catch {}
+  },
+
+  async getEvents(): Promise<CalendarEvent[]> {
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .order('date', { ascending: true });
+
+        if (data && !error) {
+          const events: CalendarEvent[] = data.map(e => ({
+            id: e.id,
+            title: e.title,
+            date: e.date,
+            description: e.description || '',
+            category: e.category || 'date',
+            createdBy: e.user_id
+          }));
+          calendarApi.setCached(events);
+          return events;
+        }
+      } catch (err) {
+        console.warn('[calendarApi] Failed to fetch calendar events:', err);
+      }
+    }
+    return calendarApi.getCached();
+  },
+
+  async addEvent(event: Omit<CalendarEvent, 'id'>, uid: string): Promise<CalendarEvent> {
+    const id = `cal_${Date.now()}`;
+    const item: CalendarEvent = { ...event, id, createdBy: uid };
+
+    const current = calendarApi.getCached();
+    calendarApi.setCached([...current, item]);
+
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('calendar_events').insert({
+          id,
+          user_id: uid,
+          title: event.title,
+          date: event.date,
+          description: event.description || '',
+          category: event.category
+        });
+      } catch (err) {
+        console.warn('[calendarApi] Supabase insert failed:', err);
+      }
+    }
+    return item;
+  },
+
+  async deleteEvent(id: string): Promise<boolean> {
+    const current = calendarApi.getCached();
+    calendarApi.setCached(current.filter(e => e.id !== id));
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+        return !error;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+
+// ============================================================================
+// 13. Shared To-Dos API (Cloud Sync + Offline Cache)
+// ============================================================================
+export const todoApi = {
+  getCached(): SharedListItem[] {
+    try {
+      const data = localStorage.getItem(CACHE_KEYS.TODOS);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  setCached(todos: SharedListItem[]): void {
+    try {
+      localStorage.setItem(CACHE_KEYS.TODOS, JSON.stringify(todos));
+    } catch {}
+  },
+
+  async getTodos(): Promise<SharedListItem[]> {
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('todo_items')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (data && !error) {
+          const items: SharedListItem[] = data.map(t => ({
+            id: t.id,
+            title: t.title,
+            category: t.category || 'date',
+            completed: t.completed ?? false,
+            addedBy: t.user_id,
+            completedAt: t.completed_at
+          }));
+          todoApi.setCached(items);
+          return items;
+        }
+      } catch (err) {
+        console.warn('[todoApi] Failed to fetch todos from Supabase:', err);
+      }
+    }
+    return todoApi.getCached();
+  },
+
+  async addTodo(title: string, category: SharedListItem['category'], uid: string): Promise<SharedListItem> {
+    const id = `todo_${Date.now()}`;
+    const item: SharedListItem = { id, title, category, completed: false, addedBy: uid };
+
+    const current = todoApi.getCached();
+    todoApi.setCached([item, ...current]);
+
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('todo_items').insert({
+          id,
+          user_id: uid,
+          title,
+          category,
+          completed: false
+        });
+      } catch (err) {
+        console.warn('[todoApi] Supabase insert failed:', err);
+      }
+    }
+    return item;
+  },
+
+  async toggleTodo(id: string, completed: boolean): Promise<boolean> {
+    const current = todoApi.getCached();
+    todoApi.setCached(current.map(t => t.id === id ? { ...t, completed, completedAt: completed ? new Date().toISOString() : undefined } : t));
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase
+          .from('todo_items')
+          .update({
+            completed,
+            completed_at: completed ? new Date().toISOString() : null
+          })
+          .eq('id', id);
+        return !error;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  async deleteTodo(id: string): Promise<boolean> {
+    const current = todoApi.getCached();
+    todoApi.setCached(current.filter(t => t.id !== id));
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase.from('todo_items').delete().eq('id', id);
+        return !error;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+

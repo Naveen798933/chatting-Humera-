@@ -12,6 +12,9 @@ import { ViewOnceModal } from '../components/ViewOnceModal';
 import { ChatListSidebar } from '../components/ChatListSidebar';
 import { UserSearchModal } from '../components/UserSearchModal';
 import { CreateGroupModal } from '../components/CreateGroupModal';
+import { ChatHeader } from '../components/chat/ChatHeader';
+import { MessageBubble } from '../components/chat/MessageBubble';
+import { ChatInputDock } from '../components/chat/ChatInputDock';
 import {
   Send, Mic, Smile, Lock, Pin, ShieldAlert, Phone, Video, Camera,
   Trash2, Star, Search, CornerUpLeft, Clock, Paperclip, Eye, Flame,
@@ -504,6 +507,43 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
     ? `${activeChat?.participants.length || 0} members`
     : (partnerUser?.username ? `@${partnerUser.username}` : (partnerUser?.online ? 'Online' : 'Offline'));
 
+  const handleExportChat = () => {
+    const htmlRows = messages.map(m => {
+      const author = m.senderId === currentUser?.uid 
+        ? (currentUser?.petName || currentUser?.displayName || currentUser?.username || 'Me')
+        : (partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner');
+      const time = new Date(m.createdAt).toLocaleString();
+      const isMe = m.senderId === currentUser?.uid;
+      const bgColor = isMe ? '#ff70a6' : '#2d1b69';
+      const align = isMe ? 'right' : 'left';
+      return `<div style="text-align:${align};margin:8px 0;">
+        <span style="display:inline-block;max-width:70%;background:${bgColor};color:white;padding:8px 14px;border-radius:18px;font-size:13px;">
+          <strong>${author}</strong><br/>${m.content}
+          <div style="font-size:10px;opacity:0.7;margin-top:4px;">${time}</div>
+        </span>
+      </div>`;
+    }).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Our Universe Chat</title>
+    <style>body{font-family:system-ui,sans-serif;background:#0b071a;color:#f1f5f9;max-width:700px;margin:auto;padding:24px;}
+    h1{text-align:center;background:linear-gradient(135deg,#ff70a6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    p.sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:24px;}
+    </style></head><body>
+    <h1>💕 Our Universe Chat</h1>
+    <p class="sub">Naveen & Humera — exported ${new Date().toLocaleString()}</p>
+    ${htmlRows}
+    </body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.love('Chat exported as HTML! 📄');
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto flex-1 min-h-0 flex glass-panel rounded-none sm:rounded-3xl border-x-0 sm:border border-white/10 overflow-hidden shadow-2xl relative h-full">
       
@@ -523,279 +563,37 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
       <div className={`w-full min-w-0 flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-space-950/40 ${
         mobileView === 'sidebar' ? 'hidden md:flex' : 'flex'
       }`}>
-        {/* Section 1: MobileChatHeader (FIXED HEIGHT / flex: 0 0 auto) */}
-        <div 
-          className="w-full shrink-0 z-30 bg-space-900/98 backdrop-blur-2xl border-b border-white/10 shadow-md flex items-center justify-between px-2.5 xs:px-3 sm:px-5 py-2 xs:py-2.5 gap-2"
-          style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0.5rem))' }}
-        >
-          
-          {/* HeaderLeft: Back Button (fixed) + Chat Info (flexible min-w-0) */}
-          <div className="flex-1 min-w-0 flex items-center gap-2 xs:gap-2.5 overflow-hidden">
-            {/* Back to Conversations Button (Strict Fixed 38x38px) */}
-            <button
-              onClick={() => setMobileView('sidebar')}
-              className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-pink-300 hover:text-white md:hidden shrink-0 flex items-center justify-center active:scale-90 transition-all border border-pink-500/25 shadow-sm"
-              title="All Conversations"
-              aria-label="Back to conversations"
-            >
-              <ChevronLeft className="w-5 h-5 text-pink-400" />
-            </button>
-
-            {/* Chat Info (Avatar + Title + Subtitle) */}
-            <div 
-              onClick={() => { if (!isGroup && onOpenPartnerProfile) onOpenPartnerProfile(); }}
-              className={`flex-1 min-w-0 flex items-center gap-2 xs:gap-2.5 overflow-hidden ${!isGroup && onOpenPartnerProfile ? 'cursor-pointer active:scale-98 transition-transform' : ''}`}
-              title={!isGroup ? 'View Profile' : undefined}
-            >
-              {/* Avatar */}
-              <div className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] relative shrink-0">
-                <img
-                  src={chatAvatar}
-                  alt={chatTitle}
-                  className="w-full h-full rounded-full object-cover border-2 border-accent-pink shadow-md"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(chatTitle)}&background=a855f7&color=fff`;
-                  }}
-                />
-                {!isGroup && (
-                  <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-space-950 rounded-full ${
-                    partnerUser?.online ? 'bg-emerald-500' : 'bg-slate-500'
-                  }`} />
-                )}
-              </div>
-
-              {/* Title & Status */}
-              <div className="min-w-0 flex-1 flex flex-col justify-center overflow-hidden">
-                <h3 className="font-bold text-xs xs:text-sm text-white flex items-center gap-1.5 truncate leading-tight">
-                  <span className="truncate">{chatTitle}</span>
-                  {isGroup && (
-                    <span className="text-[8px] xs:text-[9px] px-1 py-0.2 bg-cyan-500/20 text-cyan-300 font-bold rounded-md shrink-0">
-                      Group
-                    </span>
-                  )}
-                </h3>
-                {isPartnerTyping ? (
-                  <p className="text-[8.5px] xs:text-[9.5px] sm:text-[10px] text-pink-300 font-bold flex items-center gap-1 animate-pulse truncate leading-tight mt-0.5">
-                    <span className="flex gap-0.5 items-center shrink-0">
-                      <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1 h-1 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </span>
-                    <span className="truncate">{chatTitle} is typing...</span>
-                  </p>
-                ) : (
-                  <p className={`text-[8.5px] xs:text-[9.5px] sm:text-[10px] font-medium flex items-center gap-1 truncate leading-tight mt-0.5 ${
-                    partnerUser?.online && !isGroup ? 'text-emerald-400' : 'text-slate-400'
-                  }`}>
-                    {!isGroup && (
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                        partnerUser?.online ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'
-                      }`} />
-                    )}
-                    <span className="truncate">{isGroup ? chatSubtitle : formatLastSeen(partnerUser?.lastSeen, partnerUser?.online)}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* HeaderActions: Strict Fixed 38x38px Action Buttons */}
-          <div className="flex items-center gap-1.5 xs:gap-2 shrink-0">
-            {/* Quick Voice Call Button */}
-            {!isGroup && (
-              <button
-                onClick={() => { startCall('voice'); toast.love('Starting Voice Call... 📞'); }}
-                title="Start Voice Call"
-                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-emerald-300 hover:text-emerald-200 hover:border-emerald-500/40 transition-all shrink-0 flex items-center justify-center active:scale-90 border border-emerald-500/25 shadow-sm"
-              >
-                <Phone className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
-              </button>
-            )}
-
-            {/* Video Call Button */}
-            {!isGroup && (
-              <button
-                onClick={() => { startCall('video'); toast.love('Starting Video Call... 📹'); }}
-                title="Start Video Call"
-                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-pink-300 hover:text-pink-200 hover:border-pink-500/40 transition-all shrink-0 flex items-center justify-center active:scale-90 border border-pink-500/25 shadow-sm"
-              >
-                <Video className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
-              </button>
-            )}
-
-            {/* Desktop-Only Secret Mode Button */}
-            <button
-              onClick={() => setIsSecretMode(!isSecretMode)}
-              className={`h-[38px] px-3 rounded-2xl text-xs font-semibold items-center gap-1.5 transition-all shrink-0 hidden md:flex ${
-                isSecretMode
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-lg shadow-rose-500/20 animate-pulse'
-                  : 'glass-card text-slate-300 hover:text-white'
-              }`}
-              title="Disappearing secret messages"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>{isSecretMode ? 'Secret ON' : 'Secret'}</span>
-            </button>
-
-            {/* Desktop-Only Search Button */}
-            <button
-              onClick={() => setShowSearch(!showSearch)}
-              className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-slate-300 hover:text-white shrink-0 items-center justify-center hidden md:flex active:scale-90 transition-all"
-              title="Search in chat"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
-            {/* More Options (3 Dots) Menu Button */}
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setShowMoreMenu(!showMoreMenu)}
-                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card text-slate-300 hover:text-white shrink-0 flex items-center justify-center active:scale-90 transition-all border border-white/15 shadow-sm"
-                title="More options"
-                aria-label="More options"
-              >
-                <MoreVertical className="w-4 h-4 xs:w-4.5 xs:h-4.5" />
-              </button>
-
-              <AnimatePresence>
-                {showMoreMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    className="absolute right-0 top-12 z-50 w-52 rounded-2xl glass-panel-glow border border-pink-500/30 p-2 shadow-2xl space-y-1"
-                  >
-                    {/* View Profile */}
-                    {!isGroup && onOpenPartnerProfile && (
-                      <button
-                        onClick={() => {
-                          setShowMoreMenu(false);
-                          onOpenPartnerProfile();
-                        }}
-                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 font-semibold"
-                      >
-                        <User className="w-4 h-4 text-purple-400" />
-                        <span>View Contact Info</span>
-                      </button>
-                    )}
-
-                    {/* Mobile Video Call item */}
-                    {!isGroup && (
-                      <button
-                        onClick={() => {
-                          setShowMoreMenu(false);
-                          startCall('video');
-                          toast.love('Starting Video Call... 📹');
-                        }}
-                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-pink-300 hover:text-pink-200 hover:bg-pink-500/15 flex items-center gap-2.5 font-semibold md:hidden"
-                      >
-                        <Video className="w-4 h-4 text-pink-400" />
-                        <span>Start Video Call</span>
-                      </button>
-                    )}
-
-                    {/* Mobile Search item */}
-                    <button
-                      onClick={() => {
-                        setShowMoreMenu(false);
-                        setShowSearch(!showSearch);
-                      }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 font-semibold md:hidden"
-                    >
-                      <Search className="w-4 h-4 text-purple-400" />
-                      <span>Search Messages</span>
-                    </button>
-
-                    {/* Secret Mode toggle */}
-                    <button
-                      onClick={() => {
-                        setShowMoreMenu(false);
-                        setIsSecretMode(!isSecretMode);
-                        if (!isSecretMode) toast.love('Secret Disappearing Mode Activated 🔒');
-                        else toast.info('Secret Mode Disabled');
-                      }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 font-semibold"
-                    >
-                      <Lock className="w-4 h-4 text-rose-400" />
-                      <span>{isSecretMode ? 'Turn Off Secret Mode' : 'Secret Burn Mode'}</span>
-                    </button>
-
-                    {/* Export Chat */}
-                    <button
-                      onClick={() => {
-                        setShowMoreMenu(false);
-                        const htmlRows = messages.map(m => {
-                          const author = m.senderId === currentUser?.uid 
-                            ? (currentUser?.petName || currentUser?.displayName || currentUser?.username || 'Me')
-                            : (partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'Partner');
-                          const time = new Date(m.createdAt).toLocaleString();
-                          const isMe = m.senderId === currentUser?.uid;
-                          const bgColor = isMe ? '#ff70a6' : '#2d1b69';
-                          const align = isMe ? 'right' : 'left';
-                          return `<div style="text-align:${align};margin:8px 0;">
-    <span style="display:inline-block;max-width:70%;background:${bgColor};color:white;padding:8px 14px;border-radius:18px;font-size:13px;">
-      <strong>${author}</strong><br/>${m.content}
-      <div style="font-size:10px;opacity:0.7;margin-top:4px;">${time}</div>
-    </span>
-  </div>`;
-                        }).join('');
-                        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Our Universe Chat</title>
-  <style>body{font-family:system-ui,sans-serif;background:#0b071a;color:#f1f5f9;max-width:700px;margin:auto;padding:24px;}
-  h1{text-align:center;background:linear-gradient(135deg,#ff70a6,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-  p.sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:24px;}
-  </style></head><body>
-  <h1>💕 Our Universe Chat</h1>
-  <p class="sub">Naveen & Humera — exported ${new Date().toLocaleString()}</p>
-  ${htmlRows}
-  </body></html>`;
-                        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `OurUniverse_Chat_${new Date().toISOString().split('T')[0]}.html`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                        toast.love('Chat exported as HTML! 📄');
-                      }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-slate-200 hover:text-white hover:bg-white/10 flex items-center gap-2.5 font-semibold"
-                    >
-                      <Paperclip className="w-4 h-4 text-emerald-400" />
-                      <span>Export Chat (HTML)</span>
-                    </button>
-
-                    {/* Mobile Home Return Button */}
-                    {onBackToHome && (
-                      <button
-                        onClick={() => {
-                          setShowMoreMenu(false);
-                          onBackToHome();
-                        }}
-                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs text-pink-300 hover:text-white hover:bg-pink-500/15 flex items-center gap-2.5 font-semibold md:hidden border-t border-white/10 mt-1"
-                      >
-                        <ArrowLeft className="w-4 h-4 text-pink-400" />
-                        <span>Back to Dashboard</span>
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Desktop-Only Return to Home Arrow Button */}
-            {onBackToHome && (
-              <button
-                onClick={onBackToHome}
-                title="Return to Home Dashboard"
-                aria-label="Back to Home"
-                className="w-[38px] h-[38px] min-w-[38px] max-w-[38px] rounded-2xl glass-card border border-pink-500/40 text-pink-300 hover:text-white hover:bg-pink-500/20 active:scale-90 transition-all items-center justify-center shadow-md shadow-pink-500/10 shrink-0 hidden md:flex"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        {/* Section 1: ChatHeader Subcomponent */}
+        <ChatHeader
+          chatTitle={chatTitle}
+          chatAvatar={chatAvatar}
+          chatSubtitle={chatSubtitle}
+          isGroup={isGroup}
+          partnerUser={partnerUser}
+          isPartnerTyping={isPartnerTyping}
+          isSecretMode={isSecretMode}
+          showSearch={showSearch}
+          showMoreMenu={showMoreMenu}
+          onBackToSidebar={() => setMobileView('sidebar')}
+          onOpenPartnerProfile={onOpenPartnerProfile}
+          onBackToHome={onBackToHome}
+          onStartCall={(type) => {
+            startCall(type);
+            toast.love(`Starting ${type === 'video' ? 'Video' : 'Voice'} Call... 📞`);
+          }}
+          onToggleSecretMode={() => {
+            setIsSecretMode(prev => {
+              const next = !prev;
+              if (next) toast.love('Secret Disappearing Mode Activated 🔒');
+              else toast.info('Secret Mode Disabled');
+              return next;
+            });
+          }}
+          onToggleSearch={() => setShowSearch(prev => !prev)}
+          onToggleMoreMenu={() => setShowMoreMenu(prev => !prev)}
+          onCloseMoreMenu={() => setShowMoreMenu(false)}
+          onExportChat={handleExportChat}
+        />
 
       {/* Secret Mode Banner */}
       <AnimatePresence>
@@ -950,169 +748,41 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
                   </div>
                 )}
 
-                <div className={`flex items-end gap-2 max-w-[90%] sm:max-w-[75%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                  {!isMe && (
-                    <img
-                      src={partnerUser?.photoURL}
-                      alt={partnerUser?.realName}
-                      className="w-7 h-7 rounded-full object-cover mb-1 border border-pink-400/40 flex-shrink-0"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Partner&background=a855f7&color=fff`;
-                      }}
-                    />
-                  )}
-
-                  <div className="flex flex-col gap-1">
-                    {/* Message bubble */}
-                    <div
-                      className={`p-3 sm:p-3.5 rounded-2xl relative shadow-lg cursor-pointer transition-all active:scale-[0.98] animate-bubble-pop ${
-                        isMe
-                          ? 'chat-bubble-sender rounded-tr-sm'
-                          : 'chat-bubble-receiver rounded-tl-sm'
-                      } ${msg.isSecret ? 'border-2 border-dashed border-rose-400/80 shadow-rose-500/20' : ''}`}
-                      onClick={() => handleBubbleClick(msg)}
-                    >
-                      {msg.isSecret && (
-                        <div className="flex items-center gap-1 text-[9px] font-bold text-rose-300 mb-1.5">
-                          <Lock className="w-3 h-3" />
-                          <span>Self-Destructing</span>
-                        </div>
-                      )}
-
-                      {msg.isViewOnce && msg.mediaUrl ? (
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveViewOnce({ id: msg.id, url: msg.mediaUrl! });
-                          }}
-                          className="p-3 rounded-2xl bg-black/40 border border-rose-500/40 text-rose-200 flex items-center gap-3 cursor-pointer hover:bg-black/60 transition-all my-1 active:scale-95 shadow-md"
-                        >
-                          <div className="w-9 h-9 rounded-full bg-rose-500 text-white flex items-center justify-center font-black text-sm shadow-md shrink-0">
-                            1
-                          </div>
-                          <div>
-                            <p className="font-extrabold text-xs text-white flex items-center gap-1.5">
-                              <Flame className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-                              <span>View Once Photo</span>
-                            </p>
-                            <p className="text-[10px] text-rose-300">Tap to view (5s burn timer)</p>
-                          </div>
-                        </div>
-                      ) : msg.type === 'image' && msg.mediaUrl ? (
-                        <img
-                          src={msg.mediaUrl}
-                          alt="Shared image"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setLightboxImage(msg.mediaUrl!);
-                          }}
-                          className="w-full max-h-56 object-cover rounded-xl mb-2 border border-white/10 cursor-zoom-in hover:opacity-95 transition-opacity"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : null}
-
-                      {msg.type === 'video' && msg.mediaUrl && (
-                        <video src={msg.mediaUrl} controls className="w-full max-h-56 rounded-xl mb-2 border border-white/10" />
-                      )}
-
-                      {msg.type === 'audio' && msg.mediaUrl && (
-                        <div className="my-1">
-                          <VoiceNotePlayer src={msg.mediaUrl} isMe={isMe} />
-                        </div>
-                      )}
-
-                      {msg.content.includes('Missed') && msg.content.includes('Call') ? (
-                        <div className="flex items-center justify-between gap-3 p-1 text-rose-200">
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-rose-400 animate-bounce" />
-                            <span className="font-bold text-xs">{msg.content}</span>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startCall(msg.content.includes('Video') ? 'video' : 'voice');
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-rose-500/30 hover:bg-rose-500/50 text-[10px] font-extrabold text-white border border-rose-400/40 transition-colors"
-                          >
-                            Call Back
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
-                      )}
-
-                      {/* Timestamp & Read Receipts */}
-                      <div className={`flex items-center gap-1.5 mt-1.5 text-[9px] opacity-70 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        {msg.isEdited && <span className="italic">(edited)</span>}
-                        {isMe && (
-                          msg.seen ? (
-                            <span className="flex items-center text-cyan-300 font-bold gap-0.5 drop-shadow-[0_0_6px_rgba(56,189,248,0.8)]" title={`Seen ${msg.seenAt ? new Date(msg.seenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}`}>
-                              <CheckCheck className="w-3.5 h-3.5 text-cyan-300" />
-                            </span>
-                          ) : msg.delivered ? (
-                            <span title="Delivered"><CheckCheck className="w-3.5 h-3.5 text-slate-300" /></span>
-                          ) : (
-                            <span title="Sent"><Check className="w-3.5 h-3.5 text-slate-400" /></span>
-                          )
-                        )}
-                        {msg.isStarred && <Star className="w-3 h-3 text-amber-300 fill-current" />}
-                      </div>
-
-                      {/* Reactions */}
-                      {Object.keys(msg.reactions || {}).length > 0 && (
-                        <div className="absolute -bottom-3 right-2 flex items-center gap-0.5 bg-space-950 border border-white/10 px-1.5 py-0.5 rounded-full shadow-md text-xs">
-                          {Object.entries(msg.reactions || {}).map(([emoji, uids]) => (
-                            <span key={emoji}>{emoji}{uids.length > 1 ? <sup className="text-[8px]">{uids.length}</sup> : ''}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Quick reaction / action bar — shows on click */}
-                    <AnimatePresence>
-                      {activeReactionMsgId === msg.id && (
-                        <motion.div
-                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                          className={`flex items-center gap-1 bg-space-900/95 border border-white/10 rounded-2xl px-2 py-1.5 shadow-xl backdrop-blur-md flex-wrap max-w-[min(280px,82vw)] overflow-hidden ${isMe ? 'self-end' : 'self-start'}`}
-                        >
-                          {QUICK_REACTIONS.map(emoji => (
-                            <button
-                              key={emoji}
-                              onClick={(e) => { e.stopPropagation(); addReaction(msg.id, emoji); setActiveReactionMsgId(null); }}
-                              className="text-base hover:scale-125 transition-transform active:scale-95 p-1 min-w-[34px] min-h-[34px] flex items-center justify-center"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                          <div className="w-px h-4 bg-white/10 mx-0.5" />
-                          <button onClick={(e) => { e.stopPropagation(); setPinnedMsg(pinnedMsg?.id === msg.id ? null : msg); setActiveReactionMsgId(null); toast.love(pinnedMsg?.id === msg.id ? 'Message unpinned' : 'Message pinned! 📌'); }} className="p-1.5 text-slate-300 hover:text-amber-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Pin message">
-                            <Pin className="w-4 h-4" />
-                          </button>
-                          <button onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); setActiveReactionMsgId(null); inputRef.current?.focus(); }} className="p-1.5 text-slate-300 hover:text-pink-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Reply">
-                            <CornerUpLeft className="w-4 h-4" />
-                          </button>
-                          {isMe && (
-                            <button onClick={(e) => { e.stopPropagation(); handleStartEdit(msg); }} className="p-1.5 text-slate-300 hover:text-sky-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Edit">
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button onClick={(e) => { e.stopPropagation(); setForwardingMsg(msg); setActiveReactionMsgId(null); }} className="p-1.5 text-slate-300 hover:text-purple-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Forward">
-                            <Forward className="w-4 h-4" />
-                          </button>
-                          <button onClick={(e) => { e.stopPropagation(); toggleStarMessage(msg.id); setActiveReactionMsgId(null); }} className="p-1.5 text-slate-300 hover:text-amber-300 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Star">
-                            <Star className="w-4 h-4" />
-                          </button>
-                          <button onClick={(e) => { e.stopPropagation(); handleDelete(msg); }} className="p-1.5 text-slate-300 hover:text-rose-400 min-w-[34px] min-h-[34px] flex items-center justify-center" title="Delete">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
+                <MessageBubble
+                  msg={msg}
+                  isMe={isMe}
+                  partnerUser={partnerUser}
+                  activeReactionMsgId={activeReactionMsgId}
+                  pinnedMsgId={pinnedMsg?.id}
+                  onBubbleClick={handleBubbleClick}
+                  onAddReaction={addReaction}
+                  onReply={(targetMsg) => {
+                    setReplyingTo(targetMsg);
+                    setActiveReactionMsgId(null);
+                    inputRef.current?.focus();
+                  }}
+                  onPin={(targetMsg) => {
+                    setPinnedMsg(pinnedMsg?.id === targetMsg.id ? null : targetMsg);
+                    setActiveReactionMsgId(null);
+                    toast.love(pinnedMsg?.id === targetMsg.id ? 'Message unpinned' : 'Message pinned! 📌');
+                  }}
+                  onStartEdit={(targetMsg) => {
+                    handleStartEdit(targetMsg);
+                  }}
+                  onForward={(targetMsg) => {
+                    setForwardingMsg(targetMsg);
+                    setActiveReactionMsgId(null);
+                  }}
+                  onDelete={() => {
+                    handleDelete(msg);
+                  }}
+                  onOpenLightbox={(url) => setLightboxImage(url)}
+                  onOpenViewOnce={(id, url) => setActiveViewOnce({ id, url })}
+                  onStartCall={(callType) => {
+                    startCall(callType);
+                    toast.love(`Starting ${callType === 'video' ? 'Video' : 'Voice'} Call... 📞`);
+                  }}
+                />
               </div>
             </React.Fragment>
           );
@@ -1224,156 +894,49 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
           )}
         </AnimatePresence>
         
-        {/* Emoji & Sticker Picker Overlay */}
-        <AnimatePresence>
-          {showEmojiPicker && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="absolute bottom-full left-0 right-0 sm:left-4 sm:right-auto mb-2 z-50 flex justify-center sm:block max-w-full px-2 sm:px-0"
-            >
-              <EmojiGifPicker
-                onSelectEmoji={(emoji) => setInputContent(prev => prev + emoji)}
-                onSelectSticker={(url) => { sendMessage('Sticker', 'image', url); setShowEmojiPicker(false); }}
-                onClose={() => setShowEmojiPicker(false)}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Composer Form Bar */}
-        <form
-          onSubmit={handleSend}
-          className="px-2 py-2 sm:px-4 sm:py-3 bg-space-950/95 backdrop-blur-2xl border-t border-white/10 flex items-end gap-1.5 sm:gap-2"
-          style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom, 8px))' }}
-        >
-          {/* Integrated Input Capsule (Pill shape: Emoji + Textarea + Attach + Camera) */}
-          <div className="flex-1 min-w-0 flex items-end bg-space-900/90 border border-white/15 rounded-3xl p-1.5 focus-within:border-pink-400/70 focus-within:ring-1 focus-within:ring-pink-400/40 transition-all shadow-inner">
-            
-            {/* 😊 Emoji Button inside Capsule */}
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="p-2 text-slate-300 hover:text-amber-300 active:scale-95 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center flex-shrink-0 rounded-full"
-              title="Emoji & Stickers"
-              aria-label="Toggle emoji picker"
-            >
-              <Smile className="w-5 h-5" />
-            </button>
-
-            {/* Middle Textarea inside Capsule */}
-            <textarea
-              ref={inputRef}
-              value={inputContent}
-              onChange={handleInputChange}
-              onFocus={handleInputFocus}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend(e);
-                } else if (e.key === 'Escape') {
-                  setActiveReactionMsgId(null);
-                }
-              }}
-              placeholder={isSecretMode ? '🔒 Disappearing message...' : `Message ${partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'chat'}...`}
-              rows={1}
-              className="flex-1 min-w-0 px-2 py-1.5 bg-transparent text-white placeholder-slate-400 text-xs sm:text-sm resize-none overflow-y-auto max-h-24 leading-relaxed focus:outline-none scrollbar-none"
-              style={{ touchAction: 'manipulation', WebkitUserSelect: 'text', userSelect: 'text' }}
-              autoComplete="off"
-              autoCorrect="on"
-              spellCheck={true}
-              enterKeyHint="send"
-              aria-label="Type a message"
-            />
-
-            {/* 👁️ View Once Toggle Button */}
-            <button
-              type="button"
-              onClick={() => {
-                const next = !isViewOnceMode;
-                setIsViewOnceMode(next);
-                if (next) toast.love('View Once Mode (1) Enabled 👁️');
-                else toast.info('View Once Disabled');
-              }}
-              className={`p-1.5 rounded-full transition-all min-w-[34px] min-h-[34px] flex items-center justify-center flex-shrink-0 ${
-                isViewOnceMode
-                  ? 'bg-rose-500 text-white font-extrabold shadow-lg shadow-rose-500/40 animate-pulse'
-                  : 'text-slate-400 hover:text-pink-300'
-              }`}
-              title="View Once Photo (Burns after 5s)"
-              aria-label="Toggle view once mode"
-            >
-              <div className="flex items-center gap-0.5 text-xs font-black">
-                <Eye className="w-3.5 h-3.5" />
-                <span className="text-[9px]">1</span>
-              </div>
-            </button>
-
-            {/* 📎 Attachment Clip inside Capsule */}
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="p-2 text-slate-300 hover:text-pink-300 active:scale-95 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center flex-shrink-0 rounded-full"
-              title="Attach Media"
-              aria-label="Attach media"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
-
-            {/* 📷 Camera Button inside Capsule */}
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
-              className="p-2 text-slate-300 hover:text-purple-300 active:scale-95 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center flex-shrink-0 rounded-full hidden sm:flex"
-              title="Take Photo"
-              aria-label="Take photo"
-            >
-              <Camera className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Dynamic Action Button Outside Capsule (Circular Floating Button for Send / Voice) */}
-          <div className="flex-shrink-0">
-            {inputContent.trim().length > 0 ? (
-              <button
-                type="submit"
-                className="w-11 h-11 rounded-full bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
-                title="Send Message"
-                aria-label="Send message"
-              >
-                <Send className="w-5 h-5 ml-0.5" />
-              </button>
-            ) : !isRecording ? (
-              <button
-                type="button"
-                onClick={handleStartRecording}
-                className="w-11 h-11 rounded-full bg-space-900 border border-white/15 text-slate-200 hover:text-purple-300 hover:border-purple-400/40 active:scale-95 transition-all flex items-center justify-center shadow-md"
-                title="Record Voice Note"
-                aria-label="Record voice note"
-              >
-                <Mic className="w-5 h-5" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleStopRecording}
-                className="h-11 px-3.5 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center gap-2 animate-pulse shadow-lg shadow-rose-500/40"
-                title="Stop & Send Voice Note"
-                aria-label="Stop recording and send voice note"
-              >
-                <div className="flex items-center gap-0.5 h-4">
-                  <span className="w-0.5 h-3 bg-white rounded-full wave-bar-active" />
-                  <span className="w-0.5 h-4 bg-white rounded-full wave-bar-active" />
-                  <span className="w-0.5 h-2 bg-white rounded-full wave-bar-active" />
-                  <span className="w-0.5 h-4 bg-white rounded-full wave-bar-active" />
-                </div>
-                <StopCircle className="w-4 h-4" />
-                <span>{recordingTime}s</span>
-              </button>
-            )}
-          </div>
-        </form>
+        {/* Section 3: ChatInputDock Subcomponent */}
+        <ChatInputDock
+          inputContent={inputContent}
+          isSecretMode={isSecretMode}
+          isViewOnceMode={isViewOnceMode}
+          replyingTo={replyingTo}
+          pinnedMsg={null}
+          showEmojiPicker={showEmojiPicker}
+          isRecording={isRecording}
+          recordingTime={recordingTime}
+          partnerName={partnerUser?.petName || partnerUser?.displayName || partnerUser?.username || 'chat'}
+          onInputChange={handleInputChange}
+          onInputKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend(e);
+            } else if (e.key === 'Escape') {
+              setActiveReactionMsgId(null);
+            }
+          }}
+          onInputFocus={handleInputFocus}
+          onSend={handleSend}
+          onToggleEmojiPicker={() => setShowEmojiPicker(prev => !prev)}
+          onSelectEmoji={(emoji) => setInputContent(prev => prev + emoji)}
+          onSelectSticker={(url) => {
+            sendMessage('Sticker', 'image', url);
+            setShowEmojiPicker(false);
+          }}
+          onToggleViewOnce={() => {
+            setIsViewOnceMode(prev => {
+              const next = !prev;
+              if (next) toast.love('View Once Mode (1) Enabled 👁️');
+              else toast.info('View Once Disabled');
+              return next;
+            });
+          }}
+          onFileUpload={handleFileUpload}
+          onStartRecording={handleStartRecording}
+          onStopRecording={handleStopRecording}
+          onCancelReply={() => setReplyingTo(null)}
+          onUnpinMessage={() => setPinnedMsg(null)}
+          inputRef={inputRef}
+        />
       </div>
 
       {/* 👁️ View Once Self-Destructing Photo Modal */}

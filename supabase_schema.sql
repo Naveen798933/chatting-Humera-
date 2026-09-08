@@ -147,7 +147,74 @@ CREATE TABLE IF NOT EXISTS user_reports (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. Enable Realtime Publications
+-- 10. Memories & Photo Albums
+CREATE TABLE IF NOT EXISTS memories (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  album TEXT DEFAULT 'Random',
+  media_urls TEXT[] DEFAULT '{}',
+  is_favorite BOOLEAN DEFAULT false,
+  date TEXT,
+  location TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_memories_album ON memories(album);
+CREATE INDEX IF NOT EXISTS idx_memories_created_at ON memories(created_at DESC);
+
+-- 11. Secret Vault Notes
+CREATE TABLE IF NOT EXISTS vault_notes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  is_locked BOOLEAN DEFAULT true,
+  tags TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 12. Shared Calendar & Relationship Milestones
+CREATE TABLE IF NOT EXISTS calendar_events (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  date TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  category TEXT DEFAULT 'date',
+  reminder BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(date);
+
+-- 13. Shared Relationship To-Dos & Bucket Lists
+CREATE TABLE IF NOT EXISTS todo_items (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT DEFAULT 'date',
+  completed BOOLEAN DEFAULT false,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. Romantic Map Pins
+CREATE TABLE IF NOT EXISTS map_pins (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  lat DOUBLE PRECISION NOT NULL,
+  lng DOUBLE PRECISION NOT NULL,
+  description TEXT DEFAULT '',
+  visited_at TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 15. Enable Realtime Publications
 ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
 ALTER PUBLICATION supabase_realtime ADD TABLE chats;
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
@@ -155,8 +222,13 @@ ALTER PUBLICATION supabase_realtime ADD TABLE friend_requests;
 ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
 ALTER PUBLICATION supabase_realtime ADD TABLE game_sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE presence;
+ALTER PUBLICATION supabase_realtime ADD TABLE memories;
+ALTER PUBLICATION supabase_realtime ADD TABLE vault_notes;
+ALTER PUBLICATION supabase_realtime ADD TABLE calendar_events;
+ALTER PUBLICATION supabase_realtime ADD TABLE todo_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE map_pins;
 
--- 11. Row Level Security Policies (Permissive default with authentication check)
+-- 16. Row Level Security Policies (Permissive default for authenticated couple universe)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
@@ -165,6 +237,11 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE game_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vault_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE todo_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE map_pins ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow public profiles access" ON profiles FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public chats access" ON chats FOR ALL USING (true) WITH CHECK (true);
@@ -174,3 +251,9 @@ CREATE POLICY "Allow public notifications access" ON notifications FOR ALL USING
 CREATE POLICY "Allow public game_sessions access" ON game_sessions FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public presence access" ON presence FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public user_reports access" ON user_reports FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public memories access" ON memories FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public vault_notes access" ON vault_notes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public calendar_events access" ON calendar_events FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public todo_items access" ON todo_items FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public map_pins access" ON map_pins FOR ALL USING (true) WITH CHECK (true);
+

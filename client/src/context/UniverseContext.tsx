@@ -9,7 +9,7 @@ import { sounds } from '../lib/soundEffects';
 import { toast } from '../lib/toast';
 import confetti from 'canvas-confetti';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { userApi, chatApi, messageApi, friendApi, notificationApi, safetyApi } from '../lib/api';
+import { userApi, chatApi, messageApi, friendApi, notificationApi, safetyApi, memoryApi, vaultApi, calendarApi, todoApi } from '../lib/api';
 
 // Local-only keys (fallback)
 const LS_MEMS  = 'ou_shared_memories';
@@ -188,6 +188,41 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     refreshFriends();
   }, [refreshFriends]);
+
+  // ── Cloud Sync: Load & Real-Time Subscribe to Shared Couple Data ──
+  useEffect(() => {
+    if (!currentUser) return;
+    let isMounted = true;
+
+    // Initial fetch from cloud API (with localStorage cache fallback)
+    memoryApi.getMemories().then(m => { if (isMounted) setMemories(m); });
+    vaultApi.getNotes().then(v => { if (isMounted) setVaultNotes(v); });
+    calendarApi.getEvents().then(c => { if (isMounted) setCalendarEvents(c); });
+    todoApi.getTodos().then(t => { if (isMounted) setTodoItems(t); });
+
+    // Realtime Postgres subscription for instant sync between couple
+    if (!isSupabaseConfigured()) return;
+
+    const coupleChannel = supabase.channel('ou_couple_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'memories' }, () => {
+        memoryApi.getMemories().then(m => { if (isMounted) setMemories(m); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vault_notes' }, () => {
+        vaultApi.getNotes().then(v => { if (isMounted) setVaultNotes(v); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => {
+        calendarApi.getEvents().then(c => { if (isMounted) setCalendarEvents(c); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'todo_items' }, () => {
+        todoApi.getTodos().then(t => { if (isMounted) setTodoItems(t); });
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(coupleChannel);
+    };
+  }, [currentUser]);
 
   // ── Personal Channel for Incoming Realtime Calls & Instant Alerts ──
   useEffect(() => {
@@ -560,78 +595,58 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const unreadNotificationCount = notifications.filter(n => !n.read).length;
 
-  // ── Memories, Vault, Calendar ──
-  const addMemory = (mem: Omit<Memory, 'id' | 'createdAt'>) => {
-    const newMem: Memory = {
-      ...mem,
-      id: `mem_${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    const updated = [newMem, ...memories];
-    setMemories(updated);
-    writeLS(LS_MEMS, updated);
+  // ── Memories, Vault, Calendar (Cloud Synchronized) ──
+  const addMemory = async (mem: Omit<Memory, 'id' | 'createdAt'>) => {
+    const uid = currentUser?.uid || 'user';
+    const newMem = await memoryApi.addMemory(mem, uid);
+    setMemories(prev => [newMem, ...prev.filter(m => m.id !== newMem.id)]);
   };
 
-  const deleteMemory = (id: string) => {
-    const updated = memories.filter(m => m.id !== id);
-    setMemories(updated);
-    writeLS(LS_MEMS, updated);
+  const deleteMemory = async (id: string) => {
+    await memoryApi.deleteMemory(id);
+    setMemories(prev => prev.filter(m => m.id !== id));
   };
 
-  const toggleFavoriteMemory = (id: string) => {
-    const updated = memories.map(m => m.id === id ? { ...m, isFavorite: !m.isFavorite } : m);
-    setMemories(updated);
-    writeLS(LS_MEMS, updated);
+  const toggleFavoriteMemory = async (id: string) => {
+    const target = memories.find(m => m.id === id);
+    const nextFav = target ? !target.isFavorite : true;
+    await memoryApi.toggleFavorite(id, nextFav);
+    setMemories(prev => prev.map(m => m.id === id ? { ...m, isFavorite: nextFav } : m));
   };
 
-  const addVaultNote = (note: Omit<VaultNote, 'id' | 'createdAt'>) => {
-    const newNote: VaultNote = {
-      ...note,
-      id: `note_${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    const updated = [newNote, ...vaultNotes];
-    setVaultNotes(updated);
-    writeLS(LS_VAULT, updated);
+  const addVaultNote = async (note: Omit<VaultNote, 'id' | 'createdAt'>) => {
+    const uid = currentUser?.uid || 'user';
+    const newNote = await vaultApi.addNote(note, uid);
+    setVaultNotes(prev => [newNote, ...prev.filter(n => n.id !== newNote.id)]);
   };
 
-  const deleteVaultNote = (id: string) => {
-    const updated = vaultNotes.filter(n => n.id !== id);
-    setVaultNotes(updated);
-    writeLS(LS_VAULT, updated);
+  const deleteVaultNote = async (id: string) => {
+    await vaultApi.deleteNote(id);
+    setVaultNotes(prev => prev.filter(n => n.id !== id));
   };
 
-  const addCalendarEvent = (evt: Omit<CalendarEvent, 'id'>) => {
-    const newEvt: CalendarEvent = { ...evt, id: `evt_${Date.now()}` };
-    const updated = [...calendarEvents, newEvt];
-    setCalendarEvents(updated);
-    writeLS(LS_CAL, updated);
+  const addCalendarEvent = async (evt: Omit<CalendarEvent, 'id'>) => {
+    const uid = currentUser?.uid || 'user';
+    const newEvt = await calendarApi.addEvent(evt, uid);
+    setCalendarEvents(prev => [...prev.filter(e => e.id !== newEvt.id), newEvt]);
   };
 
-  const addTodoItem = (title: string, category: SharedListItem['category']) => {
+  const addTodoItem = async (title: string, category: SharedListItem['category']) => {
     if (!currentUser) return;
-    const newItem: SharedListItem = {
-      id: `todo_${Date.now()}`,
-      title,
-      category,
-      completed: false,
-      addedBy: currentUser.uid
-    };
-    const updated = [newItem, ...todoItems];
-    setTodoItems(updated);
-    writeLS(LS_TODO, updated);
+    const newItem = await todoApi.addTodo(title, category, currentUser.uid);
+    setTodoItems(prev => [newItem, ...prev.filter(t => t.id !== newItem.id)]);
   };
 
-  const toggleTodoItem = (id: string) => {
-    const updated = todoItems.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-    setTodoItems(updated);
-    writeLS(LS_TODO, updated);
+  const toggleTodoItem = async (id: string) => {
+    const target = todoItems.find(t => t.id === id);
+    const nextDone = target ? !target.completed : true;
+    await todoApi.toggleTodo(id, nextDone);
+    setTodoItems(prev => prev.map(t => t.id === id ? { ...t, completed: nextDone, completedAt: nextDone ? new Date().toISOString() : undefined } : t));
   };
 
-  const deleteTodoItem = (id: string) => {
-    const updated = todoItems.filter(t => t.id !== id);
-    setTodoItems(updated);
-    writeLS(LS_TODO, updated);
+  const deleteTodoItem = async (id: string) => {
+    await todoApi.deleteTodo(id);
+    setTodoItems(prev => prev.filter(t => t.id !== id));
   };
 
   const addMapPin = (pin: Omit<LoveMapPin, 'id'>) => {
