@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite client --port 3000 --host",
     "build": "vite build client",
+    "test": "npm --prefix client test",
     "preview": "vite preview client"
   },
   "dependencies": {

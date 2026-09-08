@@ -121,25 +121,39 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
 
           {/* View Once Photo */}
-          {msg.isViewOnce && msg.mediaUrl ? (
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenViewOnce(msg.id, msg.mediaUrl!);
-              }}
-              className="p-3 rounded-2xl bg-black/40 border border-rose-500/40 text-rose-200 flex items-center gap-3 cursor-pointer hover:bg-black/60 transition-all my-1 active:scale-95 shadow-md"
-            >
-              <div className="w-9 h-9 rounded-full bg-rose-500 text-white flex items-center justify-center font-black text-sm shadow-md shrink-0">
-                1
+          {msg.isViewOnce ? (
+            msg.viewedOnce || !msg.mediaUrl || msg.content === 'Photo viewed 🔒' ? (
+              <div className="p-2.5 rounded-2xl bg-black/30 border border-white/10 text-white/50 flex items-center gap-2.5 my-1 select-none cursor-default">
+                <div className="w-8 h-8 rounded-full bg-white/10 text-white/50 flex items-center justify-center font-bold text-xs shrink-0">
+                  🔒
+                </div>
+                <div>
+                  <p className="font-semibold text-xs text-white/70 flex items-center gap-1">
+                    <span>Photo Opened</span>
+                  </p>
+                  <p className="text-[10px] text-white/40">Permanently Expired &amp; Burned</p>
+                </div>
               </div>
-              <div>
-                <p className="font-extrabold text-xs text-white flex items-center gap-1.5">
-                  <Flame className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-                  <span>View Once Photo</span>
-                </p>
-                <p className="text-[10px] text-rose-300">Tap to view (Burns after 5s)</p>
+            ) : (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenViewOnce(msg.id, msg.mediaUrl!);
+                }}
+                className="p-3 rounded-2xl bg-black/40 border border-rose-500/40 text-rose-200 flex items-center gap-3 cursor-pointer hover:bg-black/60 transition-all my-1 active:scale-95 shadow-md"
+              >
+                <div className="w-9 h-9 rounded-full bg-rose-500 text-white flex items-center justify-center font-black text-sm shadow-md shrink-0">
+                  1
+                </div>
+                <div>
+                  <p className="font-extrabold text-xs text-white flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                    <span>View Once Photo</span>
+                  </p>
+                  <p className="text-[10px] text-rose-300">Tap to view (Burns after 5s)</p>
+                </div>
               </div>
-            </div>
+            )
           ) : msg.type === 'image' && msg.mediaUrl ? (
             <img
               src={msg.mediaUrl}

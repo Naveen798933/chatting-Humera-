@@ -371,6 +371,18 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const { id, reactions } = payload.payload || {};
         setMessages(prev => prev.map(m => m.id === id ? { ...m, reactions } : m));
       })
+      .on('broadcast', { event: 'BURN_MESSAGE' }, (payload: any) => {
+        const { id } = payload.payload || {};
+        if (id) {
+          setMessages(prev => {
+            const next = prev.map(m => m.id === id ? { ...m, viewedOnce: true, mediaUrl: undefined, content: 'Photo viewed 🔒' } : m);
+            if (activeChatId) {
+              try { localStorage.setItem(`ou_messages_cache_${activeChatId}`, JSON.stringify(next)); } catch (_) {}
+            }
+            return next;
+          });
+        }
+      })
       .subscribe();
 
     return () => {
@@ -458,10 +470,30 @@ export const UniverseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const burnViewOnceMessage = async (id: string) => {
     if (!currentUser) return;
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, viewedOnce: true, content: 'Photo viewed 🔒' } : m));
+    setMessages(prev => {
+      const next = prev.map(m => m.id === id ? { ...m, viewedOnce: true, mediaUrl: undefined, content: 'Photo viewed 🔒' } : m);
+      if (activeChatId) {
+        try { localStorage.setItem(`ou_messages_cache_${activeChatId}`, JSON.stringify(next)); } catch (_) {}
+      }
+      return next;
+    });
+
+    if (spChatChannelRef.current) {
+      spChatChannelRef.current.send({
+        type: 'broadcast',
+        event: 'BURN_MESSAGE',
+        payload: { id }
+      }).catch(() => {});
+    }
+
     if (isSupabaseConfigured()) {
       try {
-        await supabase.from('messages').update({ is_view_once: true, viewed_by: [currentUser.uid], content: 'Photo viewed 🔒' }).eq('id', id);
+        await supabase.from('messages').update({
+          is_view_once: true,
+          media_url: null,
+          viewed_by: [currentUser.uid],
+          content: 'Photo viewed 🔒'
+        }).eq('id', id);
       } catch (_) {}
     }
   };

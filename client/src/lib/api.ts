@@ -19,7 +19,7 @@ import {
 // ============================================================================
 // Local Storage Cache Keys
 // ============================================================================
-const CACHE_KEYS = {
+export const CACHE_KEYS = {
   PROFILES: 'ou_profiles_cache',
   CHATS: 'ou_chats_cache',
   MESSAGES_PREFIX: 'ou_messages_cache_',
@@ -489,6 +489,16 @@ export const chatApi = {
       } catch (_) {}
     }
 
+    // Persist to local cache for offline reliability
+    try {
+      const s = localStorage.getItem(CACHE_KEYS.CHATS);
+      const list: Chat[] = s ? JSON.parse(s) : [];
+      if (!list.some(c => c.id === newChat.id)) {
+        list.unshift(newChat);
+        localStorage.setItem(CACHE_KEYS.CHATS, JSON.stringify(list));
+      }
+    } catch (_) {}
+
     return newChat;
   },
 
@@ -548,6 +558,16 @@ export const chatApi = {
         });
       } catch (_) {}
     }
+
+    // Persist to local cache for offline reliability
+    try {
+      const s = localStorage.getItem(CACHE_KEYS.CHATS);
+      const list: Chat[] = s ? JSON.parse(s) : [];
+      if (!list.some(c => c.id === newGroup.id)) {
+        list.unshift(newGroup);
+        localStorage.setItem(CACHE_KEYS.CHATS, JSON.stringify(list));
+      }
+    } catch (_) {}
 
     return newGroup;
   }
@@ -647,13 +667,37 @@ export const messageApi = {
             updated_at: new Date().toISOString()
           }).eq('id', msg.chatId);
         }
-
-        return !error;
       } catch (err) {
         console.error('[MessageAPI] sendMessage error:', err);
-        return false;
       }
     }
+
+    // Always persist to local cache for offline durability
+    try {
+      if (msg.chatId) {
+        const cacheKey = CACHE_KEYS.MESSAGES_PREFIX + msg.chatId;
+        const cachedRaw = localStorage.getItem(cacheKey);
+        const cachedMsgs: Message[] = cachedRaw ? JSON.parse(cachedRaw) : [];
+        if (!cachedMsgs.some(m => m.id === msg.id)) {
+          cachedMsgs.push(msg);
+          localStorage.setItem(cacheKey, JSON.stringify(cachedMsgs));
+        }
+
+        // Update last message in cached chats
+        const chatsRaw = localStorage.getItem(CACHE_KEYS.CHATS);
+        if (chatsRaw) {
+          const cachedChats: Chat[] = JSON.parse(chatsRaw);
+          const cIdx = cachedChats.findIndex(c => c.id === msg.chatId);
+          if (cIdx >= 0) {
+            cachedChats[cIdx].lastMessage = msg.type === 'text' ? msg.content : `[${msg.type.toUpperCase()}]`;
+            cachedChats[cIdx].lastMessageAt = msg.createdAt;
+            cachedChats[cIdx].lastSenderId = msg.senderId;
+            localStorage.setItem(CACHE_KEYS.CHATS, JSON.stringify(cachedChats));
+          }
+        }
+      }
+    } catch (_) {}
+
     return true;
   },
 

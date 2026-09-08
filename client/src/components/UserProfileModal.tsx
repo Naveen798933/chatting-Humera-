@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   User, AtSign, Shield, LogOut, Check, X,
   MapPin, Palette, Sparkles, Lock, Bell, Smartphone, Key
@@ -50,6 +50,19 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
       }
     );
   });
+
+  // Sync state whenever modal opens or targetUser changes
+  useEffect(() => {
+    if (isOpen && targetUser) {
+      setDisplayName(targetUser.displayName || '');
+      setBio(targetUser.bio || '');
+      setCity(targetUser.city || '');
+      setPhotoURL(targetUser.photoURL || '');
+      if (currentUser?.privacySettings) {
+        setPrivacySettings(currentUser.privacySettings);
+      }
+    }
+  }, [isOpen, targetUser, currentUser?.privacySettings]);
 
   const themes: { id: AppTheme; name: string; gradient: string; accentColor: string; desc: string }[] = [
     {

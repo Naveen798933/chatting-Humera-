@@ -947,7 +947,10 @@ export const CoreChat: React.FC<CoreChatProps> = ({ onBackToHome, onOpenPartnerP
             burnViewOnceMessage(activeViewOnce.id);
             setActiveViewOnce(null);
           }}
-          onClose={() => setActiveViewOnce(null)}
+          onClose={() => {
+            burnViewOnceMessage(activeViewOnce.id);
+            setActiveViewOnce(null);
+          }}
         />
       )}
 
